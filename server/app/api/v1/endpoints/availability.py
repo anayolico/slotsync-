@@ -59,6 +59,7 @@ async def set_creator_availability(
     return new_rules
 
 
+@router.get("", response_model=List[AvailabilityRuleResponse])
 @router.get("/me", response_model=List[AvailabilityRuleResponse])
 async def get_my_availability(
     current_user: User = Depends(get_current_user),
@@ -74,6 +75,54 @@ async def get_my_availability(
 
     rules_res = await db.execute(select(AvailabilityRule).where(AvailabilityRule.creator_id == creator.id))
     return rules_res.scalars().all()
+
+
+@router.get("/{creator_id}/rules", response_model=List[AvailabilityRuleResponse])
+async def get_creator_availability_rules_admin(
+    creator_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get all working hours rules for a target creator by creator_id.
+    """
+    rules_res = await db.execute(select(AvailabilityRule).where(AvailabilityRule.creator_id == creator_id))
+    return rules_res.scalars().all()
+
+
+@router.post("/{creator_id}/rules", response_model=List[AvailabilityRuleResponse])
+async def set_creator_availability_rules_admin(
+    creator_id: str,
+    data: SetAvailabilityRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Set or edit weekly working hours for any target creator by creator_id (Admin access).
+    """
+    res = await db.execute(select(CreatorProfile).where(CreatorProfile.id == creator_id))
+    creator = res.scalar_one_or_none()
+    if not creator:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Creator profile not found.")
+
+    # Replace existing rules
+    await db.execute(delete(AvailabilityRule).where(AvailabilityRule.creator_id == creator.id))
+
+    new_rules = []
+    for item in data.rules:
+        rule = AvailabilityRule(
+            creator_id=creator.id,
+            day_of_week=item.day_of_week,
+            start_time=item.start_time,
+            end_time=item.end_time,
+        )
+        db.add(rule)
+        new_rules.append(rule)
+
+    await db.commit()
+    for r in new_rules:
+        await db.refresh(r)
+
+    return new_rules
 
 
 @router.get("/{creator_id}/slots", response_model=List[SlotResponse])

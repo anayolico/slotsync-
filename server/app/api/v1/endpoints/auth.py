@@ -42,13 +42,15 @@ async def register_user(
     await db.commit()
     await db.refresh(user)
 
-    # If registered as CREATOR, create an initial CreatorProfile automatically
+    # If registered as CREATOR, create CreatorProfile with specified or default fields
     if data.role == UserRole.CREATOR:
         creator_profile = CreatorProfile(
             user_id=user.id,
-            category="General",
-            title=f"{data.full_name}'s Service",
-            bio="Welcome to my SlotSync page. Book a slot below!",
+            category=data.category or "General",
+            title=data.title or f"{data.full_name}'s Service",
+            bio=data.bio or "Welcome to my SlotSync page. Book a slot below!",
+            hourly_rate=data.hourly_rate if data.hourly_rate is not None else 0.0,
+            slot_duration_minutes=data.slot_duration_minutes or 30,
         )
         db.add(creator_profile)
         await db.commit()

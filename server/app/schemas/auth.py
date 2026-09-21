@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, EmailStr
 from app.models.user import UserRole
 
@@ -21,3 +22,8 @@ class RegisterRequest(BaseModel):
     password: str
     full_name: str
     role: UserRole = UserRole.CLIENT
+    category: Optional[str] = "General"
+    title: Optional[str] = None
+    bio: Optional[str] = None
+    hourly_rate: Optional[float] = 0.0
+    slot_duration_minutes: Optional[int] = 30

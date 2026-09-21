@@ -43,6 +43,44 @@ async def book_appointment(
     return res.scalar_one()
 
 
+@router.get("/me", response_model=List[AppointmentResponse])
+async def get_my_appointments(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    List all relevant appointments for the logged-in user (Client bookings or Creator schedule).
+    """
+    if current_user.role == UserRole.CREATOR:
+        creator_res = await db.execute(select(CreatorProfile).where(CreatorProfile.user_id == current_user.id))
+        creator = creator_res.scalar_one_or_none()
+        if creator:
+            stmt = (
+                select(Appointment)
+                .options(
+                    selectinload(Appointment.client),
+                    selectinload(Appointment.creator).selectinload(CreatorProfile.user),
+                )
+                .where(Appointment.creator_id == creator.id)
+                .order_by(Appointment.start_time_utc.desc())
+            )
+            res = await db.execute(stmt)
+            return res.scalars().all()
+
+    stmt = (
+        select(Appointment)
+        .options(
+            selectinload(Appointment.client),
+            selectinload(Appointment.creator).selectinload(CreatorProfile.user),
+        )
+        .where(Appointment.client_id == current_user.id)
+        .order_by(Appointment.start_time_utc.desc())
+    )
+    res = await db.execute(stmt)
+    return res.scalars().all()
+
+
+@router.get("", response_model=List[AppointmentResponse])
 @router.get("/my-bookings", response_model=List[AppointmentResponse])
 async def list_my_client_bookings(
     current_user: User = Depends(get_current_user),

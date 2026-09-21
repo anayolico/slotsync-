@@ -22,7 +22,7 @@ async def compute_available_slots(
     target_date: date,
 ) -> List[SlotResponse]:
     """
-    Calculates open time slots for a creator on a given date in UTC.
+    Calculates open time slots for   a creator on a given date in UTC.
     """
     # 1. Fetch Creator profile
     creator_res = await db.execute(select(CreatorProfile).where(CreatorProfile.id == creator_id))
