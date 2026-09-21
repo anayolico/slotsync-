@@ -18,7 +18,7 @@ interface Props {
   onBack?: () => void;
 }
 
-const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export default function ManageAvailabilityScreen({ currentUser, onBack }: Props) {
   const creatorProfile = currentUser?.creator_profile;
@@ -27,10 +27,12 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
 
   // Modal State
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedDay, setSelectedDay] = useState(0); // 0 = Monday
+  const [selectedDay, setSelectedDay] = useState(0); // 0 = Mon
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('17:00');
   const [submitting, setSubmitting] = useState(false);
+
+  const slotDuration = creatorProfile?.slot_duration_minutes || 30;
 
   const fetchRules = async () => {
     if (!creatorProfile?.id) {
@@ -91,21 +93,39 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
     );
   };
 
+  // Calculate estimated slots
+  const calculateSlotCount = () => {
+    try {
+      const [sh, sm] = startTime.split(':').map(Number);
+      const [eh, em] = endTime.split(':').map(Number);
+      const startTotal = (sh || 0) * 60 + (sm || 0);
+      const endTotal = (eh || 0) * 60 + (em || 0);
+      if (endTotal > startTotal) {
+        return Math.floor((endTotal - startTotal) / slotDuration);
+      }
+    } catch {
+      return 16;
+    }
+    return 16;
+  };
+
+  const estimatedSlots = calculateSlotCount();
+
   return (
     <View style={styles.container}>
-      {/* Top Navigation */}
+      {/* Top Navigation Bar */}
       <View style={styles.header}>
         {onBack && (
           <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-            <Text style={styles.backBtnText}>← Back</Text>
+            <Text style={styles.backBtnText}>‹ Back</Text>
           </TouchableOpacity>
         )}
         <View style={styles.titleRow}>
           <View>
             <Text style={styles.title}>Weekly Schedule Rules</Text>
-            <Text style={styles.subtitle}>Configure working hours for automated slot generation</Text>
+            <Text style={styles.subtitle}>Automated slot generation & active hours</Text>
           </View>
-          <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
+          <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)} activeOpacity={0.8}>
             <Text style={styles.addBtnText}>+ Add Rule</Text>
           </TouchableOpacity>
         </View>
@@ -123,25 +143,31 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
           <Text style={styles.emptySubtitle}>
             Add weekly working hours (e.g. Monday 09:00 to 17:00) to open client booking slots.
           </Text>
-          <TouchableOpacity style={styles.createFirstBtn} onPress={() => setModalVisible(true)}>
-            <Text style={styles.createFirstBtnText}>+ Set Up Working Hours</Text>
+          <TouchableOpacity style={styles.createFirstBtn} onPress={() => setModalVisible(true)} activeOpacity={0.88}>
+            <Text style={styles.createFirstBtnText}>+ Add Availability Rule</Text>
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.rulesList}>
+        <ScrollView contentContainerStyle={styles.rulesList} showsVerticalScrollIndicator={false}>
           {rules.map((rule) => {
             const dayName = WEEKDAYS[rule.day_of_week] || `Day ${rule.day_of_week}`;
             return (
               <View key={rule.id || Math.random()} style={styles.ruleCard}>
                 <View style={styles.ruleLeft}>
-                  <Text style={styles.dayTitle}>{dayName}</Text>
-                  <Text style={styles.timeRangeText}>
-                    🕒 {rule.start_time} → {rule.end_time}
-                  </Text>
+                  <View style={styles.dayTag}>
+                    <Text style={styles.dayTagText}>{dayName}</Text>
+                  </View>
+                  <View>
+                    <Text style={styles.dayTitle}>{dayName} Working Hours</Text>
+                    <Text style={styles.timeRangeText}>
+                      🕒 {rule.start_time} - {rule.end_time} ({slotDuration} min slots)
+                    </Text>
+                  </View>
                 </View>
                 <TouchableOpacity 
                   style={styles.deleteBtn} 
                   onPress={() => handleDeleteRule(rule.id, dayName)}
+                  activeOpacity={0.7}
                 >
                   <Text style={styles.deleteBtnText}>Delete</Text>
                 </TouchableOpacity>
@@ -151,61 +177,97 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
         </ScrollView>
       )}
 
-      {/* Add Rule Modal */}
+      {/* Availability Scheduling Bottom Sheet Modal (Stitch Screen 4 Spec) */}
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Add Availability Rule</Text>
-            <Text style={styles.modalSubtitle}>Specify working day & active hours (24h format)</Text>
-
-            {/* Day Selector */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Select Day of Week</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.daysRow}>
-                {WEEKDAYS.map((d, index) => (
-                  <TouchableOpacity
-                    key={d}
-                    style={[styles.dayChip, selectedDay === index && styles.dayChipSelected]}
-                    onPress={() => setSelectedDay(index)}
-                  >
-                    <Text style={[styles.dayChipText, selectedDay === index && styles.dayChipTextSelected]}>
-                      {d.substring(0, 3)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+          <View style={styles.bottomSheetCard}>
+            {/* Sheet Drag Handle Indicator */}
+            <View style={styles.dragHandleContainer}>
+              <View style={styles.dragHandle} />
             </View>
 
-            {/* Start & End Time Inputs */}
+            {/* Sheet Header */}
+            <View style={styles.sheetHeader}>
+              <View>
+                <Text style={styles.sheetTitle}>Add Availability Rule</Text>
+                <Text style={styles.sheetSubtitle}>Specify working day & active hours (24h format)</Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.closeSheetBtn} 
+                onPress={() => setModalVisible(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.closeSheetText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Days of Week Selector 7-Grid */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>SELECT DAY OF WEEK</Text>
+              <View style={styles.daysGrid}>
+                {WEEKDAYS.map((d, index) => {
+                  const isSelected = selectedDay === index;
+                  return (
+                    <TouchableOpacity
+                      key={d}
+                      style={[styles.dayGridBtn, isSelected && styles.dayGridBtnSelected]}
+                      onPress={() => setSelectedDay(index)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.dayGridText, isSelected && styles.dayGridTextSelected]}>
+                        {d}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Start & End Time Inputs Row */}
             <View style={styles.timeInputsRow}>
               <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Start Time (HH:MM)</Text>
-                <TextInput
-                  style={styles.timeInput}
-                  placeholder="09:00"
-                  placeholderTextColor={colors.textDim}
-                  value={startTime}
-                  onChangeText={setStartTime}
-                />
+                <Text style={styles.inputLabel}>START TIME (HH:MM)</Text>
+                <View style={styles.timeInputBox}>
+                  <TextInput
+                    style={styles.timeInput}
+                    placeholder="09:00"
+                    placeholderTextColor={colors.textDim}
+                    value={startTime}
+                    onChangeText={setStartTime}
+                  />
+                  <Text style={styles.clockInputIcon}>🕒</Text>
+                </View>
               </View>
 
               <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.label}>End Time (HH:MM)</Text>
-                <TextInput
-                  style={styles.timeInput}
-                  placeholder="17:00"
-                  placeholderTextColor={colors.textDim}
-                  value={endTime}
-                  onChangeText={setEndTime}
-                />
+                <Text style={styles.inputLabel}>END TIME (HH:MM)</Text>
+                <View style={styles.timeInputBox}>
+                  <TextInput
+                    style={styles.timeInput}
+                    placeholder="17:00"
+                    placeholderTextColor={colors.textDim}
+                    value={endTime}
+                    onChangeText={setEndTime}
+                  />
+                  <Text style={styles.clockInputIcon}>🕒</Text>
+                </View>
               </View>
             </View>
 
-            {/* Modal Action Buttons */}
+            {/* Slot Auto-generation Preview Badge */}
+            <View style={styles.previewBadge}>
+              <Text style={styles.lightningIcon}>⚡</Text>
+              <Text style={styles.previewBadgeText}>
+                Will generate <Text style={styles.previewHighlight}>{estimatedSlots} slots</Text> ({slotDuration}-min duration) per active day
+              </Text>
+            </View>
+
+            {/* Modal Action Buttons Row */}
             <View style={styles.modalActions}>
               <TouchableOpacity 
                 style={styles.cancelModalBtn} 
                 onPress={() => setModalVisible(false)}
+                activeOpacity={0.8}
               >
                 <Text style={styles.cancelModalBtnText}>Cancel</Text>
               </TouchableOpacity>
@@ -214,11 +276,15 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
                 style={[styles.saveModalBtn, submitting && styles.buttonDisabled]} 
                 onPress={handleAddRule}
                 disabled={submitting}
+                activeOpacity={0.88}
               >
                 {submitting ? (
                   <ActivityIndicator color="#ffffff" size="small" />
                 ) : (
-                  <Text style={styles.saveModalBtnText}>Save Schedule</Text>
+                  <>
+                    <Text style={styles.saveCheckIcon}>✓</Text>
+                    <Text style={styles.saveModalBtnText}>Save Schedule</Text>
+                  </>
                 )}
               </TouchableOpacity>
             </View>
@@ -233,7 +299,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bgApp,
-    paddingTop: 50,
+    paddingTop: 48,
   },
   header: {
     paddingHorizontal: 20,
@@ -255,8 +321,9 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '900',
     color: colors.textMain,
+    letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 12,
@@ -267,11 +334,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: radii.md,
+    borderRadius: 12,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
   addBtnText: {
     color: '#ffffff',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
   },
   rulesList: {
@@ -280,37 +352,60 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   ruleCard: {
-    backgroundColor: colors.bgCard,
-    borderRadius: radii.lg,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: colors.borderColor,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
   },
   ruleLeft: {
-    gap: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  dayTitle: {
-    fontSize: 16,
+  dayTag: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#eef2ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayTagText: {
+    fontSize: 13,
     fontWeight: '800',
     color: colors.primary,
   },
+  dayTitle: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: colors.textMain,
+  },
   timeRangeText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.textMuted,
+    marginTop: 2,
   },
   deleteBtn: {
-    backgroundColor: colors.dangerBg,
+    backgroundColor: '#fff1f2',
+    borderWidth: 1,
+    borderColor: '#fecdd3',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: radii.sm,
+    borderRadius: 10,
   },
   deleteBtnText: {
-    color: colors.danger,
-    fontSize: 12,
+    color: '#e11d48',
+    fontSize: 11.5,
     fontWeight: '700',
   },
   centerContainer: {
@@ -344,7 +439,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: radii.md,
+    borderRadius: 14,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
   },
   createFirstBtnText: {
     color: '#ffffff',
@@ -353,105 +453,191 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    justifyContent: 'flex-end',
   },
-  modalCard: {
-    backgroundColor: colors.bgCard,
-    borderRadius: radii.xl,
-    padding: 24,
+  bottomSheetCard: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 32,
     width: '100%',
-    maxWidth: 400,
     gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.16,
+    shadowRadius: 40,
+    elevation: 10,
   },
-  modalTitle: {
+  dragHandleContainer: {
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  dragHandle: {
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#cbd5e1',
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  sheetTitle: {
     fontSize: 18,
     fontWeight: '800',
     color: colors.textMain,
   },
-  modalSubtitle: {
+  sheetSubtitle: {
     fontSize: 12,
     color: colors.textMuted,
-    marginTop: -10,
+    marginTop: 2,
+  },
+  closeSheetBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeSheetText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textMuted,
   },
   inputGroup: {
     gap: 6,
   },
-  label: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textMuted,
+  inputLabel: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: colors.textDim,
+    letterSpacing: 0.8,
   },
-  daysRow: {
+  daysGrid: {
+    flexDirection: 'row',
     gap: 6,
-    paddingVertical: 4,
   },
-  dayChip: {
-    backgroundColor: colors.bgInput,
-    borderColor: colors.borderColor,
-    borderWidth: 1,
-    borderRadius: radii.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  dayGridBtn: {
+    flex: 1,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  dayChipSelected: {
+  dayGridBtnSelected: {
     backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  dayChipText: {
+  dayGridText: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.textMuted,
+    color: '#334155',
   },
-  dayChipTextSelected: {
+  dayGridTextSelected: {
     color: '#ffffff',
+    fontWeight: '800',
   },
   timeInputsRow: {
     flexDirection: 'row',
     gap: 12,
   },
-  timeInput: {
-    backgroundColor: colors.bgInput,
+  timeInputBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: colors.borderColor,
-    borderRadius: radii.md,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  timeInput: {
+    flex: 1,
     fontSize: 14,
+    fontWeight: '700',
     color: colors.textMain,
+  },
+  clockInputIcon: {
+    fontSize: 14,
+  },
+  previewBadge: {
+    backgroundColor: '#eef2ff',
+    borderWidth: 1,
+    borderColor: '#c7d2fe',
+    borderRadius: 14,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  lightningIcon: {
+    fontSize: 16,
+  },
+  previewBadgeText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: colors.primaryDark,
+    flex: 1,
+  },
+  previewHighlight: {
+    fontWeight: '800',
+    textDecorationLine: 'underline',
   },
   modalActions: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 8,
+    marginTop: 4,
   },
   cancelModalBtn: {
     flex: 1,
-    backgroundColor: colors.bgInput,
+    backgroundColor: '#f1f5f9',
     paddingVertical: 12,
-    borderRadius: radii.md,
+    borderRadius: 14,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelModalBtnText: {
-    color: colors.textMuted,
-    fontSize: 14,
+    color: '#334155',
+    fontSize: 13,
     fontWeight: '700',
   },
   saveModalBtn: {
-    flex: 1,
+    flex: 2,
     backgroundColor: colors.primary,
     paddingVertical: 12,
-    borderRadius: radii.md,
+    borderRadius: 14,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  saveCheckIcon: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '900',
   },
   saveModalBtnText: {
     color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
   },
   buttonDisabled: {
     opacity: 0.6,
   },
 });
+

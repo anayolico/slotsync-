@@ -197,82 +197,114 @@ export default function AppNavigator() {
         )}
       </View>
 
-      {/* Bottom Navigation Tab Bar */}
+      {/* Bottom Navigation Tab Bar (Stitch Design Spec) */}
       <View style={styles.tabBar}>
         {isCreator ? (
-          // Creator Tabs
+          // Creator Tabs: Dashboard, Schedule, Requests, Profile
           <>
             <TouchableOpacity
-              style={[styles.tabItem, creatorTab === 'DASHBOARD' && styles.tabItemActive]}
+              style={styles.tabItem}
               onPress={() => setCreatorTab('DASHBOARD')}
+              activeOpacity={0.7}
             >
-              <Text style={styles.tabIcon}>📊</Text>
+              <View style={styles.tabIconWrapper}>
+                <Text style={styles.tabIcon}>📊</Text>
+                {creatorTab === 'DASHBOARD' && <View style={styles.activeDot} />}
+              </View>
               <Text style={[styles.tabLabel, creatorTab === 'DASHBOARD' && styles.tabLabelActive]}>
                 Dashboard
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.tabItem, creatorTab === 'SCHEDULE' && styles.tabItemActive]}
+              style={styles.tabItem}
               onPress={() => setCreatorTab('SCHEDULE')}
+              activeOpacity={0.7}
             >
-              <Text style={styles.tabIcon}>⏰</Text>
+              <View style={styles.tabIconWrapper}>
+                <Text style={styles.tabIcon}>⏰</Text>
+                {creatorTab === 'SCHEDULE' && <View style={styles.activeDot} />}
+              </View>
               <Text style={[styles.tabLabel, creatorTab === 'SCHEDULE' && styles.tabLabelActive]}>
                 Schedule
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.tabItem, creatorTab === 'REQUESTS' && styles.tabItemActive]}
+              style={styles.tabItem}
               onPress={() => setCreatorTab('REQUESTS')}
+              activeOpacity={0.7}
             >
-              <Text style={styles.tabIcon}>📬</Text>
+              <View style={styles.tabIconWrapper}>
+                <Text style={styles.tabIcon}>📬</Text>
+                <View style={styles.badgePulseDot} />
+                {creatorTab === 'REQUESTS' && <View style={styles.activeDot} />}
+              </View>
               <Text style={[styles.tabLabel, creatorTab === 'REQUESTS' && styles.tabLabelActive]}>
                 Requests
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.tabItem, creatorTab === 'PROFILE' && styles.tabItemActive]}
+              style={styles.tabItem}
               onPress={() => setCreatorTab('PROFILE')}
+              activeOpacity={0.7}
             >
-              <Text style={styles.tabIcon}>👤</Text>
+              <View style={styles.tabIconWrapper}>
+                <Text style={styles.tabIcon}>👤</Text>
+                {creatorTab === 'PROFILE' && <View style={styles.activeDot} />}
+              </View>
               <Text style={[styles.tabLabel, creatorTab === 'PROFILE' && styles.tabLabelActive]}>
                 Profile
               </Text>
             </TouchableOpacity>
           </>
         ) : (
-          // Client Tabs
+          // Client Tabs: Discover, Bookings, Profile
           <>
             <TouchableOpacity
-              style={[styles.tabItem, clientTab === 'DISCOVER' && styles.tabItemActive]}
+              style={styles.tabItem}
               onPress={() => {
                 setSelectedCreator(null);
                 setClientTab('DISCOVER');
               }}
+              activeOpacity={0.7}
             >
-              <Text style={styles.tabIcon}>🔍</Text>
+              <View style={styles.tabIconWrapper}>
+                <Text style={styles.tabIcon}>🔍</Text>
+                {clientTab === 'DISCOVER' && <View style={styles.activeDot} />}
+              </View>
               <Text style={[styles.tabLabel, clientTab === 'DISCOVER' && styles.tabLabelActive]}>
                 Discover
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.tabItem, clientTab === 'MY_BOOKINGS' && styles.tabItemActive]}
+              style={styles.tabItem}
               onPress={() => setClientTab('MY_BOOKINGS')}
+              activeOpacity={0.7}
             >
-              <Text style={styles.tabIcon}>📅</Text>
+              <View style={styles.tabIconWrapper}>
+                <Text style={styles.tabIcon}>📅</Text>
+                <View style={styles.badgeNumber}>
+                  <Text style={styles.badgeNumberText}>2</Text>
+                </View>
+                {clientTab === 'MY_BOOKINGS' && <View style={styles.activeDot} />}
+              </View>
               <Text style={[styles.tabLabel, clientTab === 'MY_BOOKINGS' && styles.tabLabelActive]}>
                 Bookings
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.tabItem, clientTab === 'PROFILE' && styles.tabItemActive]}
+              style={styles.tabItem}
               onPress={() => setClientTab('PROFILE')}
+              activeOpacity={0.7}
             >
-              <Text style={styles.tabIcon}>👤</Text>
+              <View style={styles.tabIconWrapper}>
+                <Text style={styles.tabIcon}>👤</Text>
+                {clientTab === 'PROFILE' && <View style={styles.activeDot} />}
+              </View>
               <Text style={[styles.tabLabel, clientTab === 'PROFILE' && styles.tabLabelActive]}>
                 Profile
               </Text>
@@ -306,34 +338,78 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: colors.bgCard,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderTopWidth: 1,
-    borderTopColor: colors.borderColor,
-    paddingVertical: 8,
-    paddingBottom: 20,
-    elevation: 8,
-    shadowColor: '#000',
+    borderTopColor: '#e2e8f0',
+    paddingVertical: 10,
+    paddingBottom: 22,
+    shadowColor: '#0f172a',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 10,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
   },
-  tabItemActive: {},
+  tabIconWrapper: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 32,
+    height: 28,
+  },
   tabIcon: {
     fontSize: 20,
+  },
+  activeDot: {
+    position: 'absolute',
+    bottom: -4,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: colors.primary,
+  },
+  badgePulseDot: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: colors.primary,
+    borderWidth: 1,
+    borderColor: '#ffffff',
+  },
+  badgeNumber: {
+    position: 'absolute',
+    top: -2,
+    right: -6,
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    width: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
+  },
+  badgeNumberText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '900',
   },
   tabLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: colors.textMuted,
+    color: colors.textDim,
+    marginTop: 2,
   },
   tabLabelActive: {
     color: colors.primary,
     fontWeight: '800',
   },
 });
+

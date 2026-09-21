@@ -7,7 +7,8 @@ import {
   TouchableOpacity, 
   FlatList, 
   ActivityIndicator, 
-  RefreshControl 
+  RefreshControl,
+  ScrollView
 } from 'react-native';
 import { colors, radii } from '../../theme/colors';
 import { getCreators } from '../../services/api';
@@ -17,7 +18,15 @@ interface Props {
   currentUser: any;
 }
 
-const CATEGORIES = ['ALL', 'Doctor', 'Lawyer', 'Barber', 'Consultant', 'Fitness', 'Beauty', 'General'];
+const CATEGORY_ITEMS = [
+  { label: 'ALL', icon: '⚡', key: 'ALL', color: '#4f46e5', bg: '#4f46e5', text: '#ffffff' },
+  { label: 'Doctor', icon: '🩺', key: 'Doctor', color: '#0d9488', bg: '#f0fdfa', text: '#0f766e', border: '#bbf7d0' },
+  { label: 'Lawyer', icon: '⚖️', key: 'Lawyer', color: '#059669', bg: '#ecfdf5', text: '#047857', border: '#a7f3d0' },
+  { label: 'Barber', icon: '✂️', key: 'Barber', color: '#e11d48', bg: '#fff1f2', text: '#be123c', border: '#fecdd3' },
+  { label: 'Consultant', icon: '📊', key: 'Consultant', color: '#d97706', bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
+  { label: 'Fitness', icon: '💪', key: 'Fitness', color: '#0284c7', bg: '#f0f9ff', text: '#0369a1', border: '#bae6fd' },
+  { label: 'General', icon: '🌟', key: 'General', color: '#64748b', bg: '#f8fafc', text: '#334155', border: '#e2e8f0' },
+];
 
 export default function ClientHomeScreen({ onSelectCreator, currentUser }: Props) {
   const [creators, setCreators] = useState<any[]>([]);
@@ -25,6 +34,7 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser }: Props
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [bookmarked, setBookmarked] = useState<Record<string, boolean>>({});
 
   const fetchCreators = async () => {
     try {
@@ -55,56 +65,126 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser }: Props
     fetchCreators();
   };
 
-  const renderCreatorCard = ({ item }: { item: any }) => (
-    <TouchableOpacity 
-      style={styles.creatorCard} 
-      activeOpacity={0.8}
-      onPress={() => onSelectCreator(item)}
-    >
-      <View style={styles.cardHeader}>
-        <View style={styles.avatarCircle}>
-          <Text style={styles.avatarLetter}>
-            {item.title ? item.title.charAt(0).toUpperCase() : 'C'}
-          </Text>
-        </View>
-        <View style={styles.headerInfo}>
-          <Text style={styles.creatorTitle}>{item.title || 'Creator Profile'}</Text>
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryBadgeText}>{item.category || 'General'}</Text>
+  const toggleBookmark = (id: string) => {
+    setBookmarked(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const getCategoryTheme = (cat?: string) => {
+    const found = CATEGORY_ITEMS.find(c => c.key.toLowerCase() === (cat || '').toLowerCase());
+    if (found) return found;
+    return CATEGORY_ITEMS[6]; // General fallback
+  };
+
+  const renderCreatorCard = ({ item }: { item: any }) => {
+    const catTheme = getCategoryTheme(item.category);
+    const initials = item.title 
+      ? item.title.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase() || 'C'
+      : 'C';
+    const isBookmarked = !!bookmarked[item.id];
+
+    return (
+      <TouchableOpacity 
+        style={styles.creatorCard} 
+        activeOpacity={0.88}
+        onPress={() => onSelectCreator(item)}
+      >
+        <View style={styles.cardHeader}>
+          {/* Avatar squircle with verified badge */}
+          <View style={styles.avatarWrapper}>
+            <View style={[styles.avatarCircle, { backgroundColor: catTheme.color }]}>
+              <Text style={styles.avatarLetter}>{initials}</Text>
+            </View>
+            <View style={styles.verifiedBadge}>
+              <Text style={styles.verifiedCheck}>✓</Text>
+            </View>
           </View>
-        </View>
-      </View>
 
-      <Text style={styles.creatorBio} numberOfLines={2}>
-        {item.bio || 'No bio provided for this creator profile.'}
-      </Text>
+          {/* Name & Title */}
+          <View style={styles.headerInfo}>
+            <Text style={styles.creatorTitle} numberOfLines={1}>{item.title || 'Specialist Creator'}</Text>
+            <View style={styles.metaRow}>
+              <View style={[styles.categoryBadge, { backgroundColor: catTheme.bg, borderColor: catTheme.border || '#cbd5e1' }]}>
+                <Text style={[styles.categoryBadgeText, { color: catTheme.text }]}>
+                  {item.category || 'General'}
+                </Text>
+              </View>
+              <View style={styles.ratingBadge}>
+                <Text style={styles.starIcon}>★</Text>
+                <Text style={styles.ratingValue}>4.9</Text>
+                <Text style={styles.ratingCount}>(128)</Text>
+              </View>
+            </View>
+          </View>
 
-      <View style={styles.cardFooter}>
-        <View style={styles.metaPill}>
-          <Text style={styles.metaIcon}>⏱️</Text>
-          <Text style={styles.metaText}>{item.slot_duration_minutes || 30} mins</Text>
+          {/* Quick Bookmark Button */}
+          <TouchableOpacity 
+            style={styles.bookmarkBtn}
+            onPress={() => toggleBookmark(item.id)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.bookmarkIcon, isBookmarked && styles.bookmarkIconActive]}>
+              {isBookmarked ? '🔖' : '🔖'}
+            </Text>
+          </TouchableOpacity>
         </View>
-        <Text style={styles.rateText}>
-          ${item.hourly_rate || 0}/hr
+
+        {/* Short Bio */}
+        <Text style={styles.creatorBio} numberOfLines={2}>
+          {item.bio || 'Available for professional consultation and schedule slot bookings.'}
         </Text>
-      </View>
-    </TouchableOpacity>
-  );
+
+        <View style={styles.cardDivider} />
+
+        {/* Card Footer */}
+        <View style={styles.cardFooter}>
+          <View style={styles.footerMeta}>
+            <View style={styles.durationRow}>
+              <Text style={styles.clockIcon}>🕒</Text>
+              <Text style={styles.durationText}>{item.slot_duration_minutes || 30} mins</Text>
+            </View>
+            <Text style={styles.rateText}>
+              ${item.hourly_rate || 0}<Text style={styles.rateUnit}>/hr</Text>
+            </Text>
+          </View>
+
+          {/* Book Slot CTA Button */}
+          <TouchableOpacity 
+            style={styles.bookSlotBtn}
+            activeOpacity={0.8}
+            onPress={() => onSelectCreator(item)}
+          >
+            <Text style={styles.bookSlotBtnText}>Book Slot</Text>
+            <Text style={styles.bookSlotBtnArrow}>›</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      {/* Top Welcome Header */}
+      {/* Top Welcome Header Bar (Stitch Screen 3 Alignment) */}
       <View style={styles.topBar}>
         <View>
           <Text style={styles.welcomeText}>Welcome back,</Text>
-          <Text style={styles.userName}>{currentUser ? currentUser.full_name : 'Client User'}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.userName}>{currentUser ? currentUser.full_name : 'Anayolico'}</Text>
+            <View style={styles.onlineDot} />
+          </View>
         </View>
-        <View style={styles.clientRoleBadge}>
-          <Text style={styles.clientRoleBadgeText}>CLIENT</Text>
+
+        <View style={styles.headerRight}>
+          <View style={styles.clientRoleBadge}>
+            <View style={styles.pulseDot} />
+            <Text style={styles.clientRoleBadgeText}>CLIENT</Text>
+          </View>
+          <TouchableOpacity style={styles.settingsQuickBtn} activeOpacity={0.8}>
+            <Text style={styles.settingsQuickIcon}>⚙️</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Search Input */}
+      {/* Search Bar */}
       <View style={styles.searchBox}>
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
@@ -116,48 +196,62 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser }: Props
           onSubmitEditing={handleSearchSubmit}
           returnKeyType="search"
         />
-        {searchQuery.length > 0 && (
+        {searchQuery.length > 0 ? (
           <TouchableOpacity onPress={() => { setSearchQuery(''); fetchCreators(); }}>
             <Text style={styles.clearSearch}>✕</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.filterBtn} activeOpacity={0.7}>
+            <Text style={styles.filterIcon}>🎛️</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Category Pills */}
+      {/* Category Chips with Icons */}
       <View style={styles.categorySection}>
-        <FlatList
-          horizontal
-          data={CATEGORIES}
-          keyExtractor={(item) => item}
+        <ScrollView 
+          horizontal 
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoriesList}
-          renderItem={({ item }) => {
-            const isActive = selectedCategory === item;
+        >
+          {CATEGORY_ITEMS.map((cat) => {
+            const isActive = selectedCategory === cat.key;
             return (
               <TouchableOpacity
-                style={[styles.categoryPill, isActive && styles.categoryPillActive]}
-                onPress={() => setSelectedCategory(item)}
+                key={cat.key}
+                style={[
+                  styles.categoryChip,
+                  { backgroundColor: isActive ? colors.primary : cat.bg, borderColor: isActive ? colors.primary : (cat.border || colors.borderColor) }
+                ]}
+                activeOpacity={0.8}
+                onPress={() => setSelectedCategory(cat.key)}
               >
-                <Text style={[styles.categoryPillText, isActive && styles.categoryPillTextActive]}>
-                  {item}
+                {cat.icon && cat.key !== 'ALL' && (
+                  <Text style={styles.chipIcon}>{cat.icon}</Text>
+                )}
+                <Text style={[
+                  styles.categoryChipText,
+                  { color: isActive ? '#ffffff' : cat.text }
+                ]}>
+                  {cat.label}
                 </Text>
               </TouchableOpacity>
             );
-          }}
-        />
+          })}
+        </ScrollView>
       </View>
 
-      {/* Creators Grid/List */}
+      {/* Specialist Feed */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Fetching available creators...</Text>
+          <Text style={styles.loadingText}>Fetching available specialists...</Text>
         </View>
       ) : creators.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>📂</Text>
-          <Text style={styles.emptyTitle}>No creators found</Text>
-          <Text style={styles.emptySubtitle}>Try selecting another category or clear your search term.</Text>
+          <Text style={styles.emptyIcon}>🩺</Text>
+          <Text style={styles.emptyTitle}>No specialists found</Text>
+          <Text style={styles.emptySubtitle}>Try selecting another category or clear your search query.</Text>
         </View>
       ) : (
         <FlatList
@@ -178,58 +272,108 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bgApp,
-    paddingTop: 50,
+    paddingTop: 48,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   welcomeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.textDim,
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 2,
+  },
   userName: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: '900',
     color: colors.textMain,
+    letterSpacing: -0.4,
+  },
+  onlineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10b981',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   clientRoleBadge: {
-    backgroundColor: colors.bgSubtle,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#eef2ff',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: radii.pill,
     borderWidth: 1,
     borderColor: '#c7d2fe',
   },
+  pulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+  },
   clientRoleBadgeText: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '800',
     color: colors.primary,
+    letterSpacing: 0.6,
+  },
+  settingsQuickBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingsQuickIcon: {
+    fontSize: 16,
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.bgCard,
-    borderRadius: radii.pill,
+    backgroundColor: '#ffffff',
+    borderRadius: 18,
     marginHorizontal: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    height: 46,
     borderWidth: 1,
-    borderColor: colors.borderColor,
+    borderColor: '#e2e8f0',
     marginBottom: 14,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   searchIcon: {
     marginRight: 8,
-    fontSize: 16,
+    fontSize: 15,
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13.5,
+    fontWeight: '500',
     color: colors.textMain,
   },
   clearSearch: {
@@ -238,6 +382,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     padding: 4,
   },
+  filterBtn: {
+    padding: 4,
+  },
+  filterIcon: {
+    fontSize: 15,
+  },
   categorySection: {
     marginBottom: 14,
   },
@@ -245,25 +395,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 8,
   },
-  categoryPill: {
-    backgroundColor: colors.bgCard,
-    borderColor: colors.borderColor,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: radii.pill,
+    borderWidth: 1,
   },
-  categoryPillActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  categoryPillText: {
+  chipIcon: {
     fontSize: 13,
-    fontWeight: '700',
-    color: colors.textMuted,
   },
-  categoryPillTextActive: {
-    color: '#ffffff',
+  categoryChipText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   creatorsList: {
     paddingHorizontal: 20,
@@ -271,16 +417,16 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   creatorCard: {
-    backgroundColor: colors.bgCard,
-    borderRadius: radii.lg,
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.borderColor,
-    shadowColor: '#000',
+    borderColor: '#e2e8f0',
+    shadowColor: '#4f46e5',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -288,63 +434,122 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 10,
   },
+  avatarWrapper: {
+    position: 'relative',
+  },
   avatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primary,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarLetter: {
     color: '#ffffff',
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
+  },
+  verifiedBadge: {
+    position: 'absolute',
+    bottom: -3,
+    right: -3,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  verifiedCheck: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '900',
   },
   headerInfo: {
     flex: 1,
   },
   creatorTitle: {
-    fontSize: 16,
+    fontSize: 15.5,
     fontWeight: '800',
     color: colors.textMain,
+    letterSpacing: -0.2,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 3,
   },
   categoryBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.bgInput,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: radii.sm,
-    marginTop: 4,
+    borderRadius: 6,
+    borderWidth: 1,
   },
   categoryBadgeText: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '700',
-    color: colors.textMuted,
+  },
+  ratingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  starIcon: {
+    color: '#f59e0b',
+    fontSize: 12,
+  },
+  ratingValue: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: colors.textMain,
+  },
+  ratingCount: {
+    fontSize: 10.5,
+    color: colors.textDim,
+  },
+  bookmarkBtn: {
+    padding: 6,
+  },
+  bookmarkIcon: {
+    fontSize: 16,
+    opacity: 0.4,
+  },
+  bookmarkIconActive: {
+    opacity: 1,
   },
   creatorBio: {
-    fontSize: 13,
+    fontSize: 12.5,
     color: colors.textMuted,
     lineHeight: 18,
+    marginBottom: 12,
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#f1f5f9',
     marginBottom: 12,
   },
   cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
   },
-  metaPill: {
+  footerMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  durationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  metaIcon: {
+  clockIcon: {
     fontSize: 12,
   },
-  metaText: {
+  durationText: {
     fontSize: 12,
     fontWeight: '600',
     color: colors.textMuted,
@@ -354,6 +559,35 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.success,
   },
+  rateUnit: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#047857',
+  },
+  bookSlotBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  bookSlotBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  bookSlotBtnArrow: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
@@ -361,7 +595,7 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textMuted,
     marginTop: 12,
   },
@@ -387,3 +621,4 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
+

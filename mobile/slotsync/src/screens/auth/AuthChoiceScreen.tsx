@@ -1,5 +1,13 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  ScrollView, 
+  StatusBar,
+  Platform 
+} from 'react-native';
 import { colors, radii } from '../../theme/colors';
 
 interface Props {
@@ -8,199 +16,412 @@ interface Props {
 }
 
 export default function AuthChoiceScreen({ onSelectRole, onGoToLogin }: Props) {
+  const [selectedRole, setSelectedRole] = useState<'CLIENT' | 'CREATOR'>('CREATOR');
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* Brand Header */}
-      <View style={styles.header}>
-        <View style={styles.logoBadge}>
-          <Text style={styles.logoIcon}>✨</Text>
+    <View style={styles.outerWrapper}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
+      
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer} 
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        {/* Background Decorative Glow */}
+        <View style={styles.topGlow} />
+
+        {/* Header Section */}
+        <View style={styles.header}>
+          {/* Top Quick Action Gear */}
+          <View style={styles.topActionRow}>
+            <TouchableOpacity style={styles.gearButton} activeOpacity={0.8}>
+              <Text style={styles.gearIcon}>⚙️</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* App Logo Badge */}
+          <View style={styles.logoContainer}>
+            <View style={styles.logoBadge}>
+              <Text style={styles.logoIconText}>📅</Text>
+            </View>
+          </View>
+
+          {/* Branding Titles */}
+          <Text style={styles.brandTitle}>SLOTSYNC</Text>
+          <Text style={styles.brandSubtitle}>APPOINTMENT & SLOT ENGINE</Text>
+
+          {/* Welcome Heading */}
+          <View style={styles.welcomeBlock}>
+            <Text style={styles.welcomeTitle}>Join SlotSync</Text>
+            <Text style={styles.welcomeSubtitle}>Select how you will be using SlotSync today</Text>
+          </View>
         </View>
-        <Text style={styles.brandTitle}>SLOTSYNC</Text>
-        <Text style={styles.brandSubtitle}>Appointment & Slot Engine</Text>
-      </View>
 
-      <Text style={styles.welcomeTitle}>Join SlotSync</Text>
-      <Text style={styles.welcomeSubtitle}>Select how you will be using SlotSync today</Text>
+        {/* Role Selection Options */}
+        <View style={styles.cardsContainer}>
+          {/* Role Option 1: Client */}
+          <TouchableOpacity 
+            style={[
+              styles.choiceCard,
+              selectedRole === 'CLIENT' && styles.choiceCardActive
+            ]} 
+            activeOpacity={0.9}
+            onPress={() => setSelectedRole('CLIENT')}
+          >
+            <View style={styles.cardHeader}>
+              <View style={[styles.iconBadge, styles.clientIconBadge]}>
+                <Text style={styles.badgeEmoji}>🗓️</Text>
+              </View>
+              {/* Radio Indicator */}
+              <View style={[
+                styles.radioIndicator,
+                selectedRole === 'CLIENT' && styles.radioIndicatorActive
+              ]}>
+                {selectedRole === 'CLIENT' && <Text style={styles.radioCheck}>✓</Text>}
+              </View>
+            </View>
 
-      {/* Choice Cards */}
-      <View style={styles.cardsContainer}>
-        {/* Client Choice Card */}
-        <TouchableOpacity 
-          style={styles.choiceCard} 
-          activeOpacity={0.85}
-          onPress={() => onSelectRole('CLIENT')}
-        >
-          <View style={[styles.iconCircle, { backgroundColor: colors.subtleBg }]}>
-            <Text style={styles.cardEmoji}>📅</Text>
-          </View>
-          <View style={styles.cardTextContent}>
-            <Text style={styles.cardTitle}>Book Appointments</Text>
-            <Text style={styles.cardDescription}>
-              I want to discover creators, view available calendar slots, and book consultations.
-            </Text>
-          </View>
-          <View style={styles.badgePill}>
-            <Text style={styles.badgeText}>CLIENT</Text>
-          </View>
-        </TouchableOpacity>
+            <View style={styles.cardBody}>
+              <Text style={styles.cardTitle}>Book Appointments</Text>
+              <Text style={styles.cardDescription}>
+                I want to discover creators, view available calendar slots, and book consultations.
+              </Text>
+            </View>
 
-        {/* Creator Choice Card */}
-        <TouchableOpacity 
-          style={[styles.choiceCard, styles.creatorCardBorder]} 
-          activeOpacity={0.85}
-          onPress={() => onSelectRole('CREATOR')}
-        >
-          <View style={[styles.iconCircle, { backgroundColor: '#eefcfd' }]}>
-            <Text style={styles.cardEmoji}>👑</Text>
-          </View>
-          <View style={styles.cardTextContent}>
-            <Text style={styles.cardTitle}>Offer Consultations & Slots</Text>
-            <Text style={styles.cardDescription}>
-              I am a Doctor, Lawyer, Barber, Trainer, or Consultant managing my weekly schedule.
-            </Text>
-          </View>
-          <View style={[styles.badgePill, { backgroundColor: '#eefcfd' }]}>
-            <Text style={[styles.badgeText, { color: colors.accentCyan }]}>CREATOR</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
+            <View style={styles.cardFooter}>
+              <View style={styles.clientPill}>
+                <Text style={styles.clientPillText}>CLIENT</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
 
-      {/* Footer Link */}
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Already have a SlotSync account?</Text>
-        <TouchableOpacity onPress={onGoToLogin}>
-          <Text style={styles.loginLink}>Sign In to Account</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+          {/* Role Option 2: Creator */}
+          <TouchableOpacity 
+            style={[
+              styles.choiceCard,
+              selectedRole === 'CREATOR' && styles.choiceCardActive
+            ]} 
+            activeOpacity={0.9}
+            onPress={() => setSelectedRole('CREATOR')}
+          >
+            <View style={styles.cardHeader}>
+              <View style={[styles.iconBadge, styles.creatorIconBadge]}>
+                <Text style={styles.badgeEmoji}>👑</Text>
+              </View>
+              {/* Radio Indicator */}
+              <View style={[
+                styles.radioIndicator,
+                selectedRole === 'CREATOR' && styles.radioIndicatorActive
+              ]}>
+                {selectedRole === 'CREATOR' && <Text style={styles.radioCheck}>✓</Text>}
+              </View>
+            </View>
+
+            <View style={styles.cardBody}>
+              <Text style={styles.cardTitle}>Offer Consultations & Slots</Text>
+              <Text style={styles.cardDescription}>
+                I am a Doctor, Lawyer, Barber, Trainer, or Consultant managing my weekly schedule.
+              </Text>
+            </View>
+
+            <View style={styles.cardFooter}>
+              <View style={styles.creatorPill}>
+                <Text style={styles.creatorPillText}>CREATOR</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Bottom Actions */}
+        <View style={styles.footerSection}>
+          <TouchableOpacity 
+            style={styles.continueButton}
+            activeOpacity={0.88}
+            onPress={() => onSelectRole(selectedRole)}
+          >
+            <Text style={styles.continueButtonText}>Continue</Text>
+            <Text style={styles.arrowIcon}>→</Text>
+          </TouchableOpacity>
+
+          <View style={styles.signInRow}>
+            <Text style={styles.signInQuestion}>Already have a SlotSync account?</Text>
+            <TouchableOpacity onPress={onGoToLogin} activeOpacity={0.7}>
+              <Text style={styles.signInLink}>Sign In to Account</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* iOS Home Indicator Bar */}
+          <View style={styles.homeIndicator} />
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  outerWrapper: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  scrollContainer: {
     flexGrow: 1,
-    backgroundColor: colors.bgApp,
     paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingTop: Platform.OS === 'ios' ? 44 : 20,
+    paddingBottom: 24,
     justifyContent: 'space-between',
+  },
+  topGlow: {
+    position: 'absolute',
+    top: -80,
+    left: '20%',
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: 'rgba(99, 102, 241, 0.12)',
+    transform: [{ scaleX: 1.5 }],
   },
   header: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
+  },
+  topActionRow: {
+    width: '100%',
+    alignItems: 'flex-end',
+    marginBottom: 4,
+  },
+  gearButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  gearIcon: {
+    fontSize: 16,
+  },
+  logoContainer: {
+    marginBottom: 12,
   },
   logoBadge: {
-    width: 60,
-    height: 60,
-    borderRadius: radii.md,
+    width: 64,
+    height: 64,
+    borderRadius: radii.lg,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
     shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
+    borderWidth: 3,
+    borderColor: '#ffffff',
   },
-  logoIcon: {
+  logoIconText: {
     fontSize: 28,
   },
   brandTitle: {
     fontSize: 26,
-    fontWeight: '800',
+    fontWeight: '900',
     color: colors.primary,
-    letterSpacing: 1,
+    letterSpacing: 1.2,
   },
   brandSubtitle: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 10.5,
+    fontWeight: '800',
     color: colors.textDim,
-    letterSpacing: 1.5,
+    letterSpacing: 2,
     marginTop: 2,
-    textTransform: 'uppercase',
+    marginBottom: 20,
+  },
+  welcomeBlock: {
+    alignItems: 'center',
   },
   welcomeTitle: {
     fontSize: 24,
     fontWeight: '800',
     color: colors.textMain,
-    textAlign: 'center',
+    letterSpacing: -0.3,
   },
   welcomeSubtitle: {
-    fontSize: 14,
+    fontSize: 13.5,
     color: colors.textMuted,
+    marginTop: 4,
     textAlign: 'center',
-    marginTop: 6,
-    marginBottom: 24,
   },
   cardsContainer: {
     gap: 16,
+    marginVertical: 16,
   },
   choiceCard: {
-    backgroundColor: colors.bgCard,
-    borderRadius: radii.lg,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
     padding: 20,
-    borderWidth: 1,
-    borderColor: colors.borderColor,
-    shadowColor: '#000',
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 12,
     elevation: 2,
   },
-  creatorCardBorder: {
-    borderColor: colors.accentCyan,
+  choiceCardActive: {
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 6,
+    backgroundColor: '#ffffff',
   },
-  iconCircle: {
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  iconBadge: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    borderWidth: 1,
   },
-  cardEmoji: {
-    fontSize: 24,
+  clientIconBadge: {
+    backgroundColor: '#eef2ff',
+    borderColor: '#e0e7ff',
   },
-  cardTextContent: {
-    marginBottom: 12,
+  creatorIconBadge: {
+    backgroundColor: '#faf5ff',
+    borderColor: '#f3e8ff',
+  },
+  badgeEmoji: {
+    fontSize: 22,
+  },
+  radioIndicator: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#cbd5e1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+  },
+  radioIndicatorActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  radioCheck: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '900',
+    marginTop: Platform.OS === 'ios' ? -1 : -2,
+  },
+  cardBody: {
+    marginBottom: 14,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
     color: colors.textMain,
     marginBottom: 4,
   },
   cardDescription: {
-    fontSize: 13,
+    fontSize: 12.5,
     color: colors.textMuted,
     lineHeight: 18,
   },
-  badgePill: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.bgSubtle,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+  cardFooter: {
+    flexDirection: 'row',
+  },
+  clientPill: {
+    backgroundColor: '#eef2ff',
+    borderWidth: 1,
+    borderColor: '#c7d2fe',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
     borderRadius: radii.pill,
   },
-  badgeText: {
-    fontSize: 11,
+  clientPillText: {
+    fontSize: 10.5,
     fontWeight: '800',
     color: colors.primary,
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
-  footer: {
+  creatorPill: {
+    backgroundColor: '#ecfeff',
+    borderWidth: 1,
+    borderColor: '#a5f3fc',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: radii.pill,
+  },
+  creatorPillText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#0891b2',
+    letterSpacing: 0.8,
+  },
+  footerSection: {
     alignItems: 'center',
-    marginTop: 30,
-    gap: 6,
+    marginTop: 10,
   },
-  footerText: {
-    fontSize: 14,
+  continueButton: {
+    width: '100%',
+    height: 52,
+    borderRadius: radii.md,
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  continueButtonText: {
+    color: '#ffffff',
+    fontSize: 15.5,
+    fontWeight: '700',
+  },
+  arrowIcon: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  signInRow: {
+    alignItems: 'center',
+    marginTop: 16,
+    gap: 4,
+  },
+  signInQuestion: {
+    fontSize: 12.5,
     color: colors.textMuted,
+    fontWeight: '500',
   },
-  loginLink: {
-    fontSize: 15,
+  signInLink: {
+    fontSize: 14,
     fontWeight: '800',
     color: colors.primary,
+  },
+  homeIndicator: {
+    width: 120,
+    height: 4,
+    backgroundColor: '#cbd5e1',
+    borderRadius: 2,
+    marginTop: 20,
+    opacity: 0.6,
   },
 });
