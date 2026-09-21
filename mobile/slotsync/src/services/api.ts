@@ -163,25 +163,11 @@ export const createAppointment = async (creator_id: string, start_time_utc: stri
 };
 
 export const getMyAppointments = async () => {
-  try {
-    return await apiFetch('/appointments/me');
-  } catch (err: any) {
-    if (err.message && (err.message.includes('404') || err.message.includes('405'))) {
-      return await apiFetch('/appointments/my-bookings');
-    }
-    throw err;
-  }
+  return apiFetch('/appointments/my-bookings');
 };
 
 export const getCreatorAppointments = async () => {
-  try {
-    return await apiFetch('/appointments/me');
-  } catch (err: any) {
-    if (err.message && (err.message.includes('404') || err.message.includes('405'))) {
-      return await apiFetch('/appointments/creator-schedule');
-    }
-    throw err;
-  }
+  return apiFetch('/appointments/creator-schedule');
 };
 
 export const updateAppointmentStatus = async (appointmentId: string, status: string) => {
