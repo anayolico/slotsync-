@@ -18,6 +18,18 @@ class Settings(BaseSettings):
     # Firebase Cloud Messaging (FCM)
     FIREBASE_CREDENTIALS_FILE: Optional[str] = None
 
+    # SMTP Email Configuration (VPS / Production)
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_TLS: bool = True
+    EMAILS_FROM_EMAIL: str = "noreply@slotsync.app"
+    EMAILS_FROM_NAME: str = "SlotSync Verification"
+
+    # Google OAuth
+    GOOGLE_CLIENT_ID: Optional[str] = None
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

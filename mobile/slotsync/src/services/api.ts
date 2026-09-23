@@ -78,11 +78,36 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     throw new Error(errorMessage);
   }
 
-  if (response.status === 24) return null;
+  if (response.status === 204) return null;
   return response.json();
 };
 
 // ── Authentication Endpoints ──
+
+export const sendEmailOtp = async (email: string) => {
+  return apiFetch('/auth/send-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+};
+
+export const verifyEmailOtp = async (email: string, otp_code: string) => {
+  return apiFetch('/auth/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp_code }),
+  });
+};
+
+export const loginWithGoogle = async (idToken: string, role: 'CLIENT' | 'CREATOR' = 'CLIENT') => {
+  const data = await apiFetch('/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ id_token: idToken, role }),
+  });
+  if (data?.access_token) {
+    await setStoredToken(data.access_token);
+  }
+  return data;
+};
 
 export const loginUser = async (email: string, password: string) => {
   const data = await apiFetch('/auth/login', {
@@ -99,12 +124,17 @@ export const registerUser = async (payload: {
   email: string;
   password: string;
   full_name: string;
+  phone_number?: string;
   role: 'CLIENT' | 'CREATOR';
   category?: string;
   title?: string;
   bio?: string;
   hourly_rate?: number;
   slot_duration_minutes?: number;
+  consultation_mode?: string;
+  office_address?: string;
+  currency?: string;
+  verification_token?: string;
 }) => {
   return apiFetch('/auth/register', {
     method: 'POST',

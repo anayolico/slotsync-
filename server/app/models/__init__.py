@@ -3,6 +3,7 @@ from app.models.creator import CreatorProfile
 from app.models.availability import AvailabilityRule
 from app.models.appointment import Appointment, AppointmentStatus
 from app.models.device import FCMDevice
+from app.models.email_verification import EmailVerification
 
 __all__ = [
     "User",
@@ -12,4 +13,5 @@ __all__ = [
     "Appointment",
     "AppointmentStatus",
     "FCMDevice",
+    "EmailVerification",
 ]

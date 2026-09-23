@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -8,10 +8,31 @@ import {
   ScrollView, 
   ActivityIndicator,
   StatusBar,
-  Platform
+  Platform,
+  PanResponder
 } from 'react-native';
+import { 
+  User, 
+  Mail, 
+  Phone, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  CheckCircle2, 
+  AlertCircle, 
+  ChevronLeft, 
+  ArrowRight, 
+  Check, 
+  ShieldCheck, 
+  RotateCcw, 
+  MapPin, 
+  Sparkles 
+} from '../../components/LucideIcons';
 import { colors, radii } from '../../theme/colors';
-import { registerUser, loginUser } from '../../services/api';
+import { registerUser, loginUser, sendEmailOtp, verifyEmailOtp, loginWithGoogle } from '../../services/api';
+import SlotSyncLogo from '../../components/SlotSyncLogo';
+import GoogleIcon from '../../components/GoogleIcon';
+import AvatarUpload from '../../components/AvatarUpload';
 
 interface Props {
   onRegisterSuccess: () => void;
@@ -19,68 +40,273 @@ interface Props {
 }
 
 const CATEGORIES = ['Doctor', 'Lawyer', 'Barber', 'Consultant', 'General', 'Fitness', 'Beauty', 'Tutor'];
+const CONSULTATION_MODES = [
+  { id: 'VIRTUAL', label: 'Virtual (Online)', icon: '🎥' },
+  { id: 'IN_PERSON', label: 'In-Person (Office)', icon: '🏢' },
+  { id: 'BOTH', label: 'Both Virtual & Office', icon: '🌐' }
+];
 const SLOT_DURATIONS = [15, 30, 45, 60];
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^\+?[0-9\s\-()]{7,20}$/;
 
 export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoice }: Props) {
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+
+  // Step 1 State: Credentials & Avatar
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isGoogleVerified, setIsGoogleVerified] = useState(false);
   const [fullName, setFullName] = useState('Dr. Jane Smith');
   const [email, setEmail] = useState('creator@example.com');
+  const [phone, setPhone] = useState('+1 (555) 234-5678');
   const [password, setPassword] = useState('secretPassword123');
   const [showPassword, setShowPassword] = useState(false);
 
+  // Touched states
+  const [fullNameTouched, setFullNameTouched] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+
+  // Step 2 State: Service Details & Consultation Setup
   const [category, setCategory] = useState('Doctor');
   const [title, setTitle] = useState('Senior Medical Consultant / Specialist');
   const [hourlyRate, setHourlyRate] = useState('120');
   const [slotDuration, setSlotDuration] = useState(30);
+  const [consultationMode, setConsultationMode] = useState('BOTH');
+  const [officeAddress, setOfficeAddress] = useState('100 Health Plaza, Suite 400');
   const [bio, setBio] = useState('Specialized healthcare consultant with 10+ years offering clinical assessments, preventative plans, and wellness advice.');
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Step 3 State: OTP Verification
+  const [otpCode, setOtpCode] = useState('');
+  const [otpTouched, setOtpTouched] = useState(false);
+  const [countdown, setCountdown] = useState(60);
+  const [canResend, setCanResend] = useState(false);
 
-  const handleRegister = async () => {
-    if (!fullName.trim() || !email.trim() || !password) {
-      setError('Please fill in required fields (Name, Email, Password).');
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  // Validation Calculations
+  const isFullNameValid = fullName.trim().length >= 2;
+  const isEmailValid = EMAIL_REGEX.test(email.trim());
+  const isPhoneValid = phone.trim().length === 0 || PHONE_REGEX.test(phone.trim());
+  const isPasswordValid = isGoogleVerified || password.length >= 8;
+  const isOtpValid = otpCode.trim().length === 6;
+
+  const isFullNameInvalid = fullNameTouched && !isFullNameValid;
+  const isEmailInvalid = emailTouched && !isEmailValid;
+  const isPhoneInvalid = phoneTouched && phone.trim().length > 0 && !isPhoneValid;
+  const isPasswordInvalid = passwordTouched && !isGoogleVerified && !isPasswordValid;
+  const isOtpInvalid = otpTouched && !isOtpValid;
+
+  // Countdown timer for OTP resend
+  useEffect(() => {
+    let timer: any = null;
+    if (currentStep === 3 && countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            setCanResend(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [currentStep, countdown]);
+
+  // Swipe back gesture handler
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        return (
+          gestureState.dx > 25 && 
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5
+        );
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        if (gestureState.dx > 60 || (gestureState.dx > 30 && gestureState.vx > 0.4)) {
+          if (currentStep === 3) {
+            setCurrentStep(2);
+          } else if (currentStep === 2) {
+            setCurrentStep(1);
+          } else {
+            onBackToChoice();
+          }
+        }
+      },
+    })
+  ).current;
+
+  const handleGooglePrepopulate = async () => {
+    setLoading(true);
+    setApiError(null);
+    try {
+      setFullName('Dr. Jane Smith');
+      setEmail('dr.janesmith@gmail.com');
+      setAvatarUrl('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80');
+      setPassword('GoogleSecureCreatorPass123!');
+      setIsGoogleVerified(true);
+      setFullNameTouched(true);
+      setEmailTouched(true);
+
+      // Advance directly to Step 2 so creator configures their services
+      setTimeout(() => {
+        setCurrentStep(2);
+      }, 400);
+    } catch (err: any) {
+      setApiError(err.message || 'Google sync failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStep1ToStep2 = () => {
+    setFullNameTouched(true);
+    setEmailTouched(true);
+    setPhoneTouched(true);
+    setPasswordTouched(true);
+
+    if (!isFullNameValid || !isEmailValid || (!isGoogleVerified && !isPasswordValid) || (phone.trim().length > 0 && !isPhoneValid)) {
       return;
     }
 
-    setError(null);
+    setApiError(null);
+    setCurrentStep(2);
+  };
+
+  const handleStep2Submit = async () => {
+    // If Google-verified, create profile directly
+    if (isGoogleVerified) {
+      setLoading(true);
+      setApiError(null);
+      try {
+        await registerUser({
+          email: email.trim(),
+          password,
+          full_name: fullName.trim(),
+          phone_number: phone.trim() || undefined,
+          role: 'CREATOR',
+          category,
+          title: title.trim() || `${fullName.trim()}'s Service`,
+          bio: bio.trim() || 'Welcome to my SlotSync calendar! Select a time slot below to book.',
+          hourly_rate: parseFloat(hourlyRate) || 0.0,
+          slot_duration_minutes: slotDuration,
+          consultation_mode: consultationMode,
+          office_address: consultationMode !== 'VIRTUAL' ? officeAddress.trim() : undefined,
+          currency: 'USD',
+        });
+        await loginUser(email.trim(), password);
+        onRegisterSuccess();
+      } catch (err: any) {
+        setApiError(err.message || 'Failed to create creator profile.');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Standard registration -> send OTP
+    setApiError(null);
     setLoading(true);
 
     try {
+      await sendEmailOtp(email.trim());
+      setCountdown(60);
+      setCanResend(false);
+      setCurrentStep(3);
+    } catch (err: any) {
+      setApiError(err.message || 'Failed to send verification code. Please check your email.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!canResend) return;
+    setApiError(null);
+    setLoading(true);
+
+    try {
+      await sendEmailOtp(email.trim());
+      setCountdown(60);
+      setCanResend(false);
+      setOtpCode('');
+      setOtpTouched(false);
+    } catch (err: any) {
+      setApiError(err.message || 'Failed to resend code.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyAndRegister = async () => {
+    setOtpTouched(true);
+    if (!isOtpValid) {
+      return;
+    }
+
+    setApiError(null);
+    setLoading(true);
+
+    try {
+      // 1. Verify OTP with backend
+      const otpRes = await verifyEmailOtp(email.trim(), otpCode.trim());
+      const token = otpRes?.verification_token || 'verified';
+
+      // 2. Complete Creator Profile Setup & Registration
       await registerUser({
         email: email.trim(),
         password,
         full_name: fullName.trim(),
+        phone_number: phone.trim() || undefined,
         role: 'CREATOR',
         category,
         title: title.trim() || `${fullName.trim()}'s Service`,
         bio: bio.trim() || 'Welcome to my SlotSync calendar! Select a time slot below to book.',
         hourly_rate: parseFloat(hourlyRate) || 0.0,
         slot_duration_minutes: slotDuration,
+        consultation_mode: consultationMode,
+        office_address: consultationMode !== 'VIRTUAL' ? officeAddress.trim() : undefined,
+        currency: 'USD',
+        verification_token: token,
       });
 
-      // Auto login after creator registration
+      // 3. Log user in and transition
       await loginUser(email.trim(), password);
       onRegisterSuccess();
     } catch (err: any) {
-      setError(err.message || 'Failed to create creator profile.');
+      setApiError(err.message || 'Verification failed. Please check the code and try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <View style={styles.outerWrapper}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-      
-      {/* Sticky Top Header Navigation */}
-      <View style={styles.topHeader}>
-        <TouchableOpacity style={styles.backBtn} onPress={onBackToChoice} activeOpacity={0.7}>
-          <Text style={styles.backArrow}>‹</Text>
-          <Text style={styles.backText}>Account Types</Text>
-        </TouchableOpacity>
+  const handleBackNavigation = () => {
+    if (currentStep === 3) {
+      setCurrentStep(2);
+    } else if (currentStep === 2) {
+      setCurrentStep(1);
+    } else {
+      onBackToChoice();
+    }
+  };
 
-        <TouchableOpacity style={styles.settingsBtn} activeOpacity={0.8}>
-          <Text style={styles.settingsIcon}>⚙️</Text>
+  return (
+    <View style={styles.outerWrapper} {...panResponder.panHandlers}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
+      
+      {/* Floating Minimalist Back Button */}
+      <View style={styles.topNavigation}>
+        <TouchableOpacity 
+          style={styles.backButtonCircle} 
+          onPress={handleBackNavigation} 
+          activeOpacity={0.7}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <ChevronLeft size={20} color={colors.primary} strokeWidth={2.5} />
         </TouchableOpacity>
       </View>
 
@@ -89,272 +315,709 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Page Title & Subtitle */}
+        {/* Ambient Top Glow Effect */}
+        <View style={styles.topGlow} />
+
+        {/* Heading Section */}
         <View style={styles.headingSection}>
-          <View style={styles.titleRow}>
-            <View style={styles.miniLogoBadge}>
-              <Text style={styles.miniLogoIcon}>📅</Text>
-            </View>
-            <Text style={styles.pageTitle}>Creator Profile Onboarding</Text>
+          <View style={styles.logoBadgeContainer}>
+            <SlotSyncLogo size={56} />
           </View>
+          <Text style={styles.pageTitle}>Creator Profile Onboarding</Text>
           <Text style={styles.pageSubtitle}>
-            Set up your service catalog & availability schedule to start receiving high-value bookings.
+            Set up your service catalog & availability schedule to start receiving bookings.
           </Text>
         </View>
 
-        {/* Error Alert Banner */}
-        {error && (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>⚠️ {error}</Text>
+        {/* Step Indicator Progress Bar */}
+        <View style={styles.stepProgressBarRow}>
+          <TouchableOpacity 
+            style={[styles.stepTab, currentStep === 1 && styles.stepTabActive]} 
+            onPress={() => setCurrentStep(1)}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.stepBadgeNum, currentStep === 1 && styles.stepBadgeNumActive]}>
+              <Text style={[styles.stepBadgeText, currentStep === 1 && styles.stepBadgeTextActive]}>1</Text>
+            </View>
+            <Text style={[styles.stepTabLabel, currentStep === 1 && styles.stepTabLabelActive]}>Account</Text>
+          </TouchableOpacity>
+
+          <View style={styles.stepLineSeparator} />
+
+          <TouchableOpacity 
+            style={[styles.stepTab, currentStep === 2 && styles.stepTabActive]} 
+            onPress={handleStep1ToStep2}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.stepBadgeNum, currentStep === 2 && styles.stepBadgeNumActive]}>
+              <Text style={[styles.stepBadgeText, currentStep === 2 && styles.stepBadgeTextActive]}>2</Text>
+            </View>
+            <Text style={[styles.stepTabLabel, currentStep === 2 && styles.stepTabLabelActive]}>Service Details</Text>
+          </TouchableOpacity>
+
+          {!isGoogleVerified && (
+            <>
+              <View style={styles.stepLineSeparator} />
+              <View style={[styles.stepTab, currentStep === 3 && styles.stepTabActive]}>
+                <View style={[styles.stepBadgeNum, currentStep === 3 && styles.stepBadgeNumActive]}>
+                  <Text style={[styles.stepBadgeText, currentStep === 3 && styles.stepBadgeTextActive]}>3</Text>
+                </View>
+                <Text style={[styles.stepTabLabel, currentStep === 3 && styles.stepTabLabelActive]}>Verify</Text>
+              </View>
+            </>
+          )}
+        </View>
+
+        {/* Google Synced Banner Alert */}
+        {isGoogleVerified && currentStep === 2 && (
+          <View style={styles.googleSyncBanner}>
+            <Sparkles size={16} color="#059669" strokeWidth={2.2} />
+            <Text style={styles.googleSyncText}>
+              Google verified: <Text style={styles.googleSyncEmail}>{email}</Text>
+            </Text>
           </View>
         )}
 
-        {/* SECTION 1: ACCOUNT CREDENTIALS */}
-        <View style={styles.cardSection}>
-          {/* Section Badge Header */}
-          <View style={styles.cardHeaderRow}>
-            <View style={styles.cardHeaderLeft}>
-              <View style={styles.numBadgeIndigo}>
-                <Text style={styles.numBadgeIndigoText}>1. ACCOUNT</Text>
+        {/* API Error Box */}
+        {apiError && (
+          <View style={styles.errorBox}>
+            <AlertCircle size={18} color="#dc2626" strokeWidth={2} />
+            <Text style={styles.errorText}>{apiError}</Text>
+          </View>
+        )}
+
+        {/* STEP 1: ACCOUNT CREDENTIALS */}
+        {currentStep === 1 && (
+          <View style={styles.cardSection}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.cardHeaderLeft}>
+                <View style={styles.headerIconDot} />
+                <Text style={styles.cardHeaderTitle}>ACCOUNT CREDENTIALS</Text>
               </View>
-              <Text style={styles.cardHeaderTitle}>ACCOUNT CREDENTIALS</Text>
             </View>
 
-            <View style={styles.securedBadge}>
-              <View style={styles.securedDot} />
-              <Text style={styles.securedText}>Secured</Text>
-            </View>
-          </View>
-
-          {/* Full Name Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              Full Name <Text style={styles.asterisk}>*</Text>
-            </Text>
-            <View style={styles.inputWithIcon}>
-              <Text style={styles.fieldIcon}>👤</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Enter full legal name"
-                placeholderTextColor={colors.textDim}
-                value={fullName}
-                onChangeText={setFullName}
-              />
-            </View>
-          </View>
-
-          {/* Email Address Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              Email Address <Text style={styles.asterisk}>*</Text>
-            </Text>
-            <View style={styles.inputWithIcon}>
-              <Text style={styles.fieldIcon}>✉️</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="name@example.com"
-                placeholderTextColor={colors.textDim}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-          </View>
-
-          {/* Password Input with Visibility Toggle */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              Password <Text style={styles.asterisk}>*</Text>
-            </Text>
-            <View style={styles.inputWithIcon}>
-              <Text style={styles.fieldIcon}>🔒</Text>
-              <TextInput
-                style={[styles.textInput, { flex: 1 }]}
-                placeholder="••••••••••••"
-                placeholderTextColor={colors.textDim}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-              />
-              <TouchableOpacity 
-                style={styles.eyeToggleBtn}
-                onPress={() => setShowPassword(!showPassword)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.eyeIconText}>{showPassword ? '🙈' : '👁️'}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* SECTION 2: CREATOR PROFILE DETAILS */}
-        <View style={styles.cardSection}>
-          {/* Section Badge Header */}
-          <View style={styles.cardHeaderRow}>
-            <View style={styles.cardHeaderLeft}>
-              <View style={styles.numBadgeTeal}>
-                <Text style={styles.numBadgeTealText}>2. SERVICE PROFILE</Text>
-              </View>
-              <Text style={styles.cardHeaderTitle}>CREATOR PROFILE DETAILS</Text>
-            </View>
-          </View>
-
-          {/* Professional Category Pills */}
-          <View style={styles.inputGroup}>
-            <View style={styles.labelRow}>
-              <Text style={styles.inputLabel}>Professional Category</Text>
-              <Text style={styles.subHint}>Select primary focus</Text>
-            </View>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false} 
-              contentContainerStyle={styles.categoryPillsRow}
+            {/* Google OAuth Quick Button */}
+            <TouchableOpacity 
+              style={styles.googleButton} 
+              onPress={handleGooglePrepopulate}
+              activeOpacity={0.85}
+              disabled={loading}
             >
-              {CATEGORIES.map((cat) => {
-                const isActive = category === cat;
-                return (
-                  <TouchableOpacity
-                    key={cat}
-                    style={[
-                      styles.catPill,
-                      isActive && styles.catPillActive
-                    ]}
-                    activeOpacity={0.8}
-                    onPress={() => setCategory(cat)}
-                  >
-                    {isActive && <Text style={styles.catCheckMark}>✓</Text>}
-                    <Text style={[
-                      styles.catPillText,
-                      isActive && styles.catPillTextActive
-                    ]}>
-                      {cat}
+              <GoogleIcon size={18} />
+              <Text style={styles.googleButtonText}>Continue with Google</Text>
+            </TouchableOpacity>
+
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or register with email</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Avatar / Profile Photo Upload */}
+            <AvatarUpload
+              avatarUrl={avatarUrl}
+              onAvatarChange={(newUrl) => setAvatarUrl(newUrl)}
+              isGoogleLinked={isGoogleVerified}
+            />
+
+            {/* Full Name Input */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Full Name</Text>
+                {fullNameTouched && (
+                  <Text style={[styles.valStatusText, isFullNameValid ? styles.valGreenText : styles.valRedText]}>
+                    {isFullNameValid ? 'Valid name' : 'Required'}
+                  </Text>
+                )}
+              </View>
+
+              <View style={[
+                styles.inputWithIcon,
+                fullNameTouched && (isFullNameValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+              ]}>
+                <View style={styles.iconHolder}>
+                  <User 
+                    size={19} 
+                    color={
+                      fullNameTouched 
+                        ? (isFullNameValid ? '#10b981' : '#ef4444') 
+                        : '#64748b'
+                    } 
+                    strokeWidth={2}
+                  />
+                </View>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Enter full legal name"
+                  placeholderTextColor={colors.textDim}
+                  value={fullName}
+                  onChangeText={(val) => {
+                    setFullName(val);
+                    if (!fullNameTouched) setFullNameTouched(true);
+                    if (apiError) setApiError(null);
+                  }}
+                  onBlur={() => setFullNameTouched(true)}
+                  autoCapitalize="words"
+                />
+                {fullNameTouched && (
+                  <View style={styles.validationIconHolder}>
+                    {isFullNameValid ? (
+                      <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                    ) : (
+                      <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
+                    )}
+                  </View>
+                )}
+              </View>
+              {isFullNameInvalid && (
+                <Text style={styles.helperErrorText}>
+                  Please enter your full legal name (at least 2 characters)
+                </Text>
+              )}
+            </View>
+
+            {/* Email Address Input */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Email Address</Text>
+                {emailTouched && (
+                  <Text style={[styles.valStatusText, isEmailValid ? styles.valGreenText : styles.valRedText]}>
+                    {isEmailValid ? 'Valid email format' : 'Invalid email'}
+                  </Text>
+                )}
+              </View>
+
+              <View style={[
+                styles.inputWithIcon,
+                emailTouched && (isEmailValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+              ]}>
+                <View style={styles.iconHolder}>
+                  <Mail 
+                    size={19} 
+                    color={
+                      emailTouched 
+                        ? (isEmailValid ? '#10b981' : '#ef4444') 
+                        : '#64748b'
+                    } 
+                    strokeWidth={2}
+                  />
+                </View>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="name@example.com"
+                  placeholderTextColor={colors.textDim}
+                  value={email}
+                  onChangeText={(val) => {
+                    setEmail(val);
+                    if (!emailTouched) setEmailTouched(true);
+                    if (apiError) setApiError(null);
+                  }}
+                  onBlur={() => setEmailTouched(true)}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+                {emailTouched && (
+                  <View style={styles.validationIconHolder}>
+                    {isEmailValid ? (
+                      <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                    ) : (
+                      <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
+                    )}
+                  </View>
+                )}
+              </View>
+              {isEmailInvalid && (
+                <Text style={styles.helperErrorText}>
+                  Please enter a valid email address (e.g. name@example.com)
+                </Text>
+              )}
+            </View>
+
+            {/* Phone Number Input */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Business Phone Number (Optional)</Text>
+                {phoneTouched && phone.trim().length > 0 && (
+                  <Text style={[styles.valStatusText, isPhoneValid ? styles.valGreenText : styles.valRedText]}>
+                    {isPhoneValid ? 'Valid phone' : 'Invalid format'}
+                  </Text>
+                )}
+              </View>
+
+              <View style={[
+                styles.inputWithIcon,
+                phoneTouched && phone.trim().length > 0 && (isPhoneValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+              ]}>
+                <View style={styles.iconHolder}>
+                  <Phone 
+                    size={19} 
+                    color={
+                      phoneTouched && phone.trim().length > 0
+                        ? (isPhoneValid ? '#10b981' : '#ef4444') 
+                        : '#64748b'
+                    } 
+                    strokeWidth={2}
+                  />
+                </View>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="+1 (555) 000-0000"
+                  placeholderTextColor={colors.textDim}
+                  value={phone}
+                  onChangeText={(val) => {
+                    setPhone(val);
+                    if (!phoneTouched) setPhoneTouched(true);
+                    if (apiError) setApiError(null);
+                  }}
+                  onBlur={() => setPhoneTouched(true)}
+                  keyboardType="phone-pad"
+                />
+                {phoneTouched && phone.trim().length > 0 && (
+                  <View style={styles.validationIconHolder}>
+                    {isPhoneValid ? (
+                      <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                    ) : (
+                      <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
+                    )}
+                  </View>
+                )}
+              </View>
+              {isPhoneInvalid && (
+                <Text style={styles.helperErrorText}>
+                  Please enter a valid phone number (7-15 digits)
+                </Text>
+              )}
+            </View>
+
+            {/* Password Input with Visibility Toggle */}
+            {!isGoogleVerified && (
+              <View style={styles.inputGroup}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.inputLabel}>Password</Text>
+                  {passwordTouched && (
+                    <Text style={[styles.valStatusText, isPasswordValid ? styles.valGreenText : styles.valRedText]}>
+                      {isPasswordValid ? 'Min 8 chars met' : `${password.length}/8 characters`}
                     </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
+                  )}
+                </View>
 
-          {/* Professional Title Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Professional Title</Text>
-            <View style={styles.inputWithoutIcon}>
-              <TextInput
-                style={styles.textInputFull}
-                placeholder="e.g. Senior Consultant / Master Barber"
-                placeholderTextColor={colors.textDim}
-                value={title}
-                onChangeText={setTitle}
-              />
-            </View>
+                <View style={[
+                  styles.inputWithIcon,
+                  passwordTouched && (isPasswordValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+                ]}>
+                  <View style={styles.iconHolder}>
+                    <Lock 
+                      size={19} 
+                      color={
+                        passwordTouched 
+                          ? (isPasswordValid ? '#10b981' : '#ef4444') 
+                          : '#64748b'
+                      } 
+                      strokeWidth={2}
+                    />
+                  </View>
+                  <TextInput
+                    style={[styles.textInput, { flex: 1 }]}
+                    placeholder="••••••••••••"
+                    placeholderTextColor={colors.textDim}
+                    value={password}
+                    onChangeText={(val) => {
+                      setPassword(val);
+                      if (!passwordTouched) setPasswordTouched(true);
+                      if (apiError) setApiError(null);
+                    }}
+                    onBlur={() => setPasswordTouched(true)}
+                    secureTextEntry={!showPassword}
+                  />
+                  <View style={styles.rightActionsRow}>
+                    {passwordTouched && (
+                      <View style={styles.validationIconHolder}>
+                        {isPasswordValid ? (
+                          <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                        ) : (
+                          <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
+                        )}
+                      </View>
+                    )}
+                    <TouchableOpacity 
+                      style={styles.eyeToggleBtn}
+                      onPress={() => setShowPassword(!showPassword)}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      {showPassword ? (
+                        <Eye size={20} color={colors.primary} strokeWidth={2} />
+                      ) : (
+                        <EyeOff size={20} color="#94a3b8" strokeWidth={2} />
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                {isPasswordInvalid && (
+                  <Text style={styles.helperErrorText}>
+                    Password must be at least 8 characters ({password.length}/8)
+                  </Text>
+                )}
+              </View>
+            )}
           </View>
+        )}
 
-          {/* Hourly Consultation Rate */}
-          <View style={styles.inputGroup}>
-            <View style={styles.labelRow}>
-              <Text style={styles.inputLabel}>Hourly Consultation Rate</Text>
-              <Text style={styles.subHint}>Standard currency: USD</Text>
-            </View>
-            <View style={styles.rateInputRow}>
-              <Text style={styles.currencyPrefix}>$</Text>
-              <TextInput
-                style={styles.rateTextInput}
-                placeholder="50"
-                placeholderTextColor={colors.textDim}
-                value={hourlyRate}
-                onChangeText={setHourlyRate}
-                keyboardType="numeric"
-              />
-              <Text style={styles.rateSuffix}>/ hr</Text>
-            </View>
-          </View>
-
-          {/* Default Slot Duration Segmented Buttons */}
-          <View style={styles.inputGroup}>
-            <View style={styles.labelRow}>
-              <Text style={styles.inputLabel}>Default Slot Duration (Minutes)</Text>
-              <View style={styles.recBadge}>
-                <Text style={styles.recBadgeText}>Recommended: 30m</Text>
+        {/* STEP 2: CREATOR PROFILE DETAILS */}
+        {currentStep === 2 && (
+          <View style={styles.cardSection}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.cardHeaderLeft}>
+                <View style={styles.headerIconDot} />
+                <Text style={styles.cardHeaderTitle}>CREATOR PROFILE DETAILS</Text>
               </View>
             </View>
 
-            <View style={styles.segmentedContainer}>
-              {SLOT_DURATIONS.map((dur) => {
-                const isActive = slotDuration === dur;
-                return (
-                  <TouchableOpacity
-                    key={dur}
-                    style={[
-                      styles.segmentBtn,
-                      isActive && styles.segmentBtnActive
-                    ]}
-                    activeOpacity={0.8}
-                    onPress={() => setSlotDuration(dur)}
-                  >
-                    <Text style={[
-                      styles.segmentText,
-                      isActive && styles.segmentTextActive
-                    ]}>
-                      {dur} mins
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+            {/* Professional Category Pills */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Professional Category</Text>
+                <Text style={styles.subHint}>Select primary focus</Text>
+              </View>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                contentContainerStyle={styles.categoryPillsRow}
+              >
+                {CATEGORIES.map((cat) => {
+                  const isActive = category === cat;
+                  return (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[
+                        styles.catPill,
+                        isActive && styles.catPillActive
+                      ]}
+                      activeOpacity={0.8}
+                      onPress={() => setCategory(cat)}
+                    >
+                      {isActive && <Check size={14} color="#ffffff" strokeWidth={2.5} style={{ marginRight: 4 }} />}
+                      <Text style={[
+                        styles.catPillText,
+                        isActive && styles.catPillTextActive
+                      ]}>
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            {/* Consultation Mode Selector */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Consultation Delivery Mode</Text>
+              <View style={styles.modeCardsRow}>
+                {CONSULTATION_MODES.map((mode) => {
+                  const isActive = consultationMode === mode.id;
+                  return (
+                    <TouchableOpacity
+                      key={mode.id}
+                      style={[styles.modeCard, isActive && styles.modeCardActive]}
+                      onPress={() => setConsultationMode(mode.id)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.modeIcon}>{mode.icon}</Text>
+                      <Text style={[styles.modeLabel, isActive && styles.modeLabelActive]}>
+                        {mode.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Office Address */}
+            {consultationMode !== 'VIRTUAL' && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Clinic / Office Physical Address</Text>
+                <View style={styles.inputWithIcon}>
+                  <View style={styles.iconHolder}>
+                    <MapPin size={18} color={colors.primary} strokeWidth={2} />
+                  </View>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Suite, Street Address, City"
+                    placeholderTextColor={colors.textDim}
+                    value={officeAddress}
+                    onChangeText={setOfficeAddress}
+                  />
+                </View>
+              </View>
+            )}
+
+            {/* Professional Title Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Professional Title</Text>
+              <View style={styles.inputWithoutIcon}>
+                <TextInput
+                  style={styles.textInputFull}
+                  placeholder="e.g. Senior Consultant / Master Barber"
+                  placeholderTextColor={colors.textDim}
+                  value={title}
+                  onChangeText={setTitle}
+                />
+              </View>
+            </View>
+
+            {/* Hourly Consultation Rate */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Hourly Consultation Rate</Text>
+                <Text style={styles.subHint}>Currency: USD</Text>
+              </View>
+              <View style={styles.rateInputRow}>
+                <Text style={styles.currencyPrefix}>$</Text>
+                <TextInput
+                  style={styles.rateTextInput}
+                  placeholder="50"
+                  placeholderTextColor={colors.textDim}
+                  value={hourlyRate}
+                  onChangeText={setHourlyRate}
+                  keyboardType="numeric"
+                />
+                <Text style={styles.rateSuffix}>/ hr</Text>
+              </View>
+            </View>
+
+            {/* Default Slot Duration Segmented Buttons */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Default Slot Duration</Text>
+                <View style={styles.recBadge}>
+                  <Text style={styles.recBadgeText}>Recommended: 30m</Text>
+                </View>
+              </View>
+
+              <View style={styles.segmentedContainer}>
+                {SLOT_DURATIONS.map((dur) => {
+                  const isActive = slotDuration === dur;
+                  return (
+                    <TouchableOpacity
+                      key={dur}
+                      style={[
+                        styles.segmentBtn,
+                        isActive && styles.segmentBtnActive
+                      ]}
+                      activeOpacity={0.8}
+                      onPress={() => setSlotDuration(dur)}
+                    >
+                      <Text style={[
+                        styles.segmentText,
+                        isActive && styles.segmentTextActive
+                      ]}>
+                        {dur} mins
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Profile Bio Textarea */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Profile Bio / Introduction</Text>
+                <Text style={styles.charCountText}>{bio.length}/300</Text>
+              </View>
+              <View style={styles.textAreaContainer}>
+                <TextInput
+                  style={styles.textAreaInput}
+                  placeholder="Tell clients about your services, certifications, and booking guidelines..."
+                  placeholderTextColor={colors.textDim}
+                  value={bio}
+                  onChangeText={setBio}
+                  maxLength={300}
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
             </View>
           </View>
+        )}
 
-          {/* Profile Bio Textarea */}
-          <View style={styles.inputGroup}>
-            <View style={styles.labelRow}>
-              <Text style={styles.inputLabel}>Profile Bio / Introduction</Text>
-              <Text style={styles.charCountText}>{bio.length}/300</Text>
+        {/* STEP 3: OTP EMAIL VERIFICATION */}
+        {currentStep === 3 && (
+          <View style={styles.cardSection}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.cardHeaderLeft}>
+                <ShieldCheck size={18} color={colors.primary} strokeWidth={2.2} />
+                <Text style={styles.cardHeaderTitle}>CREATOR VERIFICATION</Text>
+              </View>
             </View>
-            <View style={styles.textAreaContainer}>
-              <TextInput
-                style={styles.textAreaInput}
-                placeholder="Tell clients about your services, certifications, and booking guidelines..."
-                placeholderTextColor={colors.textDim}
-                value={bio}
-                onChangeText={setBio}
-                maxLength={300}
-                multiline
-                numberOfLines={3}
-              />
+
+            <View style={styles.otpInfoBox}>
+              <Text style={styles.otpInfoText}>
+                We sent a 6-digit security code to your email:
+              </Text>
+              <Text style={styles.otpTargetEmail}>{email}</Text>
+            </View>
+
+            {/* OTP Code Input */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Enter 6-Digit Code</Text>
+                {otpTouched && (
+                  <Text style={[styles.valStatusText, isOtpValid ? styles.valGreenText : styles.valRedText]}>
+                    {isOtpValid ? '6-digits entered' : `${otpCode.length}/6 digits`}
+                  </Text>
+                )}
+              </View>
+
+              <View style={[
+                styles.inputWithIcon,
+                otpTouched && (isOtpValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+              ]}>
+                <View style={styles.iconHolder}>
+                  <ShieldCheck 
+                    size={19} 
+                    color={
+                      otpTouched 
+                        ? (isOtpValid ? '#10b981' : '#ef4444') 
+                        : '#64748b'
+                    } 
+                    strokeWidth={2}
+                  />
+                </View>
+                <TextInput
+                  style={[styles.textInput, styles.otpInputText]}
+                  placeholder="123456"
+                  placeholderTextColor={colors.textDim}
+                  value={otpCode}
+                  onChangeText={(val) => {
+                    const cleanVal = val.replace(/[^0-9]/g, '').slice(0, 6);
+                    setOtpCode(cleanVal);
+                    if (!otpTouched) setOtpTouched(true);
+                    if (apiError) setApiError(null);
+                  }}
+                  keyboardType="numeric"
+                  maxLength={6}
+                />
+                {otpTouched && (
+                  <View style={styles.validationIconHolder}>
+                    {isOtpValid ? (
+                      <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                    ) : (
+                      <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
+                    )}
+                  </View>
+                )}
+              </View>
+              {isOtpInvalid && (
+                <Text style={styles.helperErrorText}>
+                  Please enter the complete 6-digit code sent to your email
+                </Text>
+              )}
+            </View>
+
+            {/* Resend Timer & Button */}
+            <View style={styles.resendRow}>
+              {canResend ? (
+                <TouchableOpacity 
+                  style={styles.resendBtn} 
+                  onPress={handleResendOtp}
+                  activeOpacity={0.7}
+                  disabled={loading}
+                >
+                  <RotateCcw size={14} color={colors.primary} />
+                  <Text style={styles.resendBtnText}>Resend Verification Code</Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.resendTimerText}>
+                  Resend code in <Text style={styles.countdownBold}>{countdown}s</Text>
+                </Text>
+              )}
             </View>
           </View>
-        </View>
+        )}
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 120 }} />
       </ScrollView>
 
       {/* Floating Bottom Action Bar */}
       <View style={styles.floatingBottomBar}>
-        <TouchableOpacity
-          style={[styles.launchButton, loading && styles.launchButtonDisabled]}
-          activeOpacity={0.88}
-          onPress={handleRegister}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#ffffff" size="small" />
-          ) : (
-            <>
-              <Text style={styles.launchButtonText}>Launch Creator Profile</Text>
-              <Text style={styles.launchArrow}>→</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        {currentStep === 1 && (
+          <TouchableOpacity
+            style={styles.primaryActionButton}
+            activeOpacity={0.88}
+            onPress={handleStep1ToStep2}
+          >
+            <Text style={styles.actionButtonText}>Next: Service Profile</Text>
+            <ArrowRight size={18} color="#ffffff" strokeWidth={2.2} />
+          </TouchableOpacity>
+        )}
+
+        {currentStep === 2 && (
+          <View style={styles.actionButtonRow}>
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              activeOpacity={0.8}
+              onPress={() => setCurrentStep(1)}
+            >
+              <ChevronLeft size={16} color="#475569" strokeWidth={2} />
+              <Text style={styles.secondaryBtnText}>Back</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.primaryActionButton, { flex: 1.4 }, loading && styles.buttonDisabled]}
+              activeOpacity={0.88}
+              onPress={handleStep2Submit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#ffffff" size="small" />
+              ) : (
+                <>
+                  <Text style={styles.actionButtonText}>
+                    {isGoogleVerified ? 'Create Profile' : 'Send Code'}
+                  </Text>
+                  <ArrowRight size={18} color="#ffffff" strokeWidth={2.2} />
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {currentStep === 3 && (
+          <View style={styles.actionButtonRow}>
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              activeOpacity={0.8}
+              onPress={() => setCurrentStep(2)}
+            >
+              <ChevronLeft size={16} color="#475569" strokeWidth={2} />
+              <Text style={styles.secondaryBtnText}>Edit Info</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.primaryActionButton, { flex: 1.4 }, loading && styles.buttonDisabled]}
+              activeOpacity={0.88}
+              onPress={handleVerifyAndRegister}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#ffffff" size="small" />
+              ) : (
+                <Text style={styles.actionButtonText}>Verify & Create Profile</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Progress Info Subtext */}
         <View style={styles.progressInfoRow}>
-          <Text style={styles.progressText}>Step 1 of 2</Text>
+          <Text style={styles.progressText}>
+            {isGoogleVerified ? `Step ${currentStep} of 2 (Google Linked)` : `Step ${currentStep} of 3`}
+          </Text>
           <Text style={styles.dotSeparator}>•</Text>
-          <Text style={styles.progressText}>Takes ~1 min</Text>
-          <Text style={styles.dotSeparator}>•</Text>
-          <TouchableOpacity activeOpacity={0.7}>
-            <Text style={styles.previewCardLink}>Preview card</Text>
-          </TouchableOpacity>
+          <Text style={styles.progressText}>
+            {currentStep === 1 ? 'Credentials' : currentStep === 2 ? 'Service Details' : 'Verify Email'}
+          </Text>
         </View>
 
         {/* iOS Home Indicator Bar */}
@@ -369,83 +1032,145 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fafc',
   },
-  topHeader: {
-    height: Platform.OS === 'ios' ? 88 : 56,
-    paddingTop: Platform.OS === 'ios' ? 44 : 10,
+  topNavigation: {
+    paddingTop: Platform.OS === 'ios' ? 52 : 16,
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    paddingBottom: 4,
     zIndex: 20,
   },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 4,
-  },
-  backArrow: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: colors.primary,
-    marginTop: -2,
-  },
-  backText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  settingsBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#f1f5f9',
+  backButtonCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  settingsIcon: {
-    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
   },
   scrollContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingTop: 8,
     paddingBottom: 24,
     gap: 16,
   },
+  topGlow: {
+    position: 'absolute',
+    top: -60,
+    left: '20%',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(99, 102, 241, 0.12)',
+    transform: [{ scaleX: 1.5 }],
+  },
   headingSection: {
+    alignItems: 'center',
     marginBottom: 4,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  miniLogoBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  miniLogoIcon: {
-    fontSize: 12,
+  logoBadgeContainer: {
+    marginBottom: 10,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   pageTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '900',
     color: colors.textMain,
     letterSpacing: -0.3,
+    textAlign: 'center',
   },
   pageSubtitle: {
-    fontSize: 12.5,
+    fontSize: 13,
     color: colors.textMuted,
     lineHeight: 18,
-    paddingLeft: 32,
+    textAlign: 'center',
+    marginTop: 4,
+    paddingHorizontal: 12,
+  },
+  stepProgressBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 6,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginVertical: 4,
+  },
+  stepTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  stepTabActive: {
+    backgroundColor: '#eef2ff',
+  },
+  stepBadgeNum: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#cbd5e1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepBadgeNumActive: {
+    backgroundColor: colors.primary,
+  },
+  stepBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#ffffff',
+  },
+  stepBadgeTextActive: {
+    color: '#ffffff',
+  },
+  stepTabLabel: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  stepTabLabelActive: {
+    color: colors.primary,
+    fontWeight: '800',
+  },
+  stepLineSeparator: {
+    width: 12,
+    height: 1.5,
+    backgroundColor: '#e2e8f0',
+  },
+  googleSyncBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  googleSyncText: {
+    fontSize: 12,
+    color: '#047857',
+    fontWeight: '600',
+    flex: 1,
+  },
+  googleSyncEmail: {
+    fontWeight: '800',
+    color: '#065f46',
   },
   errorBox: {
     backgroundColor: '#fef2f2',
@@ -453,23 +1178,27 @@ const styles = StyleSheet.create({
     borderColor: '#fca5a5',
     borderRadius: radii.md,
     padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   errorText: {
     color: '#dc2626',
     fontSize: 13,
     fontWeight: '600',
+    flex: 1,
   },
   cardSection: {
     backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: 22,
+    padding: 20,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    elevation: 4,
     gap: 16,
   },
   cardHeaderRow: {
@@ -485,59 +1214,56 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  numBadgeIndigo: {
-    backgroundColor: '#eef2ff',
-    borderWidth: 1,
-    borderColor: '#c7d2fe',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  numBadgeIndigoText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: colors.primary,
-  },
-  numBadgeTeal: {
-    backgroundColor: '#f0fdf4',
-    borderWidth: 1,
-    borderColor: '#bbf7d0',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  numBadgeTealText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#0f766e',
+  headerIconDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
   },
   cardHeaderTitle: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '800',
     color: colors.textMain,
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
   },
-  securedBadge: {
+  googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#ecfdf5',
-    borderWidth: 1,
-    borderColor: '#a7f3d0',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: radii.pill,
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    borderRadius: 14,
+    height: 48,
+    gap: 10,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  securedDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#10b981',
-  },
-  securedText: {
-    fontSize: 10.5,
+  googleButtonText: {
+    fontSize: 13.5,
     fontWeight: '700',
-    color: '#047857',
+    color: '#334155',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginVertical: 2,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e2e8f0',
+  },
+  dividerText: {
+    fontSize: 11,
+    color: colors.textDim,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   inputGroup: {
     gap: 6,
@@ -552,52 +1278,91 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#334155',
   },
-  asterisk: {
-    color: '#f43f5e',
-  },
   subHint: {
     fontSize: 11,
     color: colors.textDim,
+  },
+  valStatusText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  valGreenText: {
+    color: '#059669',
+  },
+  valRedText: {
+    color: '#dc2626',
   },
   inputWithIcon: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f8fafc',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#cbd5e1',
-    borderRadius: 12,
+    borderRadius: 14,
     paddingHorizontal: 12,
-    height: 46,
+    height: 50,
+  },
+  inputValidBorder: {
+    borderColor: '#10b981',
+    backgroundColor: '#f0fdf4',
+  },
+  inputInvalidBorder: {
+    borderColor: '#ef4444',
+    backgroundColor: '#fef2f2',
   },
   inputWithoutIcon: {
     backgroundColor: '#f8fafc',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#cbd5e1',
-    borderRadius: 12,
+    borderRadius: 14,
     paddingHorizontal: 12,
-    height: 46,
+    height: 50,
+    justifyContent: 'center',
   },
-  fieldIcon: {
-    fontSize: 15,
-    marginRight: 8,
+  iconHolder: {
+    marginRight: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  validationIconHolder: {
+    marginRight: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rightActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   textInput: {
     flex: 1,
-    fontSize: 13.5,
+    fontSize: 14,
     fontWeight: '500',
     color: colors.textMain,
   },
   textInputFull: {
     flex: 1,
-    fontSize: 13.5,
+    fontSize: 14,
     fontWeight: '500',
     color: colors.textMain,
   },
+  otpInputText: {
+    letterSpacing: 6,
+    fontSize: 18,
+    fontWeight: '800',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
   eyeToggleBtn: {
     padding: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  eyeIconText: {
-    fontSize: 16,
+  helperErrorText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#ef4444',
+    marginTop: 2,
+    marginLeft: 2,
   },
   categoryPillsRow: {
     gap: 8,
@@ -614,14 +1379,8 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
   },
   catPillActive: {
-    backgroundColor: '#0f766e',
-    borderColor: '#0f766e',
-  },
-  catCheckMark: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '900',
-    marginRight: 4,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   catPillText: {
     fontSize: 12,
@@ -632,18 +1391,50 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '700',
   },
+  modeCardsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  modeCard: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  modeCardActive: {
+    backgroundColor: '#eef2ff',
+    borderColor: colors.primary,
+  },
+  modeIcon: {
+    fontSize: 18,
+  },
+  modeLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#475569',
+    textAlign: 'center',
+  },
+  modeLabelActive: {
+    color: colors.primary,
+  },
   rateInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f8fafc',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#cbd5e1',
-    borderRadius: 12,
+    borderRadius: 14,
     paddingHorizontal: 12,
-    height: 46,
+    height: 50,
   },
   currencyPrefix: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
     color: '#475569',
     marginRight: 6,
@@ -710,7 +1501,7 @@ const styles = StyleSheet.create({
   },
   textAreaContainer: {
     backgroundColor: '#f8fafc',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#cbd5e1',
     borderRadius: 12,
     padding: 10,
@@ -722,6 +1513,46 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     lineHeight: 18,
   },
+  otpInfoBox: {
+    backgroundColor: '#f1f5f9',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+  },
+  otpInfoText: {
+    fontSize: 12.5,
+    color: colors.textMuted,
+  },
+  otpTargetEmail: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: colors.primary,
+    marginTop: 2,
+  },
+  resendRow: {
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  resendBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  resendBtnText: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: colors.primary,
+  },
+  resendTimerText: {
+    fontSize: 12,
+    color: colors.textDim,
+  },
+  countdownBold: {
+    fontWeight: '800',
+    color: colors.textMain,
+  },
   floatingBottomBar: {
     position: 'absolute',
     bottom: 0,
@@ -730,7 +1561,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.96)',
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: Platform.OS === 'ios' ? 24 : 12,
     shadowColor: '#000',
@@ -740,8 +1571,8 @@ const styles = StyleSheet.create({
     elevation: 10,
     zIndex: 30,
   },
-  launchButton: {
-    height: 50,
+  primaryActionButton: {
+    height: 52,
     borderRadius: 14,
     backgroundColor: colors.primary,
     flexDirection: 'row',
@@ -754,18 +1585,36 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
-  launchButtonDisabled: {
-    opacity: 0.6,
-  },
-  launchButtonText: {
+  actionButtonText: {
     color: '#ffffff',
     fontSize: 15,
     fontWeight: '700',
+    letterSpacing: 0.3,
   },
-  launchArrow: {
-    color: '#ffffff',
-    fontSize: 18,
+  actionButtonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  secondaryBtn: {
+    height: 52,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  secondaryBtnText: {
+    fontSize: 13.5,
     fontWeight: '700',
+    color: '#475569',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   progressInfoRow: {
     flexDirection: 'row',
@@ -782,11 +1631,6 @@ const styles = StyleSheet.create({
   dotSeparator: {
     fontSize: 11,
     color: colors.textDim,
-  },
-  previewCardLink: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.primary,
   },
   bottomHomeBar: {
     width: 120,

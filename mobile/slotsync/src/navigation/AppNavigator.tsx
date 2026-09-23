@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, BackHandler } from 'react-native';
 import { colors, radii } from '../theme/colors';
 import { getCurrentUser, getStoredToken, removeStoredToken } from '../services/api';
 
@@ -40,6 +40,35 @@ export default function AppNavigator() {
 
   // Creator Tab Router
   const [creatorTab, setCreatorTab] = useState<CreatorTab>('DASHBOARD');
+
+  // Hardware and gesture back handler listener
+  useEffect(() => {
+    const backAction = () => {
+      if (!isAuthenticated) {
+        if (authScreen !== 'CHOICE') {
+          setAuthScreen('CHOICE');
+          return true;
+        }
+      } else {
+        if (selectedCreator) {
+          setSelectedCreator(null);
+          return true;
+        }
+        if (clientTab !== 'DISCOVER') {
+          setClientTab('DISCOVER');
+          return true;
+        }
+        if (creatorTab !== 'DASHBOARD') {
+          setCreatorTab('DASHBOARD');
+          return true;
+        }
+      }
+      return false;
+    };
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    return () => backHandler.remove();
+  }, [isAuthenticated, authScreen, selectedCreator, clientTab, creatorTab]);
 
   // Load user data on startup
   const checkAuth = useCallback(async () => {

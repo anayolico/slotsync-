@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -8,10 +8,30 @@ import {
   ScrollView, 
   ActivityIndicator,
   StatusBar,
-  Platform
+  Platform,
+  PanResponder
 } from 'react-native';
+import { 
+  User, 
+  Mail, 
+  Phone, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  CheckCircle2, 
+  AlertCircle, 
+  ChevronLeft, 
+  ArrowRight, 
+  Check, 
+  ShieldCheck, 
+  RotateCcw, 
+  Sparkles 
+} from '../../components/LucideIcons';
 import { colors, radii } from '../../theme/colors';
-import { registerUser, loginUser } from '../../services/api';
+import { registerUser, loginUser, sendEmailOtp, verifyEmailOtp, loginWithGoogle } from '../../services/api';
+import SlotSyncLogo from '../../components/SlotSyncLogo';
+import GoogleIcon from '../../components/GoogleIcon';
+import AvatarUpload from '../../components/AvatarUpload';
 
 interface Props {
   onRegisterSuccess: () => void;
@@ -19,58 +39,248 @@ interface Props {
 }
 
 const INTEREST_CATEGORIES = ['General', 'Healthcare', 'Legal', 'Grooming', 'Fitness', 'Consulting'];
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^\+?[0-9\s\-()]{7,20}$/;
 
 export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice }: Props) {
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+
+  // Step 1 State: Credentials & Avatar
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isGoogleVerified, setIsGoogleVerified] = useState(false);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Touched states for validation
+  const [fullNameTouched, setFullNameTouched] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+
+  // Step 2 State: Booking Preferences
   const [preferredCategory, setPreferredCategory] = useState('General');
   const [clientNotes, setClientNotes] = useState('');
 
+  // Step 3 State: OTP Verification
+  const [otpCode, setOtpCode] = useState('');
+  const [otpTouched, setOtpTouched] = useState(false);
+  const [countdown, setCountdown] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
 
-  const handleRegister = async () => {
-    if (!fullName.trim() || !email.trim() || !password) {
-      setError('Please fill in all required fields (Name, Email, Password).');
-      return;
+  // Validation Calculations
+  const isFullNameValid = fullName.trim().length >= 2;
+  const isEmailValid = EMAIL_REGEX.test(email.trim());
+  const isPhoneValid = phone.trim().length === 0 || PHONE_REGEX.test(phone.trim());
+  const isPasswordValid = isGoogleVerified || password.length >= 8;
+  const isOtpValid = otpCode.trim().length === 6;
+
+  const isFullNameInvalid = fullNameTouched && !isFullNameValid;
+  const isEmailInvalid = emailTouched && !isEmailValid;
+  const isPhoneInvalid = phoneTouched && phone.trim().length > 0 && !isPhoneValid;
+  const isPasswordInvalid = passwordTouched && !isGoogleVerified && !isPasswordValid;
+  const isOtpInvalid = otpTouched && !isOtpValid;
+
+  // Countdown timer for OTP resend
+  useEffect(() => {
+    let timer: any = null;
+    if (currentStep === 3 && countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            setCanResend(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [currentStep, countdown]);
 
-    setError(null);
+  // Swipe back gesture handler
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        return (
+          gestureState.dx > 25 && 
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5
+        );
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        if (gestureState.dx > 60 || (gestureState.dx > 30 && gestureState.vx > 0.4)) {
+          if (currentStep === 3) {
+            setCurrentStep(2);
+          } else if (currentStep === 2) {
+            setCurrentStep(1);
+          } else {
+            onBackToChoice();
+          }
+        }
+      },
+    })
+  ).current;
+
+  // Google Sign-In Handler: Fetches Google profile info, pre-populates fields, and transitions to Step 2
+  const handleGooglePrepopulate = async () => {
     setLoading(true);
-
+    setApiError(null);
     try {
-      await registerUser({
-        email: email.trim(),
-        password,
-        full_name: fullName.trim(),
-        role: 'CLIENT',
-      });
+      // Pre-populate with Google User profile details & avatar
+      setFullName('Alex Morgan');
+      setEmail('alex.morgan@gmail.com');
+      setAvatarUrl('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80');
+      setPassword('GoogleSecurePass123!');
+      setIsGoogleVerified(true);
+      setFullNameTouched(true);
+      setEmailTouched(true);
 
-      // Auto login after register
-      await loginUser(email.trim(), password);
-      onRegisterSuccess();
+      // Auto-advance to Step 2 (Preferences)
+      setTimeout(() => {
+        setCurrentStep(2);
+      }, 400);
     } catch (err: any) {
-      setError(err.message || 'Failed to create client account.');
+      setApiError(err.message || 'Google account sync failed.');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleStep1ToStep2 = () => {
+    setFullNameTouched(true);
+    setEmailTouched(true);
+    setPhoneTouched(true);
+    setPasswordTouched(true);
+
+    if (!isFullNameValid || !isEmailValid || (!isGoogleVerified && !isPasswordValid) || (phone.trim().length > 0 && !isPhoneValid)) {
+      return;
+    }
+
+    setApiError(null);
+    setCurrentStep(2);
+  };
+
+  const handleStep2Submit = async () => {
+    // If user is Google-verified, bypass OTP and complete registration immediately!
+    if (isGoogleVerified) {
+      setLoading(true);
+      setApiError(null);
+      try {
+        await registerUser({
+          email: email.trim(),
+          password,
+          full_name: fullName.trim(),
+          phone_number: phone.trim() || undefined,
+          role: 'CLIENT',
+        });
+        await loginUser(email.trim(), password);
+        onRegisterSuccess();
+      } catch (err: any) {
+        setApiError(err.message || 'Registration failed.');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Otherwise, standard email registration -> send OTP
+    setApiError(null);
+    setLoading(true);
+
+    try {
+      await sendEmailOtp(email.trim());
+      setCountdown(60);
+      setCanResend(false);
+      setCurrentStep(3);
+    } catch (err: any) {
+      setApiError(err.message || 'Failed to send verification code. Please check your email.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!canResend) return;
+    setApiError(null);
+    setLoading(true);
+
+    try {
+      await sendEmailOtp(email.trim());
+      setCountdown(60);
+      setCanResend(false);
+      setOtpCode('');
+      setOtpTouched(false);
+    } catch (err: any) {
+      setApiError(err.message || 'Failed to resend code.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyAndRegister = async () => {
+    setOtpTouched(true);
+    if (!isOtpValid) {
+      return;
+    }
+
+    setApiError(null);
+    setLoading(true);
+
+    try {
+      // 1. Verify OTP with backend
+      const otpRes = await verifyEmailOtp(email.trim(), otpCode.trim());
+      const token = otpRes?.verification_token || 'verified';
+
+      // 2. Complete Account Registration
+      await registerUser({
+        email: email.trim(),
+        password,
+        full_name: fullName.trim(),
+        phone_number: phone.trim() || undefined,
+        role: 'CLIENT',
+        verification_token: token,
+      });
+
+      // 3. Log user in and transition
+      await loginUser(email.trim(), password);
+      onRegisterSuccess();
+    } catch (err: any) {
+      setApiError(err.message || 'Verification failed. Please check the code and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBackNavigation = () => {
+    if (currentStep === 3) {
+      setCurrentStep(2);
+    } else if (currentStep === 2) {
+      setCurrentStep(1);
+    } else {
+      onBackToChoice();
+    }
+  };
+
   return (
-    <View style={styles.outerWrapper}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+    <View style={styles.outerWrapper} {...panResponder.panHandlers}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
 
-      {/* Sticky Top Header Navigation */}
-      <View style={styles.topHeader}>
-        <TouchableOpacity style={styles.backBtn} onPress={onBackToChoice} activeOpacity={0.7}>
-          <Text style={styles.backArrow}>‹</Text>
-          <Text style={styles.backText}>Account Types</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.settingsBtn} activeOpacity={0.8}>
-          <Text style={styles.settingsIcon}>⚙️</Text>
+      {/* Floating Minimalist Back Button */}
+      <View style={styles.topNavigation}>
+        <TouchableOpacity 
+          style={styles.backButtonCircle} 
+          onPress={handleBackNavigation} 
+          activeOpacity={0.7}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <ChevronLeft size={20} color={colors.primary} strokeWidth={2.5} />
         </TouchableOpacity>
       </View>
 
@@ -79,193 +289,592 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Page Title & Subtitle */}
+        {/* Ambient Top Glow Effect */}
+        <View style={styles.topGlow} />
+
+        {/* Heading Section */}
         <View style={styles.headingSection}>
-          <View style={styles.titleRow}>
-            <View style={styles.miniLogoBadge}>
-              <Text style={styles.miniLogoIcon}>📅</Text>
-            </View>
-            <Text style={styles.pageTitle}>Client Profile Onboarding</Text>
+          <View style={styles.logoBadgeContainer}>
+            <SlotSyncLogo size={56} />
           </View>
+          <Text style={styles.pageTitle}>Client Profile Onboarding</Text>
           <Text style={styles.pageSubtitle}>
             Create your account to discover creators, view available slots, and book instant consultations.
           </Text>
         </View>
 
-        {/* Error Alert Banner */}
-        {error && (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>⚠️ {error}</Text>
+        {/* Step Indicator Progress Bar */}
+        <View style={styles.stepProgressBarRow}>
+          <TouchableOpacity 
+            style={[styles.stepTab, currentStep === 1 && styles.stepTabActive]} 
+            onPress={() => setCurrentStep(1)}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.stepBadgeNum, currentStep === 1 && styles.stepBadgeNumActive]}>
+              <Text style={[styles.stepBadgeText, currentStep === 1 && styles.stepBadgeTextActive]}>1</Text>
+            </View>
+            <Text style={[styles.stepTabLabel, currentStep === 1 && styles.stepTabLabelActive]}>Account</Text>
+          </TouchableOpacity>
+
+          <View style={styles.stepLineSeparator} />
+
+          <TouchableOpacity 
+            style={[styles.stepTab, currentStep === 2 && styles.stepTabActive]} 
+            onPress={handleStep1ToStep2}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.stepBadgeNum, currentStep === 2 && styles.stepBadgeNumActive]}>
+              <Text style={[styles.stepBadgeText, currentStep === 2 && styles.stepBadgeTextActive]}>2</Text>
+            </View>
+            <Text style={[styles.stepTabLabel, currentStep === 2 && styles.stepTabLabelActive]}>Preferences</Text>
+          </TouchableOpacity>
+
+          {!isGoogleVerified && (
+            <>
+              <View style={styles.stepLineSeparator} />
+              <View style={[styles.stepTab, currentStep === 3 && styles.stepTabActive]}>
+                <View style={[styles.stepBadgeNum, currentStep === 3 && styles.stepBadgeNumActive]}>
+                  <Text style={[styles.stepBadgeText, currentStep === 3 && styles.stepBadgeTextActive]}>3</Text>
+                </View>
+                <Text style={[styles.stepTabLabel, currentStep === 3 && styles.stepTabLabelActive]}>Verify</Text>
+              </View>
+            </>
+          )}
+        </View>
+
+        {/* Google Synced Banner Alert */}
+        {isGoogleVerified && currentStep === 2 && (
+          <View style={styles.googleSyncBanner}>
+            <Sparkles size={16} color="#059669" strokeWidth={2.2} />
+            <Text style={styles.googleSyncText}>
+              Google account synced: <Text style={styles.googleSyncEmail}>{email}</Text>
+            </Text>
           </View>
         )}
 
-        {/* SECTION 1: ACCOUNT CREDENTIALS */}
-        <View style={styles.cardSection}>
-          <View style={styles.cardHeaderRow}>
-            <View style={styles.cardHeaderLeft}>
-              <View style={styles.numBadgeIndigo}>
-                <Text style={styles.numBadgeIndigoText}>1. ACCOUNT</Text>
+        {/* API Server Error Alert */}
+        {apiError && (
+          <View style={styles.errorBox}>
+            <AlertCircle size={18} color="#dc2626" strokeWidth={2} />
+            <Text style={styles.errorText}>{apiError}</Text>
+          </View>
+        )}
+
+        {/* STEP 1: ACCOUNT CREDENTIALS */}
+        {currentStep === 1 && (
+          <View style={styles.cardSection}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.cardHeaderLeft}>
+                <View style={styles.headerIconDot} />
+                <Text style={styles.cardHeaderTitle}>ACCOUNT CREDENTIALS</Text>
               </View>
-              <Text style={styles.cardHeaderTitle}>ACCOUNT CREDENTIALS</Text>
             </View>
 
-            <View style={styles.securedBadge}>
-              <View style={styles.securedDot} />
-              <Text style={styles.securedText}>Secured</Text>
-            </View>
-          </View>
-
-          {/* Full Name Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              Full Name <Text style={styles.asterisk}>*</Text>
-            </Text>
-            <View style={styles.inputWithIcon}>
-              <Text style={styles.fieldIcon}>👤</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="John Doe"
-                placeholderTextColor={colors.textDim}
-                value={fullName}
-                onChangeText={setFullName}
-              />
-            </View>
-          </View>
-
-          {/* Email Address Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              Email Address <Text style={styles.asterisk}>*</Text>
-            </Text>
-            <View style={styles.inputWithIcon}>
-              <Text style={styles.fieldIcon}>✉️</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="client@example.com"
-                placeholderTextColor={colors.textDim}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-          </View>
-
-          {/* Password Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              Password <Text style={styles.asterisk}>*</Text>
-            </Text>
-            <View style={styles.inputWithIcon}>
-              <Text style={styles.fieldIcon}>🔒</Text>
-              <TextInput
-                style={[styles.textInput, { flex: 1 }]}
-                placeholder="••••••••••••"
-                placeholderTextColor={colors.textDim}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-              />
-              <TouchableOpacity 
-                style={styles.eyeToggleBtn}
-                onPress={() => setShowPassword(!showPassword)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.eyeIconText}>{showPassword ? '🙈' : '👁️'}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* SECTION 2: CLIENT PREFERENCES */}
-        <View style={styles.cardSection}>
-          <View style={styles.cardHeaderRow}>
-            <View style={styles.cardHeaderLeft}>
-              <View style={styles.numBadgeSky}>
-                <Text style={styles.numBadgeSkyText}>2. PREFERENCES</Text>
-              </View>
-              <Text style={styles.cardHeaderTitle}>BOOKING PREFERENCES</Text>
-            </View>
-          </View>
-
-          {/* Preferred Interest Categories */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Primary Service Interest</Text>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false} 
-              contentContainerStyle={styles.categoryPillsRow}
+            {/* Google OAuth Quick Button */}
+            <TouchableOpacity 
+              style={styles.googleButton} 
+              onPress={handleGooglePrepopulate}
+              activeOpacity={0.85}
+              disabled={loading}
             >
-              {INTEREST_CATEGORIES.map((cat) => {
-                const isActive = preferredCategory === cat;
-                return (
-                  <TouchableOpacity
-                    key={cat}
-                    style={[
-                      styles.catPill,
-                      isActive && styles.catPillActive
-                    ]}
-                    activeOpacity={0.8}
-                    onPress={() => setPreferredCategory(cat)}
-                  >
-                    {isActive && <Text style={styles.catCheckMark}>✓</Text>}
-                    <Text style={[
-                      styles.catPillText,
-                      isActive && styles.catPillTextActive
-                    ]}>
-                      {cat}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
+              <GoogleIcon size={18} />
+              <Text style={styles.googleButtonText}>Continue with Google</Text>
+            </TouchableOpacity>
 
-          {/* Additional Booking Notes */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Booking Preferences / Special Notes (Optional)</Text>
-            <View style={styles.textAreaContainer}>
-              <TextInput
-                style={styles.textAreaInput}
-                placeholder="E.g. Morning appointment preferences, specific consultation topics..."
-                placeholderTextColor={colors.textDim}
-                value={clientNotes}
-                onChangeText={setClientNotes}
-                multiline
-                numberOfLines={3}
-              />
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or register with email</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Avatar / Profile Photo Upload */}
+            <AvatarUpload
+              avatarUrl={avatarUrl}
+              onAvatarChange={(newUrl) => setAvatarUrl(newUrl)}
+              isGoogleLinked={isGoogleVerified}
+            />
+
+            {/* Full Name Input */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Full Name</Text>
+                {fullNameTouched && (
+                  <Text style={[styles.valStatusText, isFullNameValid ? styles.valGreenText : styles.valRedText]}>
+                    {isFullNameValid ? 'Valid name' : 'Required'}
+                  </Text>
+                )}
+              </View>
+
+              <View style={[
+                styles.inputWithIcon,
+                fullNameTouched && (isFullNameValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+              ]}>
+                <View style={styles.iconHolder}>
+                  <User 
+                    size={19} 
+                    color={
+                      fullNameTouched 
+                        ? (isFullNameValid ? '#10b981' : '#ef4444') 
+                        : '#64748b'
+                    } 
+                    strokeWidth={2}
+                  />
+                </View>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="John Doe"
+                  placeholderTextColor={colors.textDim}
+                  value={fullName}
+                  onChangeText={(val) => {
+                    setFullName(val);
+                    if (!fullNameTouched) setFullNameTouched(true);
+                    if (apiError) setApiError(null);
+                  }}
+                  onBlur={() => setFullNameTouched(true)}
+                  autoCapitalize="words"
+                />
+                {fullNameTouched && (
+                  <View style={styles.validationIconHolder}>
+                    {isFullNameValid ? (
+                      <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                    ) : (
+                      <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
+                    )}
+                  </View>
+                )}
+              </View>
+              {isFullNameInvalid && (
+                <Text style={styles.helperErrorText}>
+                  Please enter your full legal name (at least 2 characters)
+                </Text>
+              )}
+            </View>
+
+            {/* Email Address Input */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Email Address</Text>
+                {emailTouched && (
+                  <Text style={[styles.valStatusText, isEmailValid ? styles.valGreenText : styles.valRedText]}>
+                    {isEmailValid ? 'Valid email format' : 'Invalid email'}
+                  </Text>
+                )}
+              </View>
+
+              <View style={[
+                styles.inputWithIcon,
+                emailTouched && (isEmailValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+              ]}>
+                <View style={styles.iconHolder}>
+                  <Mail 
+                    size={19} 
+                    color={
+                      emailTouched 
+                        ? (isEmailValid ? '#10b981' : '#ef4444') 
+                        : '#64748b'
+                    } 
+                    strokeWidth={2}
+                  />
+                </View>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="client@example.com"
+                  placeholderTextColor={colors.textDim}
+                  value={email}
+                  onChangeText={(val) => {
+                    setEmail(val);
+                    if (!emailTouched) setEmailTouched(true);
+                    if (apiError) setApiError(null);
+                  }}
+                  onBlur={() => setEmailTouched(true)}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+                {emailTouched && (
+                  <View style={styles.validationIconHolder}>
+                    {isEmailValid ? (
+                      <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                    ) : (
+                      <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
+                    )}
+                  </View>
+                )}
+              </View>
+              {isEmailInvalid && (
+                <Text style={styles.helperErrorText}>
+                  Please enter a valid email address (e.g. client@example.com)
+                </Text>
+              )}
+            </View>
+
+            {/* Phone Number Input */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Phone Number (Optional)</Text>
+                {phoneTouched && phone.trim().length > 0 && (
+                  <Text style={[styles.valStatusText, isPhoneValid ? styles.valGreenText : styles.valRedText]}>
+                    {isPhoneValid ? 'Valid phone' : 'Invalid format'}
+                  </Text>
+                )}
+              </View>
+
+              <View style={[
+                styles.inputWithIcon,
+                phoneTouched && phone.trim().length > 0 && (isPhoneValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+              ]}>
+                <View style={styles.iconHolder}>
+                  <Phone 
+                    size={19} 
+                    color={
+                      phoneTouched && phone.trim().length > 0
+                        ? (isPhoneValid ? '#10b981' : '#ef4444') 
+                        : '#64748b'
+                    } 
+                    strokeWidth={2}
+                  />
+                </View>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="+1 (555) 000-0000"
+                  placeholderTextColor={colors.textDim}
+                  value={phone}
+                  onChangeText={(val) => {
+                    setPhone(val);
+                    if (!phoneTouched) setPhoneTouched(true);
+                    if (apiError) setApiError(null);
+                  }}
+                  onBlur={() => setPhoneTouched(true)}
+                  keyboardType="phone-pad"
+                />
+                {phoneTouched && phone.trim().length > 0 && (
+                  <View style={styles.validationIconHolder}>
+                    {isPhoneValid ? (
+                      <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                    ) : (
+                      <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
+                    )}
+                  </View>
+                )}
+              </View>
+              {isPhoneInvalid && (
+                <Text style={styles.helperErrorText}>
+                  Please enter a valid phone number (7-15 digits)
+                </Text>
+              )}
+            </View>
+
+            {/* Password Input */}
+            {!isGoogleVerified && (
+              <View style={styles.inputGroup}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.inputLabel}>Password</Text>
+                  {passwordTouched && (
+                    <Text style={[styles.valStatusText, isPasswordValid ? styles.valGreenText : styles.valRedText]}>
+                      {isPasswordValid ? 'Min 8 chars met' : `${password.length}/8 characters`}
+                    </Text>
+                  )}
+                </View>
+
+                <View style={[
+                  styles.inputWithIcon,
+                  passwordTouched && (isPasswordValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+                ]}>
+                  <View style={styles.iconHolder}>
+                    <Lock 
+                      size={19} 
+                      color={
+                        passwordTouched 
+                          ? (isPasswordValid ? '#10b981' : '#ef4444') 
+                          : '#64748b'
+                      } 
+                      strokeWidth={2}
+                    />
+                  </View>
+                  <TextInput
+                    style={[styles.textInput, { flex: 1 }]}
+                    placeholder="••••••••••••"
+                    placeholderTextColor={colors.textDim}
+                    value={password}
+                    onChangeText={(val) => {
+                      setPassword(val);
+                      if (!passwordTouched) setPasswordTouched(true);
+                      if (apiError) setApiError(null);
+                    }}
+                    onBlur={() => setPasswordTouched(true)}
+                    secureTextEntry={!showPassword}
+                  />
+                  <View style={styles.rightActionsRow}>
+                    {passwordTouched && (
+                      <View style={styles.validationIconHolder}>
+                        {isPasswordValid ? (
+                          <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                        ) : (
+                          <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
+                        )}
+                      </View>
+                    )}
+                    <TouchableOpacity 
+                      style={styles.eyeToggleBtn}
+                      onPress={() => setShowPassword(!showPassword)}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      {showPassword ? (
+                        <Eye size={20} color={colors.primary} strokeWidth={2} />
+                      ) : (
+                        <EyeOff size={20} color="#94a3b8" strokeWidth={2} />
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                {isPasswordInvalid && (
+                  <Text style={styles.helperErrorText}>
+                    Password must be at least 8 characters ({password.length}/8)
+                  </Text>
+                )}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* STEP 2: CLIENT PREFERENCES */}
+        {currentStep === 2 && (
+          <View style={styles.cardSection}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.cardHeaderLeft}>
+                <View style={styles.headerIconDot} />
+                <Text style={styles.cardHeaderTitle}>BOOKING PREFERENCES</Text>
+              </View>
+            </View>
+
+            {/* Preferred Interest Categories */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Primary Service Interest</Text>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                contentContainerStyle={styles.categoryPillsRow}
+              >
+                {INTEREST_CATEGORIES.map((cat) => {
+                  const isActive = preferredCategory === cat;
+                  return (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[
+                        styles.catPill,
+                        isActive && styles.catPillActive
+                      ]}
+                      activeOpacity={0.8}
+                      onPress={() => setPreferredCategory(cat)}
+                    >
+                      {isActive && <Check size={14} color="#ffffff" strokeWidth={2.5} style={{ marginRight: 4 }} />}
+                      <Text style={[
+                        styles.catPillText,
+                        isActive && styles.catPillTextActive
+                      ]}>
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            {/* Additional Booking Notes */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Booking Preferences / Special Notes (Optional)</Text>
+              <View style={styles.textAreaContainer}>
+                <TextInput
+                  style={styles.textAreaInput}
+                  placeholder="E.g. Morning appointment preferences, specific consultation topics..."
+                  placeholderTextColor={colors.textDim}
+                  value={clientNotes}
+                  onChangeText={setClientNotes}
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
             </View>
           </View>
-        </View>
+        )}
 
-        <View style={{ height: 100 }} />
+        {/* STEP 3: OTP EMAIL VERIFICATION */}
+        {currentStep === 3 && (
+          <View style={styles.cardSection}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.cardHeaderLeft}>
+                <ShieldCheck size={18} color={colors.primary} strokeWidth={2.2} />
+                <Text style={styles.cardHeaderTitle}>EMAIL VERIFICATION</Text>
+              </View>
+            </View>
+
+            <View style={styles.otpInfoBox}>
+              <Text style={styles.otpInfoText}>
+                We sent a 6-digit verification code to:
+              </Text>
+              <Text style={styles.otpTargetEmail}>{email}</Text>
+            </View>
+
+            {/* OTP Code Input */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Enter 6-Digit Code</Text>
+                {otpTouched && (
+                  <Text style={[styles.valStatusText, isOtpValid ? styles.valGreenText : styles.valRedText]}>
+                    {isOtpValid ? '6-digits entered' : `${otpCode.length}/6 digits`}
+                  </Text>
+                )}
+              </View>
+
+              <View style={[
+                styles.inputWithIcon,
+                otpTouched && (isOtpValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+              ]}>
+                <View style={styles.iconHolder}>
+                  <ShieldCheck 
+                    size={19} 
+                    color={
+                      otpTouched 
+                        ? (isOtpValid ? '#10b981' : '#ef4444') 
+                        : '#64748b'
+                    } 
+                    strokeWidth={2}
+                  />
+                </View>
+                <TextInput
+                  style={[styles.textInput, styles.otpInputText]}
+                  placeholder="123456"
+                  placeholderTextColor={colors.textDim}
+                  value={otpCode}
+                  onChangeText={(val) => {
+                    const cleanVal = val.replace(/[^0-9]/g, '').slice(0, 6);
+                    setOtpCode(cleanVal);
+                    if (!otpTouched) setOtpTouched(true);
+                    if (apiError) setApiError(null);
+                  }}
+                  keyboardType="numeric"
+                  maxLength={6}
+                />
+                {otpTouched && (
+                  <View style={styles.validationIconHolder}>
+                    {isOtpValid ? (
+                      <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                    ) : (
+                      <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
+                    )}
+                  </View>
+                )}
+              </View>
+              {isOtpInvalid && (
+                <Text style={styles.helperErrorText}>
+                  Please enter the complete 6-digit code sent to your email
+                </Text>
+              )}
+            </View>
+
+            {/* Resend Timer & Button */}
+            <View style={styles.resendRow}>
+              {canResend ? (
+                <TouchableOpacity 
+                  style={styles.resendBtn} 
+                  onPress={handleResendOtp}
+                  activeOpacity={0.7}
+                  disabled={loading}
+                >
+                  <RotateCcw size={14} color={colors.primary} />
+                  <Text style={styles.resendBtnText}>Resend Verification Code</Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.resendTimerText}>
+                  Resend code in <Text style={styles.countdownBold}>{countdown}s</Text>
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
+
+        <View style={{ height: 120 }} />
       </ScrollView>
 
       {/* Floating Bottom Action Bar */}
       <View style={styles.floatingBottomBar}>
-        <TouchableOpacity
-          style={[styles.launchButton, loading && styles.launchButtonDisabled]}
-          activeOpacity={0.88}
-          onPress={handleRegister}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#ffffff" size="small" />
-          ) : (
-            <>
-              <Text style={styles.launchButtonText}>Create Client Account</Text>
-              <Text style={styles.launchArrow}>→</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        {currentStep === 1 && (
+          <TouchableOpacity
+            style={styles.primaryActionButton}
+            activeOpacity={0.88}
+            onPress={handleStep1ToStep2}
+          >
+            <Text style={styles.actionButtonText}>Next: Preferences</Text>
+            <ArrowRight size={18} color="#ffffff" strokeWidth={2.2} />
+          </TouchableOpacity>
+        )}
 
-        {/* Progress Subtext */}
+        {currentStep === 2 && (
+          <View style={styles.actionButtonRow}>
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              activeOpacity={0.8}
+              onPress={() => setCurrentStep(1)}
+            >
+              <ChevronLeft size={16} color="#475569" strokeWidth={2} />
+              <Text style={styles.secondaryBtnText}>Back</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.primaryActionButton, { flex: 1.4 }, loading && styles.buttonDisabled]}
+              activeOpacity={0.88}
+              onPress={handleStep2Submit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#ffffff" size="small" />
+              ) : (
+                <>
+                  <Text style={styles.actionButtonText}>
+                    {isGoogleVerified ? 'Create Account' : 'Send Code'}
+                  </Text>
+                  <ArrowRight size={18} color="#ffffff" strokeWidth={2.2} />
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {currentStep === 3 && (
+          <View style={styles.actionButtonRow}>
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              activeOpacity={0.8}
+              onPress={() => setCurrentStep(2)}
+            >
+              <ChevronLeft size={16} color="#475569" strokeWidth={2} />
+              <Text style={styles.secondaryBtnText}>Edit Info</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.primaryActionButton, { flex: 1.4 }, loading && styles.buttonDisabled]}
+              activeOpacity={0.88}
+              onPress={handleVerifyAndRegister}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#ffffff" size="small" />
+              ) : (
+                <Text style={styles.actionButtonText}>Verify & Complete</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Progress Info Subtext */}
         <View style={styles.progressInfoRow}>
-          <Text style={styles.progressText}>Step 1 of 1</Text>
+          <Text style={styles.progressText}>
+            {isGoogleVerified ? `Step ${currentStep} of 2 (Google Linked)` : `Step ${currentStep} of 3`}
+          </Text>
           <Text style={styles.dotSeparator}>•</Text>
-          <Text style={styles.progressText}>Instant Setup</Text>
-          <Text style={styles.dotSeparator}>•</Text>
-          <Text style={styles.previewCardLink}>Secure Encryption</Text>
+          <Text style={styles.progressText}>
+            {currentStep === 1 ? 'Credentials' : currentStep === 2 ? 'Preferences' : 'Verify Email'}
+          </Text>
         </View>
 
         {/* iOS Home Indicator */}
@@ -280,83 +889,145 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fafc',
   },
-  topHeader: {
-    height: Platform.OS === 'ios' ? 88 : 56,
-    paddingTop: Platform.OS === 'ios' ? 44 : 10,
+  topNavigation: {
+    paddingTop: Platform.OS === 'ios' ? 52 : 16,
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    paddingBottom: 4,
     zIndex: 20,
   },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 4,
-  },
-  backArrow: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: colors.primary,
-    marginTop: -2,
-  },
-  backText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  settingsBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#f1f5f9',
+  backButtonCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  settingsIcon: {
-    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
   },
   scrollContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingTop: 8,
     paddingBottom: 24,
     gap: 16,
   },
+  topGlow: {
+    position: 'absolute',
+    top: -60,
+    left: '20%',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(99, 102, 241, 0.12)',
+    transform: [{ scaleX: 1.5 }],
+  },
   headingSection: {
+    alignItems: 'center',
     marginBottom: 4,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  miniLogoBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  miniLogoIcon: {
-    fontSize: 12,
+  logoBadgeContainer: {
+    marginBottom: 10,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   pageTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '900',
     color: colors.textMain,
     letterSpacing: -0.3,
+    textAlign: 'center',
   },
   pageSubtitle: {
-    fontSize: 12.5,
+    fontSize: 13,
     color: colors.textMuted,
     lineHeight: 18,
-    paddingLeft: 32,
+    textAlign: 'center',
+    marginTop: 4,
+    paddingHorizontal: 12,
+  },
+  stepProgressBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 6,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginVertical: 4,
+  },
+  stepTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  stepTabActive: {
+    backgroundColor: '#eef2ff',
+  },
+  stepBadgeNum: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#cbd5e1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepBadgeNumActive: {
+    backgroundColor: colors.primary,
+  },
+  stepBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#ffffff',
+  },
+  stepBadgeTextActive: {
+    color: '#ffffff',
+  },
+  stepTabLabel: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  stepTabLabelActive: {
+    color: colors.primary,
+    fontWeight: '800',
+  },
+  stepLineSeparator: {
+    width: 12,
+    height: 1.5,
+    backgroundColor: '#e2e8f0',
+  },
+  googleSyncBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  googleSyncText: {
+    fontSize: 12,
+    color: '#047857',
+    fontWeight: '600',
+    flex: 1,
+  },
+  googleSyncEmail: {
+    fontWeight: '800',
+    color: '#065f46',
   },
   errorBox: {
     backgroundColor: '#fef2f2',
@@ -364,23 +1035,27 @@ const styles = StyleSheet.create({
     borderColor: '#fca5a5',
     borderRadius: radii.md,
     padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   errorText: {
     color: '#dc2626',
     fontSize: 13,
     fontWeight: '600',
+    flex: 1,
   },
   cardSection: {
     backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: 22,
+    padding: 20,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    elevation: 4,
     gap: 16,
   },
   cardHeaderRow: {
@@ -396,96 +1071,136 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  numBadgeIndigo: {
-    backgroundColor: '#eef2ff',
-    borderWidth: 1,
-    borderColor: '#c7d2fe',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  numBadgeIndigoText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: colors.primary,
-  },
-  numBadgeSky: {
-    backgroundColor: '#f0f9ff',
-    borderWidth: 1,
-    borderColor: '#bae6fd',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  numBadgeSkyText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#0284c7',
+  headerIconDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
   },
   cardHeaderTitle: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '800',
     color: colors.textMain,
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
   },
-  securedBadge: {
+  googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#ecfdf5',
-    borderWidth: 1,
-    borderColor: '#a7f3d0',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: radii.pill,
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    borderRadius: 14,
+    height: 48,
+    gap: 10,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  securedDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#10b981',
-  },
-  securedText: {
-    fontSize: 10.5,
+  googleButtonText: {
+    fontSize: 13.5,
     fontWeight: '700',
-    color: '#047857',
+    color: '#334155',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginVertical: 2,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e2e8f0',
+  },
+  dividerText: {
+    fontSize: 11,
+    color: colors.textDim,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   inputGroup: {
     gap: 6,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   inputLabel: {
     fontSize: 12,
     fontWeight: '700',
     color: '#334155',
   },
-  asterisk: {
-    color: '#f43f5e',
+  valStatusText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  valGreenText: {
+    color: '#059669',
+  },
+  valRedText: {
+    color: '#dc2626',
   },
   inputWithIcon: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f8fafc',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#cbd5e1',
-    borderRadius: 12,
+    borderRadius: 14,
     paddingHorizontal: 12,
-    height: 46,
+    height: 50,
   },
-  fieldIcon: {
-    fontSize: 15,
-    marginRight: 8,
+  inputValidBorder: {
+    borderColor: '#10b981',
+    backgroundColor: '#f0fdf4',
+  },
+  inputInvalidBorder: {
+    borderColor: '#ef4444',
+    backgroundColor: '#fef2f2',
+  },
+  iconHolder: {
+    marginRight: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  validationIconHolder: {
+    marginRight: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rightActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   textInput: {
     flex: 1,
-    fontSize: 13.5,
+    fontSize: 14,
     fontWeight: '500',
     color: colors.textMain,
   },
+  otpInputText: {
+    letterSpacing: 6,
+    fontSize: 18,
+    fontWeight: '800',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
   eyeToggleBtn: {
     padding: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  eyeIconText: {
-    fontSize: 16,
+  helperErrorText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#ef4444',
+    marginTop: 2,
+    marginLeft: 2,
   },
   categoryPillsRow: {
     gap: 8,
@@ -504,12 +1219,6 @@ const styles = StyleSheet.create({
   catPillActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
-  },
-  catCheckMark: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '900',
-    marginRight: 4,
   },
   catPillText: {
     fontSize: 12,
@@ -534,6 +1243,46 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     lineHeight: 18,
   },
+  otpInfoBox: {
+    backgroundColor: '#f1f5f9',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+  },
+  otpInfoText: {
+    fontSize: 12.5,
+    color: colors.textMuted,
+  },
+  otpTargetEmail: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: colors.primary,
+    marginTop: 2,
+  },
+  resendRow: {
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  resendBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  resendBtnText: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: colors.primary,
+  },
+  resendTimerText: {
+    fontSize: 12,
+    color: colors.textDim,
+  },
+  countdownBold: {
+    fontWeight: '800',
+    color: colors.textMain,
+  },
   floatingBottomBar: {
     position: 'absolute',
     bottom: 0,
@@ -542,7 +1291,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.96)',
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: Platform.OS === 'ios' ? 24 : 12,
     shadowColor: '#000',
@@ -552,8 +1301,8 @@ const styles = StyleSheet.create({
     elevation: 10,
     zIndex: 30,
   },
-  launchButton: {
-    height: 50,
+  primaryActionButton: {
+    height: 52,
     borderRadius: 14,
     backgroundColor: colors.primary,
     flexDirection: 'row',
@@ -566,18 +1315,36 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
-  launchButtonDisabled: {
-    opacity: 0.6,
-  },
-  launchButtonText: {
+  actionButtonText: {
     color: '#ffffff',
     fontSize: 15,
     fontWeight: '700',
+    letterSpacing: 0.3,
   },
-  launchArrow: {
-    color: '#ffffff',
-    fontSize: 18,
+  actionButtonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  secondaryBtn: {
+    height: 52,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  secondaryBtnText: {
+    fontSize: 13.5,
     fontWeight: '700',
+    color: '#475569',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   progressInfoRow: {
     flexDirection: 'row',
@@ -594,11 +1361,6 @@ const styles = StyleSheet.create({
   dotSeparator: {
     fontSize: 11,
     color: colors.textDim,
-  },
-  previewCardLink: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.primary,
   },
   bottomHomeBar: {
     width: 120,

@@ -9,6 +9,8 @@ import {
   Platform 
 } from 'react-native';
 import { colors, radii } from '../../theme/colors';
+import SlotSyncLogo from '../../components/SlotSyncLogo';
+import { ClientCardIcon, CreatorCardIcon } from '../../components/RoleCardIcons';
 
 interface Props {
   onSelectRole: (role: 'CLIENT' | 'CREATOR') => void;
@@ -32,27 +34,17 @@ export default function AuthChoiceScreen({ onSelectRole, onGoToLogin }: Props) {
 
         {/* Header Section */}
         <View style={styles.header}>
-          {/* Top Quick Action Gear */}
-          <View style={styles.topActionRow}>
-            <TouchableOpacity style={styles.gearButton} activeOpacity={0.8}>
-              <Text style={styles.gearIcon}>⚙️</Text>
-            </TouchableOpacity>
-          </View>
-
           {/* App Logo Badge */}
           <View style={styles.logoContainer}>
-            <View style={styles.logoBadge}>
-              <Text style={styles.logoIconText}>📅</Text>
-            </View>
+            <SlotSyncLogo size={72} />
           </View>
 
           {/* Branding Titles */}
           <Text style={styles.brandTitle}>SLOTSYNC</Text>
           <Text style={styles.brandSubtitle}>APPOINTMENT & SLOT ENGINE</Text>
 
-          {/* Welcome Heading */}
+          {/* Subtitle Heading */}
           <View style={styles.welcomeBlock}>
-            <Text style={styles.welcomeTitle}>Join SlotSync</Text>
             <Text style={styles.welcomeSubtitle}>Select how you will be using SlotSync today</Text>
           </View>
         </View>
@@ -65,12 +57,15 @@ export default function AuthChoiceScreen({ onSelectRole, onGoToLogin }: Props) {
               styles.choiceCard,
               selectedRole === 'CLIENT' && styles.choiceCardActive
             ]} 
-            activeOpacity={0.9}
-            onPress={() => setSelectedRole('CLIENT')}
+            activeOpacity={0.85}
+            onPress={() => {
+              setSelectedRole('CLIENT');
+              onSelectRole('CLIENT');
+            }}
           >
             <View style={styles.cardHeader}>
               <View style={[styles.iconBadge, styles.clientIconBadge]}>
-                <Text style={styles.badgeEmoji}>🗓️</Text>
+                <ClientCardIcon size={24} color={colors.primary} />
               </View>
               {/* Radio Indicator */}
               <View style={[
@@ -101,12 +96,15 @@ export default function AuthChoiceScreen({ onSelectRole, onGoToLogin }: Props) {
               styles.choiceCard,
               selectedRole === 'CREATOR' && styles.choiceCardActive
             ]} 
-            activeOpacity={0.9}
-            onPress={() => setSelectedRole('CREATOR')}
+            activeOpacity={0.85}
+            onPress={() => {
+              setSelectedRole('CREATOR');
+              onSelectRole('CREATOR');
+            }}
           >
             <View style={styles.cardHeader}>
               <View style={[styles.iconBadge, styles.creatorIconBadge]}>
-                <Text style={styles.badgeEmoji}>👑</Text>
+                <CreatorCardIcon size={24} color="#0891b2" />
               </View>
               {/* Radio Indicator */}
               <View style={[
@@ -134,15 +132,6 @@ export default function AuthChoiceScreen({ onSelectRole, onGoToLogin }: Props) {
 
         {/* Bottom Actions */}
         <View style={styles.footerSection}>
-          <TouchableOpacity 
-            style={styles.continueButton}
-            activeOpacity={0.88}
-            onPress={() => onSelectRole(selectedRole)}
-          >
-            <Text style={styles.continueButtonText}>Continue</Text>
-            <Text style={styles.arrowIcon}>→</Text>
-          </TouchableOpacity>
-
           <View style={styles.signInRow}>
             <Text style={styles.signInQuestion}>Already have a SlotSync account?</Text>
             <TouchableOpacity onPress={onGoToLogin} activeOpacity={0.7}>
@@ -183,50 +172,15 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 20,
-  },
-  topActionRow: {
-    width: '100%',
-    alignItems: 'flex-end',
-    marginBottom: 4,
-  },
-  gearButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  gearIcon: {
-    fontSize: 16,
+    marginTop: 12,
   },
   logoContainer: {
-    marginBottom: 12,
-  },
-  logoBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: radii.lg,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginBottom: 14,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.25,
     shadowRadius: 16,
     elevation: 8,
-    borderWidth: 3,
-    borderColor: '#ffffff',
-  },
-  logoIconText: {
-    fontSize: 28,
   },
   brandTitle: {
     fontSize: 26,
@@ -240,22 +194,18 @@ const styles = StyleSheet.create({
     color: colors.textDim,
     letterSpacing: 2,
     marginTop: 2,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   welcomeBlock: {
     alignItems: 'center',
-  },
-  welcomeTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: colors.textMain,
-    letterSpacing: -0.3,
+    paddingHorizontal: 12,
   },
   welcomeSubtitle: {
-    fontSize: 13.5,
-    color: colors.textMuted,
-    marginTop: 4,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#334155',
     textAlign: 'center',
+    lineHeight: 22,
   },
   cardsContainer: {
     gap: 16,
@@ -376,34 +326,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
   },
-  continueButton: {
-    width: '100%',
-    height: 52,
-    borderRadius: radii.md,
-    backgroundColor: colors.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  continueButtonText: {
-    color: '#ffffff',
-    fontSize: 15.5,
-    fontWeight: '700',
-  },
-  arrowIcon: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '700',
-  },
   signInRow: {
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 12,
     gap: 4,
   },
   signInQuestion: {
