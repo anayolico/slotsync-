@@ -29,6 +29,7 @@ import {
 } from '../../components/LucideIcons';
 import { colors, radii } from '../../theme/colors';
 import { registerUser, loginUser, sendEmailOtp, verifyEmailOtp, loginWithGoogle } from '../../services/api';
+import { useGoogleAuth, GoogleUserProfile } from '../../services/googleAuth';
 import SlotSyncLogo from '../../components/SlotSyncLogo';
 import GoogleIcon from '../../components/GoogleIcon';
 import AvatarUpload from '../../components/AvatarUpload';
@@ -48,11 +49,29 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
   // Step 1 State: Credentials & Avatar
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isGoogleVerified, setIsGoogleVerified] = useState(false);
+  const [googleId, setGoogleId] = useState<string | null>(null);
+  const [googleIdToken, setGoogleIdToken] = useState<string | null>(null);
+  const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Real Google Sign-In & Profile Auto-Fill Hook
+  const { signIn: promptGoogleSignIn } = useGoogleAuth(
+    (profile: GoogleUserProfile, idToken?: string, accessToken?: string) => {
+      setFullName(profile.name || '');
+      setEmail(profile.email || '');
+      setAvatarUrl(profile.picture || null);
+      setGoogleId(profile.id);
+      if (idToken) setGoogleIdToken(idToken);
+      if (accessToken) setGoogleAccessToken(accessToken);
+      setIsGoogleVerified(true);
+      setFullNameTouched(true);
+      setEmailTouched(true);
+    }
+  );
 
   // Touched states for validation
   const [fullNameTouched, setFullNameTouched] = useState(false);
@@ -168,22 +187,23 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
   };
 
   const handleStep2Submit = async () => {
-    // If user is Google-verified, bypass OTP and complete registration immediately!
+    // If user is Google-verified, complete Google login/registration with real profile & photo
     if (isGoogleVerified) {
       setLoading(true);
       setApiError(null);
       try {
-        await registerUser({
+        await loginWithGoogle({
           email: email.trim(),
-          password,
           full_name: fullName.trim(),
-          phone_number: phone.trim() || undefined,
+          avatar_url: avatarUrl || undefined,
+          google_id: googleId || undefined,
+          id_token: googleIdToken || undefined,
+          access_token: googleAccessToken || undefined,
           role: 'CLIENT',
         });
-        await loginUser(email.trim(), password);
         onRegisterSuccess();
       } catch (err: any) {
-        setApiError(err.message || 'Registration failed.');
+        setApiError(err.message || 'Google account registration failed.');
       } finally {
         setLoading(false);
       }
@@ -243,6 +263,8 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
         email: email.trim(),
         password,
         full_name: fullName.trim(),
+        avatar_url: avatarUrl || undefined,
+        google_id: googleId || undefined,
         phone_number: phone.trim() || undefined,
         role: 'CLIENT',
         verification_token: token,
@@ -373,7 +395,7 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
             {/* Google OAuth Quick Button */}
             <TouchableOpacity 
               style={styles.googleButton} 
-              onPress={handleGooglePrepopulate}
+              onPress={() => promptGoogleSignIn()}
               activeOpacity={0.85}
               disabled={loading}
             >

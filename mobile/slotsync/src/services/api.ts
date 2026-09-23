@@ -98,15 +98,33 @@ export const verifyEmailOtp = async (email: string, otp_code: string) => {
   });
 };
 
-export const loginWithGoogle = async (idToken: string, role: 'CLIENT' | 'CREATOR' = 'CLIENT') => {
+export const loginWithGoogle = async (payload: {
+  id_token?: string;
+  access_token?: string;
+  email?: string;
+  full_name?: string;
+  avatar_url?: string;
+  google_id?: string;
+  role?: 'CLIENT' | 'CREATOR';
+}) => {
   const data = await apiFetch('/auth/google', {
     method: 'POST',
-    body: JSON.stringify({ id_token: idToken, role }),
+    body: JSON.stringify(payload),
   });
   if (data?.access_token) {
     await setStoredToken(data.access_token);
   }
   return data;
+};
+
+export const logoutUser = async () => {
+  try {
+    await apiFetch('/auth/logout', { method: 'POST' });
+  } catch (e) {
+    console.warn('Backend logout warning:', e);
+  } finally {
+    await removeStoredToken();
+  }
 };
 
 export const loginUser = async (email: string, password: string) => {
@@ -124,6 +142,8 @@ export const registerUser = async (payload: {
   email: string;
   password: string;
   full_name: string;
+  avatar_url?: string;
+  google_id?: string;
   phone_number?: string;
   role: 'CLIENT' | 'CREATOR';
   category?: string;

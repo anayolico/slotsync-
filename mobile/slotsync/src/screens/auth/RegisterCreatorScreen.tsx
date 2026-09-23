@@ -30,6 +30,7 @@ import {
 } from '../../components/LucideIcons';
 import { colors, radii } from '../../theme/colors';
 import { registerUser, loginUser, sendEmailOtp, verifyEmailOtp, loginWithGoogle } from '../../services/api';
+import { useGoogleAuth, GoogleUserProfile } from '../../services/googleAuth';
 import SlotSyncLogo from '../../components/SlotSyncLogo';
 import GoogleIcon from '../../components/GoogleIcon';
 import AvatarUpload from '../../components/AvatarUpload';
@@ -55,11 +56,29 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
   // Step 1 State: Credentials & Avatar
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isGoogleVerified, setIsGoogleVerified] = useState(false);
-  const [fullName, setFullName] = useState('Dr. Jane Smith');
-  const [email, setEmail] = useState('creator@example.com');
-  const [phone, setPhone] = useState('+1 (555) 234-5678');
-  const [password, setPassword] = useState('secretPassword123');
+  const [googleId, setGoogleId] = useState<string | null>(null);
+  const [googleIdToken, setGoogleIdToken] = useState<string | null>(null);
+  const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Real Google Sign-In & Profile Auto-Fill Hook
+  const { signIn: promptGoogleSignIn } = useGoogleAuth(
+    (profile: GoogleUserProfile, idToken?: string, accessToken?: string) => {
+      setFullName(profile.name || '');
+      setEmail(profile.email || '');
+      setAvatarUrl(profile.picture || null);
+      setGoogleId(profile.id);
+      if (idToken) setGoogleIdToken(idToken);
+      if (accessToken) setGoogleAccessToken(accessToken);
+      setIsGoogleVerified(true);
+      setFullNameTouched(true);
+      setEmailTouched(true);
+    }
+  );
 
   // Touched states
   const [fullNameTouched, setFullNameTouched] = useState(false);
@@ -178,30 +197,23 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
   };
 
   const handleStep2Submit = async () => {
-    // If Google-verified, create profile directly
+    // If Google-verified, create profile directly with Google details
     if (isGoogleVerified) {
       setLoading(true);
       setApiError(null);
       try {
-        await registerUser({
+        await loginWithGoogle({
           email: email.trim(),
-          password,
           full_name: fullName.trim(),
-          phone_number: phone.trim() || undefined,
+          avatar_url: avatarUrl || undefined,
+          google_id: googleId || undefined,
+          id_token: googleIdToken || undefined,
+          access_token: googleAccessToken || undefined,
           role: 'CREATOR',
-          category,
-          title: title.trim() || `${fullName.trim()}'s Service`,
-          bio: bio.trim() || 'Welcome to my SlotSync calendar! Select a time slot below to book.',
-          hourly_rate: parseFloat(hourlyRate) || 0.0,
-          slot_duration_minutes: slotDuration,
-          consultation_mode: consultationMode,
-          office_address: consultationMode !== 'VIRTUAL' ? officeAddress.trim() : undefined,
-          currency: 'USD',
         });
-        await loginUser(email.trim(), password);
         onRegisterSuccess();
       } catch (err: any) {
-        setApiError(err.message || 'Failed to create creator profile.');
+        setApiError(err.message || 'Failed to create creator profile with Google.');
       } finally {
         setLoading(false);
       }
@@ -261,6 +273,8 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
         email: email.trim(),
         password,
         full_name: fullName.trim(),
+        avatar_url: avatarUrl || undefined,
+        google_id: googleId || undefined,
         phone_number: phone.trim() || undefined,
         role: 'CREATOR',
         category,
@@ -399,7 +413,7 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
             {/* Google OAuth Quick Button */}
             <TouchableOpacity 
               style={styles.googleButton} 
-              onPress={handleGooglePrepopulate}
+              onPress={() => promptGoogleSignIn()}
               activeOpacity={0.85}
               disabled={loading}
             >

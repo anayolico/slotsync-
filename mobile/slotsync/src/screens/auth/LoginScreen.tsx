@@ -22,6 +22,7 @@ import {
 } from '../../components/LucideIcons';
 import { colors, radii } from '../../theme/colors';
 import { loginUser, loginWithGoogle } from '../../services/api';
+import { useGoogleAuth, GoogleUserProfile } from '../../services/googleAuth';
 import SlotSyncLogo from '../../components/SlotSyncLogo';
 import GoogleIcon from '../../components/GoogleIcon';
 
@@ -41,6 +42,29 @@ export default function LoginScreen({ onLoginSuccess, onGoToRegister }: Props) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Real Google Sign-In Hook
+  const { signIn: promptGoogleSignIn } = useGoogleAuth(
+    async (profile: GoogleUserProfile, idToken?: string, accessToken?: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        await loginWithGoogle({
+          email: profile.email,
+          full_name: profile.name,
+          avatar_url: profile.picture,
+          google_id: profile.id,
+          id_token: idToken,
+          access_token: accessToken,
+        });
+        onLoginSuccess();
+      } catch (err: any) {
+        setError(err.message || 'Google sign-in failed.');
+      } finally {
+        setLoading(false);
+      }
+    }
+  );
 
   // Validation Calculations
   const isEmailValid = EMAIL_REGEX.test(email.trim());
@@ -158,19 +182,7 @@ export default function LoginScreen({ onLoginSuccess, onGoToRegister }: Props) {
           {/* Google OAuth Quick Button */}
           <TouchableOpacity 
             style={styles.googleButton} 
-            onPress={async () => {
-              setLoading(true);
-              setError(null);
-              try {
-                const mockToken = `google_${Date.now()}`;
-                await loginWithGoogle(mockToken);
-                onLoginSuccess();
-              } catch (err: any) {
-                setError(err.message || 'Google sign-in failed.');
-              } finally {
-                setLoading(false);
-              }
-            }}
+            onPress={() => promptGoogleSignIn()}
             activeOpacity={0.85}
             disabled={loading}
           >
