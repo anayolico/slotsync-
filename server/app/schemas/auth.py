@@ -37,16 +37,6 @@ class VerifyOtpResponse(BaseModel):
     message: str
 
 
-class GoogleLoginRequest(BaseModel):
-    id_token: Optional[str] = None
-    access_token: Optional[str] = None
-    email: Optional[EmailStr] = None
-    full_name: Optional[str] = None
-    avatar_url: Optional[str] = None
-    google_id: Optional[str] = None
-    role: Optional[UserRole] = UserRole.CLIENT
-
-
 class LogoutResponse(BaseModel):
     success: bool = True
     message: str = "Successfully logged out."

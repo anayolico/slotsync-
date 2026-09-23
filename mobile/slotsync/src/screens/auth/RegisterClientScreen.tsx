@@ -28,10 +28,8 @@ import {
   Sparkles 
 } from '../../components/LucideIcons';
 import { colors, radii } from '../../theme/colors';
-import { registerUser, loginUser, sendEmailOtp, verifyEmailOtp, loginWithGoogle } from '../../services/api';
-import { useGoogleAuth, GoogleUserProfile } from '../../services/googleAuth';
+import { registerUser, loginUser, sendEmailOtp, verifyEmailOtp } from '../../services/api';
 import SlotSyncLogo from '../../components/SlotSyncLogo';
-import GoogleIcon from '../../components/GoogleIcon';
 import AvatarUpload from '../../components/AvatarUpload';
 
 interface Props {
@@ -48,30 +46,15 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
 
   // Step 1 State: Credentials & Avatar
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [isGoogleVerified, setIsGoogleVerified] = useState(false);
-  const [googleId, setGoogleId] = useState<string | null>(null);
-  const [googleIdToken, setGoogleIdToken] = useState<string | null>(null);
-  const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
-  // Real Google Sign-In & Profile Auto-Fill Hook
-  const { signIn: promptGoogleSignIn } = useGoogleAuth(
-    (profile: GoogleUserProfile, idToken?: string, accessToken?: string) => {
-      setFullName(profile.name || '');
-      setEmail(profile.email || '');
-      setAvatarUrl(profile.picture || null);
-      setGoogleId(profile.id);
-      if (idToken) setGoogleIdToken(idToken);
-      if (accessToken) setGoogleAccessToken(accessToken);
-      setIsGoogleVerified(true);
-      setFullNameTouched(true);
-      setEmailTouched(true);
-    }
-  );
+  const [isGoogleVerified, setIsGoogleVerified] = useState(false);
+  const [googleId, setGoogleId] = useState<string | null>(null);
+  const [googleIdToken, setGoogleIdToken] = useState<string | null>(null);
+  const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null);
 
   // Touched states for validation
   const [fullNameTouched, setFullNameTouched] = useState(false);
@@ -96,13 +79,13 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
   const isFullNameValid = fullName.trim().length >= 2;
   const isEmailValid = EMAIL_REGEX.test(email.trim());
   const isPhoneValid = phone.trim().length === 0 || PHONE_REGEX.test(phone.trim());
-  const isPasswordValid = isGoogleVerified || password.length >= 8;
+  const isPasswordValid = password.length >= 8;
   const isOtpValid = otpCode.trim().length === 6;
 
   const isFullNameInvalid = fullNameTouched && !isFullNameValid;
   const isEmailInvalid = emailTouched && !isEmailValid;
   const isPhoneInvalid = phoneTouched && phone.trim().length > 0 && !isPhoneValid;
-  const isPasswordInvalid = passwordTouched && !isGoogleVerified && !isPasswordValid;
+  const isPasswordInvalid = passwordTouched && !isPasswordValid;
   const isOtpInvalid = otpTouched && !isOtpValid;
 
   // Countdown timer for OTP resend
@@ -187,20 +170,21 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
   };
 
   const handleStep2Submit = async () => {
-    // If user is Google-verified, complete Google login/registration with real profile & photo
+    // If user is Google-verified, complete registration with Google profile
     if (isGoogleVerified) {
       setLoading(true);
       setApiError(null);
       try {
-        await loginWithGoogle({
+        await registerUser({
           email: email.trim(),
+          password,
           full_name: fullName.trim(),
           avatar_url: avatarUrl || undefined,
-          google_id: googleId || undefined,
-          id_token: googleIdToken || undefined,
-          access_token: googleAccessToken || undefined,
+          phone_number: phone.trim() || undefined,
           role: 'CLIENT',
+          verification_token: 'google_verified',
         });
+        await loginUser(email.trim(), password);
         onRegisterSuccess();
       } catch (err: any) {
         setApiError(err.message || 'Google account registration failed.');
@@ -264,7 +248,6 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
         password,
         full_name: fullName.trim(),
         avatar_url: avatarUrl || undefined,
-        google_id: googleId || undefined,
         phone_number: phone.trim() || undefined,
         role: 'CLIENT',
         verification_token: token,
@@ -392,28 +375,10 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
               </View>
             </View>
 
-            {/* Google OAuth Quick Button */}
-            <TouchableOpacity 
-              style={styles.googleButton} 
-              onPress={() => promptGoogleSignIn()}
-              activeOpacity={0.85}
-              disabled={loading}
-            >
-              <GoogleIcon size={18} />
-              <Text style={styles.googleButtonText}>Continue with Google</Text>
-            </TouchableOpacity>
-
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or register with email</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
             {/* Avatar / Profile Photo Upload */}
             <AvatarUpload
               avatarUrl={avatarUrl}
               onAvatarChange={(newUrl) => setAvatarUrl(newUrl)}
-              isGoogleLinked={isGoogleVerified}
             />
 
             {/* Full Name Input */}
@@ -586,76 +551,74 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
             </View>
 
             {/* Password Input */}
-            {!isGoogleVerified && (
-              <View style={styles.inputGroup}>
-                <View style={styles.labelRow}>
-                  <Text style={styles.inputLabel}>Password</Text>
-                  {passwordTouched && (
-                    <Text style={[styles.valStatusText, isPasswordValid ? styles.valGreenText : styles.valRedText]}>
-                      {isPasswordValid ? 'Min 8 chars met' : `${password.length}/8 characters`}
-                    </Text>
-                  )}
-                </View>
-
-                <View style={[
-                  styles.inputWithIcon,
-                  passwordTouched && (isPasswordValid ? styles.inputValidBorder : styles.inputInvalidBorder)
-                ]}>
-                  <View style={styles.iconHolder}>
-                    <Lock 
-                      size={19} 
-                      color={
-                        passwordTouched 
-                          ? (isPasswordValid ? '#10b981' : '#ef4444') 
-                          : '#64748b'
-                      } 
-                      strokeWidth={2}
-                    />
-                  </View>
-                  <TextInput
-                    style={[styles.textInput, { flex: 1 }]}
-                    placeholder="••••••••••••"
-                    placeholderTextColor={colors.textDim}
-                    value={password}
-                    onChangeText={(val) => {
-                      setPassword(val);
-                      if (!passwordTouched) setPasswordTouched(true);
-                      if (apiError) setApiError(null);
-                    }}
-                    onBlur={() => setPasswordTouched(true)}
-                    secureTextEntry={!showPassword}
-                  />
-                  <View style={styles.rightActionsRow}>
-                    {passwordTouched && (
-                      <View style={styles.validationIconHolder}>
-                        {isPasswordValid ? (
-                          <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
-                        ) : (
-                          <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
-                        )}
-                      </View>
-                    )}
-                    <TouchableOpacity 
-                      style={styles.eyeToggleBtn}
-                      onPress={() => setShowPassword(!showPassword)}
-                      activeOpacity={0.7}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      {showPassword ? (
-                        <Eye size={20} color={colors.primary} strokeWidth={2} />
-                      ) : (
-                        <EyeOff size={20} color="#94a3b8" strokeWidth={2} />
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                {isPasswordInvalid && (
-                  <Text style={styles.helperErrorText}>
-                    Password must be at least 8 characters ({password.length}/8)
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Password</Text>
+                {passwordTouched && (
+                  <Text style={[styles.valStatusText, isPasswordValid ? styles.valGreenText : styles.valRedText]}>
+                    {isPasswordValid ? 'Min 8 chars met' : `${password.length}/8 characters`}
                   </Text>
                 )}
               </View>
-            )}
+
+              <View style={[
+                styles.inputWithIcon,
+                passwordTouched && (isPasswordValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+              ]}>
+                <View style={styles.iconHolder}>
+                  <Lock 
+                    size={19} 
+                    color={
+                      passwordTouched 
+                        ? (isPasswordValid ? '#10b981' : '#ef4444') 
+                        : '#64748b'
+                    } 
+                    strokeWidth={2}
+                  />
+                </View>
+                <TextInput
+                  style={[styles.textInput, { flex: 1 }]}
+                  placeholder="••••••••••••"
+                  placeholderTextColor={colors.textDim}
+                  value={password}
+                  onChangeText={(val) => {
+                    setPassword(val);
+                    if (!passwordTouched) setPasswordTouched(true);
+                    if (apiError) setApiError(null);
+                  }}
+                  onBlur={() => setPasswordTouched(true)}
+                  secureTextEntry={!showPassword}
+                />
+                <View style={styles.rightActionsRow}>
+                  {passwordTouched && (
+                    <View style={styles.validationIconHolder}>
+                      {isPasswordValid ? (
+                        <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                      ) : (
+                        <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
+                      )}
+                    </View>
+                  )}
+                  <TouchableOpacity 
+                    style={styles.eyeToggleBtn}
+                    onPress={() => setShowPassword(!showPassword)}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    {showPassword ? (
+                      <Eye size={20} color={colors.primary} strokeWidth={2} />
+                    ) : (
+                      <EyeOff size={20} color="#94a3b8" strokeWidth={2} />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+              {isPasswordInvalid && (
+                <Text style={styles.helperErrorText}>
+                  Password must be at least 8 characters ({password.length}/8)
+                </Text>
+              )}
+            </View>
           </View>
         )}
 
@@ -1104,45 +1067,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.textMain,
     letterSpacing: 0.8,
-  },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ffffff',
-    borderWidth: 1.5,
-    borderColor: '#e2e8f0',
-    borderRadius: 14,
-    height: 48,
-    gap: 10,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  googleButtonText: {
-    fontSize: 13.5,
-    fontWeight: '700',
-    color: '#334155',
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginVertical: 2,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#e2e8f0',
-  },
-  dividerText: {
-    fontSize: 11,
-    color: colors.textDim,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   inputGroup: {
     gap: 6,

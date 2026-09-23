@@ -7,7 +7,6 @@ interface AvatarUploadProps {
   avatarUrl: string | null;
   onAvatarChange?: (newUrl: string) => void;
   size?: number;
-  isGoogleLinked?: boolean;
 }
 
 const SAMPLE_AVATARS = [
@@ -21,7 +20,6 @@ export default function AvatarUpload({
   avatarUrl,
   onAvatarChange,
   size = 80,
-  isGoogleLinked = false,
 }: AvatarUploadProps) {
   const handleCycleAvatar = () => {
     if (!onAvatarChange) return;
@@ -45,23 +43,17 @@ export default function AvatarUpload({
           </View>
         )}
 
-        {/* Camera Badge / Google Badge */}
+        {/* Camera Badge */}
         <View style={styles.badgeHolder}>
-          {isGoogleLinked ? (
-            <View style={styles.googleBadge}>
-              <Sparkles size={11} color="#ffffff" strokeWidth={2.5} />
-            </View>
-          ) : (
-            <View style={styles.cameraBadge}>
-              <Camera size={11} color="#ffffff" strokeWidth={2.5} />
-            </View>
-          )}
+          <View style={styles.cameraBadge}>
+            <Camera size={11} color="#ffffff" strokeWidth={2.5} />
+          </View>
         </View>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={handleCycleAvatar} activeOpacity={0.7} style={styles.actionRow}>
         <Text style={styles.actionText}>
-          {avatarUrl ? (isGoogleLinked ? 'Google Photo Synced' : 'Change Profile Photo') : 'Add Profile Photo'}
+          {avatarUrl ? 'Change Profile Photo' : 'Add Profile Photo'}
         </Text>
       </TouchableOpacity>
     </View>

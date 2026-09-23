@@ -22,7 +22,6 @@ class User(Base):
     phone_number: Mapped[str] = mapped_column(String(50), nullable=True, index=True)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.CLIENT, nullable=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    google_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=True, index=True)
     avatar_url: Mapped[str] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 

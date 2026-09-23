@@ -39,17 +39,19 @@ export const useGoogleAuth = (onSuccess: (profile: GoogleUserProfile, idToken?: 
     scopes: ['profile', 'email'],
     redirectUri: AuthSession.makeRedirectUri({
       scheme: 'slotsync',
+      native: 'https://auth.expo.io/@anonymous/slotsync',
     }),
   });
 
   useEffect(() => {
     const handleResponse = async () => {
       if (response?.type === 'success') {
-        const { authentication } = response;
-        if (authentication?.accessToken) {
+        const token = response.authentication?.accessToken || (response as any)?.params?.access_token;
+        const idToken = response.authentication?.idToken || (response as any)?.params?.id_token;
+        if (token) {
           try {
-            const userProfile = await fetchGoogleUserInfo(authentication.accessToken);
-            onSuccess(userProfile, authentication.idToken, authentication.accessToken);
+            const userProfile = await fetchGoogleUserInfo(token);
+            onSuccess(userProfile, idToken, token);
           } catch (err) {
             console.error('Error fetching Google profile:', err);
           }

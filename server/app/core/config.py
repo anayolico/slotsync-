@@ -27,9 +27,6 @@ class Settings(BaseSettings):
     EMAILS_FROM_EMAIL: str = "noreply@slotsync.app"
     EMAILS_FROM_NAME: str = "SlotSync Verification"
 
-    # Google OAuth
-    GOOGLE_CLIENT_ID: Optional[str] = None
-
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

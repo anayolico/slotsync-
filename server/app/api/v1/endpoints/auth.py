@@ -21,7 +21,6 @@ from app.schemas.auth import (
     SendOtpResponse,
     VerifyOtpRequest,
     VerifyOtpResponse,
-    GoogleLoginRequest,
     LogoutResponse
 )
 from app.schemas.user import UserResponse
@@ -170,81 +169,6 @@ async def register_user(
         await db.commit()
 
     return user
-
-
-@router.post("/google", response_model=Token)
-async def google_auth(
-    data: GoogleLoginRequest,
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Authenticate or Register via Google OAuth token with real user profile & avatar.
-    """
-    # 1. Determine Google Account Identifiers
-    google_email = data.email
-    full_name = data.full_name or "Google User"
-    avatar_url = data.avatar_url
-    google_id = data.google_id or (data.id_token[:40] if data.id_token else None)
-
-    if not google_email and data.id_token:
-        google_email = f"google_{data.id_token[:10]}@gmail.com"
-
-    if not google_email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Google account email is required.",
-        )
-
-    # 2. Check if user already exists by email or google_id
-    res = await db.execute(
-        select(User).where(
-            (User.email == google_email) | (User.google_id == google_id) if google_id else (User.email == google_email)
-        )
-    )
-    user = res.scalar_one_or_none()
-
-    if user:
-        # Update profile with fresh Google details
-        if avatar_url:
-            user.avatar_url = avatar_url
-        if full_name and (not user.full_name or user.full_name == "Google User"):
-            user.full_name = full_name
-        if google_id and not user.google_id:
-            user.google_id = google_id
-        user.is_verified = True
-        await db.commit()
-        await db.refresh(user)
-    else:
-        # Create new user registered via Google
-        user = User(
-            email=google_email,
-            hashed_password=get_password_hash(secrets.token_urlsafe(24)),
-            full_name=full_name,
-            role=data.role or UserRole.CLIENT,
-            is_verified=True,
-            google_id=google_id,
-            avatar_url=avatar_url,
-        )
-        db.add(user)
-        await db.commit()
-        await db.refresh(user)
-
-        # If registered as Creator, create default creator profile
-        if user.role == UserRole.CREATOR:
-            creator_profile = CreatorProfile(
-                user_id=user.id,
-                category="General",
-                title=f"{user.full_name}'s Service",
-                bio="Welcome to my SlotSync page. Book a slot below!",
-                hourly_rate=0.0,
-                slot_duration_minutes=30,
-                consultation_mode="VIRTUAL",
-            )
-            db.add(creator_profile)
-            await db.commit()
-
-    access_token = create_access_token(subject=user.id)
-    return Token(access_token=access_token)
 
 
 @router.post("/logout", response_model=LogoutResponse)

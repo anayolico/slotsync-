@@ -23,7 +23,6 @@ async def run_migrations():
         user_cols = [
             ("phone_number", "VARCHAR(50)"),
             ("is_verified", "BOOLEAN DEFAULT FALSE" if is_postgres else "BOOLEAN DEFAULT 0"),
-            ("google_id", "VARCHAR(255)"),
             ("avatar_url", "VARCHAR(500)"),
         ]
 

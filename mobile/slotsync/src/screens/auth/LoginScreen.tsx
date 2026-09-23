@@ -21,10 +21,8 @@ import {
   ChevronLeft 
 } from '../../components/LucideIcons';
 import { colors, radii } from '../../theme/colors';
-import { loginUser, loginWithGoogle } from '../../services/api';
-import { useGoogleAuth, GoogleUserProfile } from '../../services/googleAuth';
+import { loginUser } from '../../services/api';
 import SlotSyncLogo from '../../components/SlotSyncLogo';
-import GoogleIcon from '../../components/GoogleIcon';
 
 interface Props {
   onLoginSuccess: () => void;
@@ -42,29 +40,6 @@ export default function LoginScreen({ onLoginSuccess, onGoToRegister }: Props) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Real Google Sign-In Hook
-  const { signIn: promptGoogleSignIn } = useGoogleAuth(
-    async (profile: GoogleUserProfile, idToken?: string, accessToken?: string) => {
-      setLoading(true);
-      setError(null);
-      try {
-        await loginWithGoogle({
-          email: profile.email,
-          full_name: profile.name,
-          avatar_url: profile.picture,
-          google_id: profile.id,
-          id_token: idToken,
-          access_token: accessToken,
-        });
-        onLoginSuccess();
-      } catch (err: any) {
-        setError(err.message || 'Google sign-in failed.');
-      } finally {
-        setLoading(false);
-      }
-    }
-  );
 
   // Validation Calculations
   const isEmailValid = EMAIL_REGEX.test(email.trim());
@@ -177,23 +152,6 @@ export default function LoginScreen({ onLoginSuccess, onGoToRegister }: Props) {
               <View style={styles.headerIconDot} />
               <Text style={styles.cardHeaderTitle}>ACCOUNT CREDENTIALS</Text>
             </View>
-          </View>
-
-          {/* Google OAuth Quick Button */}
-          <TouchableOpacity 
-            style={styles.googleButton} 
-            onPress={() => promptGoogleSignIn()}
-            activeOpacity={0.85}
-            disabled={loading}
-          >
-            <GoogleIcon size={18} />
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
-          </TouchableOpacity>
-
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or sign in with email</Text>
-            <View style={styles.dividerLine} />
           </View>
 
           {/* Email Address Input */}
@@ -485,45 +443,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.textMain,
     letterSpacing: 0.8,
-  },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ffffff',
-    borderWidth: 1.5,
-    borderColor: '#e2e8f0',
-    borderRadius: 14,
-    height: 48,
-    gap: 10,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  googleButtonText: {
-    fontSize: 13.5,
-    fontWeight: '700',
-    color: '#334155',
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginVertical: 2,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#e2e8f0',
-  },
-  dividerText: {
-    fontSize: 11,
-    color: colors.textDim,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   inputGroup: {
     gap: 6,
