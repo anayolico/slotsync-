@@ -100,7 +100,7 @@ export default function CreatorDetailScreen({ creator, onBack, onBookingSuccess 
         <View style={styles.metaRow}>
           <View style={styles.metaChip}>
             <Text style={styles.metaLabel}>HOURLY RATE</Text>
-            <Text style={styles.metaValue}>${creator.hourly_rate || 0}/hr</Text>
+            <Text style={styles.metaValue}>₦{creator.hourly_rate || 0}/hr</Text>
           </View>
           <View style={styles.metaChip}>
             <Text style={styles.metaLabel}>SLOT LENGTH</Text>

@@ -222,6 +222,20 @@ async def login_form(
     return Token(access_token=access_token)
 
 
+@router.post("/logout", response_model=LogoutResponse)
+async def logout_user(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Log out the authenticated user.
+    """
+    return LogoutResponse(
+        success=True,
+        message=f"User {current_user.email} successfully logged out."
+    )
+
+
 @router.get("/me", response_model=UserResponse)
 async def read_users_me(
     current_user: User = Depends(get_current_user),

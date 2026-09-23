@@ -40,9 +40,9 @@ interface Props {
 
 const CATEGORIES = ['Doctor', 'Lawyer', 'Barber', 'Consultant', 'General', 'Fitness', 'Beauty', 'Tutor'];
 const CONSULTATION_MODES = [
-  { id: 'VIRTUAL', label: 'Virtual (Online)', icon: '🎥' },
-  { id: 'IN_PERSON', label: 'In-Person (Office)', icon: '🏢' },
-  { id: 'BOTH', label: 'Both Virtual & Office', icon: '🌐' }
+  { id: 'VIRTUAL', label: 'Virtual (Online)' },
+  { id: 'IN_PERSON', label: 'In-Person (Office)' },
+  { id: 'BOTH', label: 'Both Virtual & Office' }
 ];
 const SLOT_DURATIONS = [15, 30, 45, 60];
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -71,12 +71,12 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
 
   // Step 2 State: Service Details & Consultation Setup
   const [category, setCategory] = useState('Doctor');
-  const [title, setTitle] = useState('Senior Medical Consultant / Specialist');
-  const [hourlyRate, setHourlyRate] = useState('120');
+  const [title, setTitle] = useState('');
+  const [hourlyRate, setHourlyRate] = useState('');
   const [slotDuration, setSlotDuration] = useState(30);
-  const [consultationMode, setConsultationMode] = useState('BOTH');
-  const [officeAddress, setOfficeAddress] = useState('100 Health Plaza, Suite 400');
-  const [bio, setBio] = useState('Specialized healthcare consultant with 10+ years offering clinical assessments, preventative plans, and wellness advice.');
+  const [consultationMode, setConsultationMode] = useState('VIRTUAL');
+  const [officeAddress, setOfficeAddress] = useState('');
+  const [bio, setBio] = useState('');
 
   // Step 3 State: OTP Verification
   const [otpCode, setOtpCode] = useState('');
@@ -199,6 +199,7 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
           slot_duration_minutes: slotDuration,
           consultation_mode: consultationMode,
           office_address: consultationMode !== 'VIRTUAL' ? officeAddress.trim() : undefined,
+          currency: 'NGN',
           verification_token: 'google_verified',
         });
         await loginUser(email.trim(), password);
@@ -274,7 +275,7 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
         slot_duration_minutes: slotDuration,
         consultation_mode: consultationMode,
         office_address: consultationMode !== 'VIRTUAL' ? officeAddress.trim() : undefined,
-        currency: 'USD',
+        currency: 'NGN',
         verification_token: token,
       });
 
@@ -390,35 +391,18 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
               </View>
             </View>
 
-            {/* Avatar / Profile Photo Upload */}
-            <AvatarUpload
-              avatarUrl={avatarUrl}
-              onAvatarChange={(newUrl) => setAvatarUrl(newUrl)}
-            />
-
             {/* Full Name Input */}
             <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Full Name</Text>
-                {fullNameTouched && (
-                  <Text style={[styles.valStatusText, isFullNameValid ? styles.valGreenText : styles.valRedText]}>
-                    {isFullNameValid ? 'Valid name' : 'Required'}
-                  </Text>
-                )}
-              </View>
+              <Text style={styles.inputLabel}>Full Name</Text>
 
               <View style={[
                 styles.inputWithIcon,
-                fullNameTouched && (isFullNameValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+                isFullNameInvalid && styles.inputInvalidBorder
               ]}>
                 <View style={styles.iconHolder}>
                   <User 
                     size={19} 
-                    color={
-                      fullNameTouched 
-                        ? (isFullNameValid ? '#10b981' : '#ef4444') 
-                        : '#64748b'
-                    } 
+                    color={isFullNameInvalid ? '#ef4444' : '#64748b'} 
                     strokeWidth={2}
                   />
                 </View>
@@ -438,7 +422,7 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
                 {fullNameTouched && (
                   <View style={styles.validationIconHolder}>
                     {isFullNameValid ? (
-                      <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                      <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
                     ) : (
                       <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
                     )}
@@ -454,27 +438,16 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
 
             {/* Email Address Input */}
             <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Email Address</Text>
-                {emailTouched && (
-                  <Text style={[styles.valStatusText, isEmailValid ? styles.valGreenText : styles.valRedText]}>
-                    {isEmailValid ? 'Valid email format' : 'Invalid email'}
-                  </Text>
-                )}
-              </View>
+              <Text style={styles.inputLabel}>Email Address</Text>
 
               <View style={[
                 styles.inputWithIcon,
-                emailTouched && (isEmailValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+                isEmailInvalid && styles.inputInvalidBorder
               ]}>
                 <View style={styles.iconHolder}>
                   <Mail 
                     size={19} 
-                    color={
-                      emailTouched 
-                        ? (isEmailValid ? '#10b981' : '#ef4444') 
-                        : '#64748b'
-                    } 
+                    color={isEmailInvalid ? '#ef4444' : '#64748b'} 
                     strokeWidth={2}
                   />
                 </View>
@@ -495,7 +468,7 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
                 {emailTouched && (
                   <View style={styles.validationIconHolder}>
                     {isEmailValid ? (
-                      <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                      <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
                     ) : (
                       <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
                     )}
@@ -511,27 +484,16 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
 
             {/* Phone Number Input */}
             <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Business Phone Number (Optional)</Text>
-                {phoneTouched && phone.trim().length > 0 && (
-                  <Text style={[styles.valStatusText, isPhoneValid ? styles.valGreenText : styles.valRedText]}>
-                    {isPhoneValid ? 'Valid phone' : 'Invalid format'}
-                  </Text>
-                )}
-              </View>
+              <Text style={styles.inputLabel}>Business Phone Number (Optional)</Text>
 
               <View style={[
                 styles.inputWithIcon,
-                phoneTouched && phone.trim().length > 0 && (isPhoneValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+                isPhoneInvalid && styles.inputInvalidBorder
               ]}>
                 <View style={styles.iconHolder}>
                   <Phone 
                     size={19} 
-                    color={
-                      phoneTouched && phone.trim().length > 0
-                        ? (isPhoneValid ? '#10b981' : '#ef4444') 
-                        : '#64748b'
-                    } 
+                    color={isPhoneInvalid ? '#ef4444' : '#64748b'} 
                     strokeWidth={2}
                   />
                 </View>
@@ -551,7 +513,7 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
                 {phoneTouched && phone.trim().length > 0 && (
                   <View style={styles.validationIconHolder}>
                     {isPhoneValid ? (
-                      <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                      <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
                     ) : (
                       <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
                     )}
@@ -567,27 +529,16 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
 
             {/* Password Input with Visibility Toggle */}
             <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Password</Text>
-                {passwordTouched && (
-                  <Text style={[styles.valStatusText, isPasswordValid ? styles.valGreenText : styles.valRedText]}>
-                    {isPasswordValid ? 'Min 8 chars met' : `${password.length}/8 characters`}
-                  </Text>
-                )}
-              </View>
+              <Text style={styles.inputLabel}>Password</Text>
 
               <View style={[
                 styles.inputWithIcon,
-                passwordTouched && (isPasswordValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+                isPasswordInvalid && styles.inputInvalidBorder
               ]}>
                 <View style={styles.iconHolder}>
                   <Lock 
                     size={19} 
-                    color={
-                      passwordTouched 
-                        ? (isPasswordValid ? '#10b981' : '#ef4444') 
-                        : '#64748b'
-                    } 
+                    color={isPasswordInvalid ? '#ef4444' : '#64748b'} 
                     strokeWidth={2}
                   />
                 </View>
@@ -608,7 +559,7 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
                   {passwordTouched && (
                     <View style={styles.validationIconHolder}>
                       {isPasswordValid ? (
-                        <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                        <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
                       ) : (
                         <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
                       )}
@@ -696,7 +647,6 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
                       onPress={() => setConsultationMode(mode.id)}
                       activeOpacity={0.8}
                     >
-                      <Text style={styles.modeIcon}>{mode.icon}</Text>
                       <Text style={[styles.modeLabel, isActive && styles.modeLabelActive]}>
                         {mode.label}
                       </Text>
@@ -743,13 +693,13 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
             <View style={styles.inputGroup}>
               <View style={styles.labelRow}>
                 <Text style={styles.inputLabel}>Hourly Consultation Rate</Text>
-                <Text style={styles.subHint}>Currency: USD</Text>
+                <Text style={styles.subHint}>Currency: NGN</Text>
               </View>
               <View style={styles.rateInputRow}>
-                <Text style={styles.currencyPrefix}>$</Text>
+                <Text style={styles.currencyPrefix}>₦</Text>
                 <TextInput
                   style={styles.rateTextInput}
-                  placeholder="50"
+                  placeholder="5000"
                   placeholderTextColor={colors.textDim}
                   value={hourlyRate}
                   onChangeText={setHourlyRate}
@@ -802,7 +752,7 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
               <View style={styles.textAreaContainer}>
                 <TextInput
                   style={styles.textAreaInput}
-                  placeholder="Tell clients about your services, certifications, and booking guidelines..."
+                  placeholder="Write a brief introduction about your services, experience, and consultation topics..."
                   placeholderTextColor={colors.textDim}
                   value={bio}
                   onChangeText={setBio}
@@ -834,27 +784,16 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
 
             {/* OTP Code Input */}
             <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Enter 6-Digit Code</Text>
-                {otpTouched && (
-                  <Text style={[styles.valStatusText, isOtpValid ? styles.valGreenText : styles.valRedText]}>
-                    {isOtpValid ? '6-digits entered' : `${otpCode.length}/6 digits`}
-                  </Text>
-                )}
-              </View>
+              <Text style={styles.inputLabel}>Enter 6-Digit Code</Text>
 
               <View style={[
                 styles.inputWithIcon,
-                otpTouched && (isOtpValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+                isOtpInvalid && styles.inputInvalidBorder
               ]}>
                 <View style={styles.iconHolder}>
                   <ShieldCheck 
                     size={19} 
-                    color={
-                      otpTouched 
-                        ? (isOtpValid ? '#10b981' : '#ef4444') 
-                        : '#64748b'
-                    } 
+                    color={isOtpInvalid ? '#ef4444' : (isOtpValid ? colors.primary : '#64748b')} 
                     strokeWidth={2}
                   />
                 </View>
@@ -875,7 +814,7 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
                 {otpTouched && (
                   <View style={styles.validationIconHolder}>
                     {isOtpValid ? (
-                      <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                      <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
                     ) : (
                       <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
                     )}

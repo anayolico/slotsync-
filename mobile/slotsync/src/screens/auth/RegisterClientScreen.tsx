@@ -375,35 +375,18 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
               </View>
             </View>
 
-            {/* Avatar / Profile Photo Upload */}
-            <AvatarUpload
-              avatarUrl={avatarUrl}
-              onAvatarChange={(newUrl) => setAvatarUrl(newUrl)}
-            />
-
             {/* Full Name Input */}
             <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Full Name</Text>
-                {fullNameTouched && (
-                  <Text style={[styles.valStatusText, isFullNameValid ? styles.valGreenText : styles.valRedText]}>
-                    {isFullNameValid ? 'Valid name' : 'Required'}
-                  </Text>
-                )}
-              </View>
+              <Text style={styles.inputLabel}>Full Name</Text>
 
               <View style={[
                 styles.inputWithIcon,
-                fullNameTouched && (isFullNameValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+                isFullNameInvalid && styles.inputInvalidBorder
               ]}>
                 <View style={styles.iconHolder}>
                   <User 
                     size={19} 
-                    color={
-                      fullNameTouched 
-                        ? (isFullNameValid ? '#10b981' : '#ef4444') 
-                        : '#64748b'
-                    } 
+                    color={isFullNameInvalid ? '#ef4444' : '#64748b'} 
                     strokeWidth={2}
                   />
                 </View>
@@ -423,7 +406,7 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
                 {fullNameTouched && (
                   <View style={styles.validationIconHolder}>
                     {isFullNameValid ? (
-                      <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                      <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
                     ) : (
                       <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
                     )}
@@ -439,27 +422,16 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
 
             {/* Email Address Input */}
             <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Email Address</Text>
-                {emailTouched && (
-                  <Text style={[styles.valStatusText, isEmailValid ? styles.valGreenText : styles.valRedText]}>
-                    {isEmailValid ? 'Valid email format' : 'Invalid email'}
-                  </Text>
-                )}
-              </View>
+              <Text style={styles.inputLabel}>Email Address</Text>
 
               <View style={[
                 styles.inputWithIcon,
-                emailTouched && (isEmailValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+                isEmailInvalid && styles.inputInvalidBorder
               ]}>
                 <View style={styles.iconHolder}>
                   <Mail 
                     size={19} 
-                    color={
-                      emailTouched 
-                        ? (isEmailValid ? '#10b981' : '#ef4444') 
-                        : '#64748b'
-                    } 
+                    color={isEmailInvalid ? '#ef4444' : '#64748b'} 
                     strokeWidth={2}
                   />
                 </View>
@@ -480,7 +452,7 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
                 {emailTouched && (
                   <View style={styles.validationIconHolder}>
                     {isEmailValid ? (
-                      <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                      <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
                     ) : (
                       <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
                     )}
@@ -496,27 +468,16 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
 
             {/* Phone Number Input */}
             <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Phone Number (Optional)</Text>
-                {phoneTouched && phone.trim().length > 0 && (
-                  <Text style={[styles.valStatusText, isPhoneValid ? styles.valGreenText : styles.valRedText]}>
-                    {isPhoneValid ? 'Valid phone' : 'Invalid format'}
-                  </Text>
-                )}
-              </View>
+              <Text style={styles.inputLabel}>Phone Number (Optional)</Text>
 
               <View style={[
                 styles.inputWithIcon,
-                phoneTouched && phone.trim().length > 0 && (isPhoneValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+                isPhoneInvalid && styles.inputInvalidBorder
               ]}>
                 <View style={styles.iconHolder}>
                   <Phone 
                     size={19} 
-                    color={
-                      phoneTouched && phone.trim().length > 0
-                        ? (isPhoneValid ? '#10b981' : '#ef4444') 
-                        : '#64748b'
-                    } 
+                    color={isPhoneInvalid ? '#ef4444' : '#64748b'} 
                     strokeWidth={2}
                   />
                 </View>
@@ -536,7 +497,7 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
                 {phoneTouched && phone.trim().length > 0 && (
                   <View style={styles.validationIconHolder}>
                     {isPhoneValid ? (
-                      <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                      <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
                     ) : (
                       <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
                     )}
@@ -552,27 +513,16 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
 
             {/* Password Input */}
             <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Password</Text>
-                {passwordTouched && (
-                  <Text style={[styles.valStatusText, isPasswordValid ? styles.valGreenText : styles.valRedText]}>
-                    {isPasswordValid ? 'Min 8 chars met' : `${password.length}/8 characters`}
-                  </Text>
-                )}
-              </View>
+              <Text style={styles.inputLabel}>Password</Text>
 
               <View style={[
                 styles.inputWithIcon,
-                passwordTouched && (isPasswordValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+                isPasswordInvalid && styles.inputInvalidBorder
               ]}>
                 <View style={styles.iconHolder}>
                   <Lock 
                     size={19} 
-                    color={
-                      passwordTouched 
-                        ? (isPasswordValid ? '#10b981' : '#ef4444') 
-                        : '#64748b'
-                    } 
+                    color={isPasswordInvalid ? '#ef4444' : '#64748b'} 
                     strokeWidth={2}
                   />
                 </View>
@@ -593,7 +543,7 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
                   {passwordTouched && (
                     <View style={styles.validationIconHolder}>
                       {isPasswordValid ? (
-                        <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                        <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
                       ) : (
                         <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
                       )}
@@ -702,27 +652,16 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
 
             {/* OTP Code Input */}
             <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Enter 6-Digit Code</Text>
-                {otpTouched && (
-                  <Text style={[styles.valStatusText, isOtpValid ? styles.valGreenText : styles.valRedText]}>
-                    {isOtpValid ? '6-digits entered' : `${otpCode.length}/6 digits`}
-                  </Text>
-                )}
-              </View>
+              <Text style={styles.inputLabel}>Enter 6-Digit Code</Text>
 
               <View style={[
                 styles.inputWithIcon,
-                otpTouched && (isOtpValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+                isOtpInvalid && styles.inputInvalidBorder
               ]}>
                 <View style={styles.iconHolder}>
                   <ShieldCheck 
                     size={19} 
-                    color={
-                      otpTouched 
-                        ? (isOtpValid ? '#10b981' : '#ef4444') 
-                        : '#64748b'
-                    } 
+                    color={isOtpInvalid ? '#ef4444' : (isOtpValid ? colors.primary : '#64748b')} 
                     strokeWidth={2}
                   />
                 </View>
@@ -743,7 +682,7 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
                 {otpTouched && (
                   <View style={styles.validationIconHolder}>
                     {isOtpValid ? (
-                      <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                      <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
                     ) : (
                       <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
                     )}

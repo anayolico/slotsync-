@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, BackHandler } from 'react-native';
 import { colors, radii } from '../theme/colors';
-import { getCurrentUser, getStoredToken, removeStoredToken } from '../services/api';
+import { getCurrentUser, getStoredToken, removeStoredToken, logoutUser } from '../services/api';
 
 // Auth Screens
 import AuthChoiceScreen from '../screens/auth/AuthChoiceScreen';
@@ -82,6 +82,9 @@ export default function AppNavigator() {
       const user = await getCurrentUser();
       setCurrentUser(user);
       setIsAuthenticated(true);
+      setClientTab('DISCOVER');
+      setCreatorTab('DASHBOARD');
+      setSelectedCreator(null);
     } catch {
       await removeStoredToken();
       setIsAuthenticated(false);
@@ -96,13 +99,24 @@ export default function AppNavigator() {
   }, [checkAuth]);
 
   const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (e) {
+      console.warn('Logout error:', e);
+    }
     await removeStoredToken();
     setIsAuthenticated(false);
     setCurrentUser(null);
+    setClientTab('DISCOVER');
+    setCreatorTab('DASHBOARD');
+    setSelectedCreator(null);
     setAuthScreen('CHOICE');
   };
 
   const handleLoginSuccess = () => {
+    setClientTab('DISCOVER');
+    setCreatorTab('DASHBOARD');
+    setSelectedCreator(null);
     setLoading(true);
     checkAuth();
   };

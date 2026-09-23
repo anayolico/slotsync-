@@ -175,7 +175,7 @@ export default function CreatorDashboardScreen({
         </View>
         <View style={styles.profileRow}>
           <Text style={styles.profileLabel}>Hourly Rate:</Text>
-          <Text style={[styles.profileValue, { color: colors.success }]}>${creatorProfile.hourly_rate || 150}/hr</Text>
+          <Text style={[styles.profileValue, { color: colors.primary }]}>₦{creatorProfile.hourly_rate || 0}/hr</Text>
         </View>
         <View style={styles.profileRow}>
           <Text style={styles.profileLabel}>Slot Duration:</Text>

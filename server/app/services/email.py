@@ -67,7 +67,7 @@ This code expires in 10 minutes. If you did not request this code, please ignore
               <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center" style="background-color: rgba(255,255,255,0.15); border-radius: 16px; padding: 12px 20px; border: 1px solid rgba(255,255,255,0.25);">
-                    <span style="color: #ffffff; font-size: 24px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;">⚡ SLOTSYNC</span>
+                    <span style="color: #ffffff; font-size: 24px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;">SLOTSYNC</span>
                   </td>
                 </tr>
                 <tr>

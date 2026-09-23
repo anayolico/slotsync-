@@ -62,7 +62,7 @@ export default function ProfileScreen({ currentUser, onLogout }: Props) {
 
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Hourly Rate:</Text>
-              <Text style={[styles.infoValue, { color: colors.success }]}>${creatorProfile.hourly_rate || 0}/hr</Text>
+              <Text style={[styles.infoValue, { color: colors.primary }]}>₦{creatorProfile.hourly_rate || 0}/hr</Text>
             </View>
 
             <View style={styles.infoRow}>

@@ -143,7 +143,7 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser }: Props
               <Text style={styles.durationText}>{item.slot_duration_minutes || 30} mins</Text>
             </View>
             <Text style={styles.rateText}>
-              ${item.hourly_rate || 0}<Text style={styles.rateUnit}>/hr</Text>
+              ₦{item.hourly_rate || 0}<Text style={styles.rateUnit}>/hr</Text>
             </Text>
           </View>
 

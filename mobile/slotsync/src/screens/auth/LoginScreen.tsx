@@ -156,27 +156,16 @@ export default function LoginScreen({ onLoginSuccess, onGoToRegister }: Props) {
 
           {/* Email Address Input */}
           <View style={styles.inputGroup}>
-            <View style={styles.labelRow}>
-              <Text style={styles.inputLabel}>Email Address</Text>
-              {emailTouched && email.length > 0 && (
-                <Text style={[styles.valStatusText, isEmailValid ? styles.valGreenText : styles.valRedText]}>
-                  {isEmailValid ? 'Valid email format' : 'Invalid email'}
-                </Text>
-              )}
-            </View>
+            <Text style={styles.inputLabel}>Email Address</Text>
 
             <View style={[
               styles.inputWithIcon,
-              emailTouched && email.length > 0 && (isEmailValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+              isEmailInvalid && styles.inputInvalidBorder
             ]}>
               <View style={styles.iconHolder}>
                 <Mail 
                   size={19} 
-                  color={
-                    emailTouched && email.length > 0 
-                      ? (isEmailValid ? '#10b981' : '#ef4444') 
-                      : '#64748b'
-                  } 
+                  color={isEmailInvalid ? '#ef4444' : '#64748b'} 
                   strokeWidth={2}
                 />
               </View>
@@ -197,7 +186,7 @@ export default function LoginScreen({ onLoginSuccess, onGoToRegister }: Props) {
               {emailTouched && email.length > 0 && (
                 <View style={styles.validationIconHolder}>
                   {isEmailValid ? (
-                    <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                    <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
                   ) : (
                     <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
                   )}
@@ -213,27 +202,16 @@ export default function LoginScreen({ onLoginSuccess, onGoToRegister }: Props) {
 
           {/* Password Input */}
           <View style={styles.inputGroup}>
-            <View style={styles.labelRow}>
-              <Text style={styles.inputLabel}>Password</Text>
-              {passwordTouched && password.length > 0 && (
-                <Text style={[styles.valStatusText, isPasswordValid ? styles.valGreenText : styles.valRedText]}>
-                  {isPasswordValid ? 'Min 8 chars met' : `${password.length}/8 characters`}
-                </Text>
-              )}
-            </View>
+            <Text style={styles.inputLabel}>Password</Text>
 
             <View style={[
               styles.inputWithIcon,
-              passwordTouched && password.length > 0 && (isPasswordValid ? styles.inputValidBorder : styles.inputInvalidBorder)
+              isPasswordInvalid && styles.inputInvalidBorder
             ]}>
               <View style={styles.iconHolder}>
                 <Lock 
                   size={19} 
-                  color={
-                    passwordTouched && password.length > 0 
-                      ? (isPasswordValid ? '#10b981' : '#ef4444') 
-                      : '#64748b'
-                  } 
+                  color={isPasswordInvalid ? '#ef4444' : '#64748b'} 
                   strokeWidth={2}
                 />
               </View>
@@ -254,7 +232,7 @@ export default function LoginScreen({ onLoginSuccess, onGoToRegister }: Props) {
                 {passwordTouched && password.length > 0 && (
                   <View style={styles.validationIconHolder}>
                     {isPasswordValid ? (
-                      <CheckCircle2 size={18} color="#10b981" strokeWidth={2.2} />
+                      <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
                     ) : (
                       <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
                     )}
