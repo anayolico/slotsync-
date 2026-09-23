@@ -45,5 +45,5 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    from app.core.migrate import run_migrations
+    await run_migrations()
