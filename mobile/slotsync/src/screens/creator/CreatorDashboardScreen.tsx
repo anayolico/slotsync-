@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -6,10 +6,14 @@ import {
   ScrollView, 
   TouchableOpacity, 
   ActivityIndicator, 
-  RefreshControl 
+  RefreshControl,
+  Animated,
+  Easing
 } from 'react-native';
 import { colors, radii } from '../../theme/colors';
 import { getCreatorAppointments, getCreatorAvailabilityRules } from '../../services/api';
+
+import { Clock, Inbox, Calendar, ArrowRight } from '../../components/LucideIcons';
 
 interface Props {
   currentUser: any;
@@ -28,6 +32,50 @@ export default function CreatorDashboardScreen({
   const [rules, setRules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Animated Ambient Moving Orb on Hero Card
+  const orbAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(orbAnim, {
+          toValue: 1,
+          duration: 4000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(orbAnim, {
+          toValue: 0,
+          duration: 4000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [orbAnim]);
+
+  const orbTranslateX = orbAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, -24, 16],
+  });
+
+  const orbTranslateY = orbAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, -18, 10],
+  });
+
+  const orbScale = orbAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [1.0, 1.35, 0.9],
+  });
+
+  const orbOpacity = orbAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.3, 0.65, 0.3],
+  });
 
   const creatorProfile = currentUser?.creator_profile || {};
 
@@ -67,31 +115,37 @@ export default function CreatorDashboardScreen({
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
       showsVerticalScrollIndicator={false}
     >
-      {/* Top Header Row: Welcome & Creator Badge (Stitch Screen 4 Alignment) */}
+      {/* Top Header Row: Welcome & Creator Badge */}
       <View style={styles.topBar}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.welcomeText}>WELCOME BACK,</Text>
           <Text style={styles.userName}>{currentUser ? currentUser.full_name : 'Dr. Sarah Jenkins'}</Text>
         </View>
 
-        <View style={styles.headerRight}>
-          <View style={styles.creatorBadge}>
-            <Text style={styles.creatorBadgeText}>CREATOR</Text>
-          </View>
-          <TouchableOpacity style={styles.settingsQuickBtn} activeOpacity={0.8}>
-            <Text style={styles.settingsQuickIcon}>⚙️</Text>
-          </TouchableOpacity>
+        <View style={styles.creatorBadge}>
+          <Text style={styles.creatorBadgeText}>CREATOR</Text>
         </View>
       </View>
 
-      {/* Analytics Card (Luminous Indigo Gradient - Stitch Spec) */}
+      {/* Analytics Card (Luminous Indigo Gradient with Floating Ambient Orb) */}
       <View style={styles.heroGradientCard}>
-        <View style={styles.heroGlowOverlay} />
+        {/* Animated Moving Orb in bottom right */}
+        <Animated.View 
+          style={[
+            styles.heroAnimatedOrb,
+            {
+              transform: [
+                { translateX: orbTranslateX },
+                { translateY: orbTranslateY },
+                { scale: orbScale }
+              ],
+              opacity: orbOpacity
+            }
+          ]} 
+        />
 
         <View style={styles.heroHeader}>
-          <View style={styles.heroIconBox}>
-            <Text style={styles.heroIconText}>⚡</Text>
-          </View>
+          <View />
           <TouchableOpacity style={styles.heroDetailBtn} onPress={onNavigateToBookings} activeOpacity={0.8}>
             <Text style={styles.heroDetailBtnText}>View Bookings →</Text>
           </TouchableOpacity>
@@ -189,7 +243,7 @@ export default function CreatorDashboardScreen({
       <View style={styles.actionsGrid}>
         <TouchableOpacity style={styles.actionCard} onPress={onNavigateToSchedule} activeOpacity={0.88}>
           <View style={[styles.actionIconCircle, { backgroundColor: '#eef2ff' }]}>
-            <Text style={styles.actionIcon}>⏰</Text>
+            <Clock size={24} color={colors.primary} />
           </View>
           <Text style={styles.actionTitle}>Weekly Schedule</Text>
           <Text style={styles.actionSubtitle}>Configure working hours & day rules</Text>
@@ -197,7 +251,7 @@ export default function CreatorDashboardScreen({
 
         <TouchableOpacity style={styles.actionCard} onPress={onNavigateToBookings} activeOpacity={0.88}>
           <View style={[styles.actionIconCircle, { backgroundColor: '#ecfdf5' }]}>
-            <Text style={styles.actionIcon}>📅</Text>
+            <Inbox size={24} color="#10b981" />
           </View>
           <Text style={styles.actionTitle}>Client Requests</Text>
           <Text style={styles.actionSubtitle}>Approve, complete, or cancel bookings</Text>
@@ -206,6 +260,7 @@ export default function CreatorDashboardScreen({
     </ScrollView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -242,31 +297,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   creatorBadge: {
-    backgroundColor: '#ecfdf5',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: '#e0e7ff',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: '#a7f3d0',
+    borderWidth: 1.2,
+    borderColor: '#c7d2fe',
   },
   creatorBadgeText: {
-    fontSize: 10.5,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#059669',
-    letterSpacing: 0.6,
-  },
-  settingsQuickBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  settingsQuickIcon: {
-    fontSize: 16,
+    color: '#4338ca',
+    letterSpacing: 0.8,
   },
   heroGradientCard: {
     backgroundColor: colors.primary,
@@ -280,14 +322,14 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 8,
   },
-  heroGlowOverlay: {
+  heroAnimatedOrb: {
     position: 'absolute',
-    right: -30,
-    bottom: -30,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    right: -20,
+    bottom: -20,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.28)',
   },
   heroHeader: {
     flexDirection: 'row',

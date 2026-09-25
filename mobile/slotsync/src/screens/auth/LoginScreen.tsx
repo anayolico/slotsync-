@@ -391,6 +391,7 @@ export default function LoginScreen({
 
         {/* iOS Home Indicator */}
         <View style={styles.bottomHomeBar} />
+        <View style={{ height: 160 }} />
       </ScrollView>
     </View>
     </KeyboardAvoidingView>
@@ -424,9 +425,10 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   scrollContainer: {
+    flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: 8,
-    paddingBottom: 60,
+    paddingBottom: 100,
     gap: 18,
   },
   animatedGlow: {

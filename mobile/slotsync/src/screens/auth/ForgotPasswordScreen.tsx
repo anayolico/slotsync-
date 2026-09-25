@@ -281,6 +281,7 @@ export default function ForgotPasswordScreen({
           contentContainerStyle={styles.scrollContainer}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets={true}
           showsVerticalScrollIndicator={false}
         >
           {/* Animated Ambient Glow */}
@@ -649,7 +650,7 @@ export default function ForgotPasswordScreen({
             </View>
           )}
 
-          <View style={{ height: 60 }} />
+          <View style={{ height: 160 }} />
         </ScrollView>
       </View>
     </KeyboardAvoidingView>
@@ -665,8 +666,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: Platform.OS === 'ios' ? 10 : 20,
-    paddingBottom: 40,
-    justifyContent: 'center',
+    paddingBottom: 100,
   },
   topNavigation: {
     flexDirection: 'row',
@@ -827,6 +827,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   primaryActionButton: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -977,8 +978,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   successContainer: {
+    width: '100%',
     alignItems: 'center',
     paddingVertical: 20,
+    paddingHorizontal: 4,
   },
   successIconCircle: {
     width: 88,

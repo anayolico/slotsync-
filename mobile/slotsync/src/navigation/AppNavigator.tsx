@@ -20,12 +20,23 @@ import CreatorDashboardScreen from '../screens/creator/CreatorDashboardScreen';
 import ManageAvailabilityScreen from '../screens/creator/ManageAvailabilityScreen';
 import CreatorAppointmentsScreen from '../screens/creator/CreatorAppointmentsScreen';
 
-// Shared Profile Screen
+// Shared Screens
+import SettingsScreen from '../screens/shared/SettingsScreen';
 import ProfileScreen from '../screens/shared/ProfileScreen';
 
+// Lucide Icons
+import {
+  LayoutDashboard,
+  Calendar,
+  Inbox,
+  Settings as SettingsIcon,
+  Compass,
+} from '../components/LucideIcons';
+
 type AuthScreenState = 'CHOICE' | 'LOGIN' | 'REGISTER_CLIENT' | 'REGISTER_CREATOR' | 'FORGOT_PASSWORD';
-type ClientTab = 'DISCOVER' | 'MY_BOOKINGS' | 'PROFILE';
-type CreatorTab = 'DASHBOARD' | 'SCHEDULE' | 'REQUESTS' | 'PROFILE';
+type ClientTab = 'DISCOVER' | 'MY_BOOKINGS' | 'SETTINGS';
+type CreatorTab = 'DASHBOARD' | 'SCHEDULE' | 'REQUESTS' | 'SETTINGS';
+
 
 export default function AppNavigator() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -214,10 +225,11 @@ export default function AppNavigator() {
             {creatorTab === 'REQUESTS' && (
               <CreatorAppointmentsScreen />
             )}
-            {creatorTab === 'PROFILE' && (
-              <ProfileScreen
+            {creatorTab === 'SETTINGS' && (
+              <SettingsScreen
                 currentUser={currentUser}
                 onLogout={handleLogout}
+                onProfileUpdated={(updated) => setCurrentUser(updated)}
               />
             )}
           </>
@@ -244,20 +256,21 @@ export default function AppNavigator() {
             {clientTab === 'MY_BOOKINGS' && (
               <ClientAppointmentsScreen />
             )}
-            {clientTab === 'PROFILE' && (
-              <ProfileScreen
+            {clientTab === 'SETTINGS' && (
+              <SettingsScreen
                 currentUser={currentUser}
                 onLogout={handleLogout}
+                onProfileUpdated={(updated) => setCurrentUser(updated)}
               />
             )}
           </>
         )}
       </View>
 
-      {/* Bottom Navigation Tab Bar (Stitch Design Spec) */}
+      {/* Bottom Navigation Tab Bar (High-end Vector Icons & Dynamic State) */}
       <View style={styles.tabBar}>
         {isCreator ? (
-          // Creator Tabs: Dashboard, Schedule, Requests, Profile
+          // Creator Tabs: Dashboard, Schedule, Requests, Settings
           <>
             <TouchableOpacity
               style={styles.tabItem}
@@ -265,7 +278,11 @@ export default function AppNavigator() {
               activeOpacity={0.7}
             >
               <View style={styles.tabIconWrapper}>
-                <Text style={styles.tabIcon}>📊</Text>
+                <LayoutDashboard
+                  size={22}
+                  color={creatorTab === 'DASHBOARD' ? colors.primary : '#94a3b8'}
+                  strokeWidth={creatorTab === 'DASHBOARD' ? 2.4 : 1.8}
+                />
                 {creatorTab === 'DASHBOARD' && <View style={styles.activeDot} />}
               </View>
               <Text style={[styles.tabLabel, creatorTab === 'DASHBOARD' && styles.tabLabelActive]}>
@@ -279,7 +296,11 @@ export default function AppNavigator() {
               activeOpacity={0.7}
             >
               <View style={styles.tabIconWrapper}>
-                <Text style={styles.tabIcon}>⏰</Text>
+                <Calendar
+                  size={22}
+                  color={creatorTab === 'SCHEDULE' ? colors.primary : '#94a3b8'}
+                  strokeWidth={creatorTab === 'SCHEDULE' ? 2.4 : 1.8}
+                />
                 {creatorTab === 'SCHEDULE' && <View style={styles.activeDot} />}
               </View>
               <Text style={[styles.tabLabel, creatorTab === 'SCHEDULE' && styles.tabLabelActive]}>
@@ -293,7 +314,11 @@ export default function AppNavigator() {
               activeOpacity={0.7}
             >
               <View style={styles.tabIconWrapper}>
-                <Text style={styles.tabIcon}>📬</Text>
+                <Inbox
+                  size={22}
+                  color={creatorTab === 'REQUESTS' ? colors.primary : '#94a3b8'}
+                  strokeWidth={creatorTab === 'REQUESTS' ? 2.4 : 1.8}
+                />
                 <View style={styles.badgePulseDot} />
                 {creatorTab === 'REQUESTS' && <View style={styles.activeDot} />}
               </View>
@@ -304,20 +329,24 @@ export default function AppNavigator() {
 
             <TouchableOpacity
               style={styles.tabItem}
-              onPress={() => setCreatorTab('PROFILE')}
+              onPress={() => setCreatorTab('SETTINGS')}
               activeOpacity={0.7}
             >
               <View style={styles.tabIconWrapper}>
-                <Text style={styles.tabIcon}>👤</Text>
-                {creatorTab === 'PROFILE' && <View style={styles.activeDot} />}
+                <SettingsIcon
+                  size={22}
+                  color={creatorTab === 'SETTINGS' ? colors.primary : '#94a3b8'}
+                  strokeWidth={creatorTab === 'SETTINGS' ? 2.4 : 1.8}
+                />
+                {creatorTab === 'SETTINGS' && <View style={styles.activeDot} />}
               </View>
-              <Text style={[styles.tabLabel, creatorTab === 'PROFILE' && styles.tabLabelActive]}>
-                Profile
+              <Text style={[styles.tabLabel, creatorTab === 'SETTINGS' && styles.tabLabelActive]}>
+                Settings
               </Text>
             </TouchableOpacity>
           </>
         ) : (
-          // Client Tabs: Discover, Bookings, Profile
+          // Client Tabs: Discover, Bookings, Settings
           <>
             <TouchableOpacity
               style={styles.tabItem}
@@ -328,7 +357,11 @@ export default function AppNavigator() {
               activeOpacity={0.7}
             >
               <View style={styles.tabIconWrapper}>
-                <Text style={styles.tabIcon}>🔍</Text>
+                <Compass
+                  size={22}
+                  color={clientTab === 'DISCOVER' ? colors.primary : '#94a3b8'}
+                  strokeWidth={clientTab === 'DISCOVER' ? 2.4 : 1.8}
+                />
                 {clientTab === 'DISCOVER' && <View style={styles.activeDot} />}
               </View>
               <Text style={[styles.tabLabel, clientTab === 'DISCOVER' && styles.tabLabelActive]}>
@@ -342,7 +375,11 @@ export default function AppNavigator() {
               activeOpacity={0.7}
             >
               <View style={styles.tabIconWrapper}>
-                <Text style={styles.tabIcon}>📅</Text>
+                <Calendar
+                  size={22}
+                  color={clientTab === 'MY_BOOKINGS' ? colors.primary : '#94a3b8'}
+                  strokeWidth={clientTab === 'MY_BOOKINGS' ? 2.4 : 1.8}
+                />
                 <View style={styles.badgeNumber}>
                   <Text style={styles.badgeNumberText}>2</Text>
                 </View>
@@ -355,15 +392,19 @@ export default function AppNavigator() {
 
             <TouchableOpacity
               style={styles.tabItem}
-              onPress={() => setClientTab('PROFILE')}
+              onPress={() => setClientTab('SETTINGS')}
               activeOpacity={0.7}
             >
               <View style={styles.tabIconWrapper}>
-                <Text style={styles.tabIcon}>👤</Text>
-                {clientTab === 'PROFILE' && <View style={styles.activeDot} />}
+                <SettingsIcon
+                  size={22}
+                  color={clientTab === 'SETTINGS' ? colors.primary : '#94a3b8'}
+                  strokeWidth={clientTab === 'SETTINGS' ? 2.4 : 1.8}
+                />
+                {clientTab === 'SETTINGS' && <View style={styles.activeDot} />}
               </View>
-              <Text style={[styles.tabLabel, clientTab === 'PROFILE' && styles.tabLabelActive]}>
-                Profile
+              <Text style={[styles.tabLabel, clientTab === 'SETTINGS' && styles.tabLabelActive]}>
+                Settings
               </Text>
             </TouchableOpacity>
           </>

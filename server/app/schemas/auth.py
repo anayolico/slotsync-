@@ -97,3 +97,27 @@ class ResetPasswordResponse(BaseModel):
     success: bool = True
     message: str
 
+
+class UserProfileUpdate(BaseModel):
+    full_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    avatar_url: Optional[str] = None
+
+
+class DeleteAccountSendOtpResponse(BaseModel):
+    message: str
+    masked_email: str
+    expires_in_seconds: int = 600
+
+
+class DeleteAccountConfirmRequest(BaseModel):
+    otp_code: str
+    reason: Optional[str] = None
+    feedback: Optional[str] = None
+
+
+class DeleteAccountConfirmResponse(BaseModel):
+    success: bool = True
+    message: str
+
+

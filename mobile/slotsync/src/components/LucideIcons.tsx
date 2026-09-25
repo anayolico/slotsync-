@@ -1,5 +1,6 @@
 import React from 'react';
-import Svg, { Path, Circle, Rect, Polyline, Line } from 'react-native-svg';
+import Svg, { Path, Circle, Rect, Polyline, Line, Polygon } from 'react-native-svg';
+
 
 interface IconProps {
   size?: number;
@@ -150,13 +151,7 @@ export function RotateCcw({ size = 20, color = '#4f46e5', strokeWidth = 2, style
   );
 }
 
-export function Sparkles({ size = 20, color = '#10b981', strokeWidth = 2, style }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
-      <Path d="M12 3L14.5 8.5L20 11L14.5 13.5L12 19L9.5 13.5L4 11L9.5 8.5L12 3Z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
-}
+
 
 export function Camera({ size = 20, color = '#ffffff', strokeWidth = 2, style }: IconProps) {
   return (
@@ -210,6 +205,14 @@ export function ChevronUp({ size = 20, color = '#64748b', strokeWidth = 2, style
   );
 }
 
+export function ChevronRight({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Path d="M9 18L15 12L9 6" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 export function KeyRound({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
@@ -219,5 +222,176 @@ export function KeyRound({ size = 20, color = '#64748b', strokeWidth = 2, style 
   );
 }
 
+export function LayoutDashboard({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Rect width="7" height="9" x="3" y="3" rx="1" stroke={color} strokeWidth={strokeWidth} />
+      <Rect width="7" height="5" x="14" y="3" rx="1" stroke={color} strokeWidth={strokeWidth} />
+      <Rect width="7" height="9" x="14" y="12" rx="1" stroke={color} strokeWidth={strokeWidth} />
+      <Rect width="7" height="5" x="3" y="16" rx="1" stroke={color} strokeWidth={strokeWidth} />
+    </Svg>
+  );
+}
 
+export function Calendar({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Path d="M8 2v4M16 2v4" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Rect width="18" height="18" x="3" y="4" rx="2" stroke={color} strokeWidth={strokeWidth} />
+      <Path d="M3 10h18" stroke={color} strokeWidth={strokeWidth} />
+    </Svg>
+  );
+}
+
+export function Inbox({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Polyline points="22 12 16 12 14 15 10 15 8 12 2 12" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function Settings({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Circle cx="12" cy="12" r="3" stroke={color} strokeWidth={strokeWidth} />
+    </Svg>
+  );
+}
+
+export function Compass({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={strokeWidth} />
+      <Polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function Clock({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={strokeWidth} />
+      <Polyline points="12 6 12 12 16 14" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function Briefcase({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Rect width="20" height="14" x="2" y="7" rx="2" ry="2" stroke={color} strokeWidth={strokeWidth} />
+      <Path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" stroke={color} strokeWidth={strokeWidth} />
+    </Svg>
+  );
+}
+
+export function LogOut({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Polyline points="16 17 21 12 16 7" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="21" x2="9" y1="12" y2="12" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function Bell({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function HelpCircle({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={strokeWidth} />
+      <Path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="12" y1="17" x2="12.01" y2="17" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function Trash2({ size = 20, color = '#ef4444', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Polyline points="3 6 5 6 21 6" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="10" y1="11" x2="10" y2="17" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="14" y1="11" x2="14" y2="17" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+
+export function ShieldAlert({ size = 20, color = '#ef4444', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="12" y1="8" x2="12" y2="12" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="12" y1="16" x2="12.01" y2="16" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function Edit3({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Path d="M12 20h9" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+
+export function Search({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Circle cx="11" cy="11" r="8" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="21" y1="21" x2="16.65" y2="16.65" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function Sliders({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Line x1="4" y1="21" x2="4" y2="14" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="4" y1="10" x2="4" y2="3" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="12" y1="21" x2="12" y2="12" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="12" y1="8" x2="12" y2="3" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="20" y1="21" x2="20" y2="16" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="20" y1="12" x2="20" y2="3" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="1" y1="14" x2="7" y2="14" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="9" y1="8" x2="15" y2="8" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="17" y1="16" x2="23" y2="16" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function Sparkles({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M5 3v4" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M19 17v4" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M17 19h4" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function ImageIcon({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Circle cx="8.5" cy="8.5" r="1.5" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Polyline points="21 15 16 10 5 21" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
 

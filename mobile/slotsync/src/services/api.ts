@@ -237,3 +237,87 @@ export const deleteAvailabilityRule = async (ruleId: string) => {
     method: 'DELETE',
   });
 };
+
+// ── Profile & Account Management Endpoints ──
+
+export const updateUserProfile = async (data: {
+  full_name?: string;
+  phone_number?: string;
+  avatar_url?: string;
+}) => {
+  return apiFetch('/auth/me', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+};
+
+export const updateCreatorProfile = async (data: {
+  category?: string;
+  title?: string;
+  bio?: string;
+  hourly_rate?: number;
+  slot_duration_minutes?: number;
+  timezone?: string;
+}) => {
+  return apiFetch('/creators/me', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+};
+
+export const sendDeleteAccountOtp = async () => {
+  return apiFetch('/auth/delete-account/send-otp', {
+    method: 'POST',
+  });
+};
+
+export const confirmDeleteAccount = async (payload: {
+  otp_code: string;
+  reason?: string;
+  feedback?: string;
+}) => {
+  return apiFetch('/auth/delete-account/confirm', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const uploadAvatarImage = async (uri: string) => {
+  const token = await getStoredToken();
+  const formData = new FormData();
+  const filename = uri.split('/').pop() || 'avatar.jpg';
+  const match = /\.(\w+)$/.exec(filename);
+  const type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
+
+  formData.append('file', {
+    uri,
+    name: filename,
+    type,
+  } as any);
+
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const url = `${API_BASE_URL}/auth/upload-avatar`;
+  const response = await fetch(url, {
+    method: 'POST',
+    body: formData,
+    headers,
+  });
+
+  if (!response.ok) {
+    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    try {
+      const errData = await response.json();
+      if (errData.detail) {
+        errorMessage = typeof errData.detail === 'string' ? errData.detail : JSON.stringify(errData.detail);
+      }
+    } catch {}
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+};
+
