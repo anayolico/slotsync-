@@ -19,7 +19,10 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    phone_number: Mapped[str] = mapped_column(String(50), nullable=True, index=True)
+    phone_number: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=True)
+    gender: Mapped[str] = mapped_column(String(20), nullable=True)  # Male, Female, Other
+    date_of_birth: Mapped[str] = mapped_column(String(30), nullable=True)  # YYYY-MM-DD
+    marital_status: Mapped[str] = mapped_column(String(30), nullable=True)  # Single, Married, Divorced, Widowed
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.CLIENT, nullable=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     avatar_url: Mapped[str] = mapped_column(String(500), nullable=True)

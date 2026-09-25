@@ -47,6 +47,9 @@ class RegisterRequest(BaseModel):
     password: str
     full_name: str
     phone_number: Optional[str] = None
+    gender: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    marital_status: Optional[str] = None
     role: UserRole = UserRole.CLIENT
     
     # Creator Specific Fields
@@ -101,6 +104,9 @@ class ResetPasswordResponse(BaseModel):
 class UserProfileUpdate(BaseModel):
     full_name: Optional[str] = None
     phone_number: Optional[str] = None
+    gender: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    marital_status: Optional[str] = None
     avatar_url: Optional[str] = None
 
 

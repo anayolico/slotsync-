@@ -11,9 +11,10 @@ import {
   Easing
 } from 'react-native';
 import { colors, radii } from '../../theme/colors';
-import { getCreatorAppointments, getCreatorAvailabilityRules } from '../../services/api';
+import { getCreatorAppointments, getCreatorAvailabilityRules, getNotifications } from '../../services/api';
 
-import { Clock, Inbox, Calendar, ArrowRight } from '../../components/LucideIcons';
+import { Clock, Inbox, Calendar, ArrowRight, Bell } from '../../components/LucideIcons';
+import NotificationsModal from '../../components/NotificationsModal';
 
 interface Props {
   currentUser: any;
@@ -32,6 +33,8 @@ export default function CreatorDashboardScreen({
   const [rules, setRules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showNotifModal, setShowNotifModal] = useState(false);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
   // Animated Ambient Moving Orb on Hero Card
   const orbAnim = useRef(new Animated.Value(0)).current;
@@ -84,9 +87,12 @@ export default function CreatorDashboardScreen({
       const appts = await getCreatorAppointments();
       setAppointments(Array.isArray(appts) ? appts : []);
 
-      if (creatorProfile?.id) {
-        const r = await getCreatorAvailabilityRules(creatorProfile.id);
-        setRules(Array.isArray(r) ? r : []);
+      const r = await getCreatorAvailabilityRules(creatorProfile?.id);
+      setRules(Array.isArray(r) ? r : []);
+
+      const notifs = await getNotifications();
+      if (notifs && typeof notifs.unread_count === 'number') {
+        setUnreadNotifCount(notifs.unread_count);
       }
     } catch (err) {
       console.warn('Dashboard fetch error:', err);
@@ -122,10 +128,40 @@ export default function CreatorDashboardScreen({
           <Text style={styles.userName}>{currentUser ? currentUser.full_name : 'Dr. Sarah Jenkins'}</Text>
         </View>
 
-        <View style={styles.creatorBadge}>
-          <Text style={styles.creatorBadgeText}>CREATOR</Text>
+        <View style={styles.topBarRight}>
+          <TouchableOpacity 
+            style={styles.bellBtn} 
+            onPress={() => setShowNotifModal(true)}
+            activeOpacity={0.75}
+          >
+            <Bell size={21} color="#334155" strokeWidth={2} />
+            {unreadNotifCount > 0 && (
+              <View style={styles.bellBadge}>
+                <Text style={styles.bellBadgeText}>
+                  {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <View style={styles.creatorBadge}>
+            <Text style={styles.creatorBadgeText}>CREATOR</Text>
+          </View>
         </View>
       </View>
+
+      {/* Notifications Modal */}
+      <NotificationsModal
+        visible={showNotifModal}
+        onClose={() => {
+          setShowNotifModal(false);
+          fetchDashboardData();
+        }}
+        onNotificationsUpdated={fetchDashboardData}
+        onSelectAppointment={() => {
+          setShowNotifModal(false);
+          onNavigateToBookings();
+        }}
+      />
 
       {/* Analytics Card (Luminous Indigo Gradient with Floating Ambient Orb) */}
       <View style={styles.heroGradientCard}>
@@ -296,10 +332,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  topBarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  bellBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    position: 'relative',
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#ef4444',
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  bellBadgeText: {
+    color: '#ffffff',
+    fontSize: 9.5,
+    fontWeight: '800',
+  },
   creatorBadge: {
     backgroundColor: '#e0e7ff',
     paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: radii.pill,
     borderWidth: 1.2,
     borderColor: '#c7d2fe',

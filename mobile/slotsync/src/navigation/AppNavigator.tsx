@@ -250,6 +250,7 @@ export default function AppNavigator() {
                 <ClientHomeScreen
                   currentUser={currentUser}
                   onSelectCreator={(creator) => setSelectedCreator(creator)}
+                  onNavigateToBookings={() => setClientTab('MY_BOOKINGS')}
                 />
               )
             )}
@@ -267,7 +268,7 @@ export default function AppNavigator() {
         )}
       </View>
 
-      {/* Bottom Navigation Tab Bar (High-end Vector Icons & Dynamic State) */}
+      {/* Bottom Navigation Tab Bar */}
       <View style={styles.tabBar}>
         {isCreator ? (
           // Creator Tabs: Dashboard, Schedule, Requests, Settings
@@ -283,7 +284,6 @@ export default function AppNavigator() {
                   color={creatorTab === 'DASHBOARD' ? colors.primary : '#94a3b8'}
                   strokeWidth={creatorTab === 'DASHBOARD' ? 2.4 : 1.8}
                 />
-                {creatorTab === 'DASHBOARD' && <View style={styles.activeDot} />}
               </View>
               <Text style={[styles.tabLabel, creatorTab === 'DASHBOARD' && styles.tabLabelActive]}>
                 Dashboard
@@ -301,7 +301,6 @@ export default function AppNavigator() {
                   color={creatorTab === 'SCHEDULE' ? colors.primary : '#94a3b8'}
                   strokeWidth={creatorTab === 'SCHEDULE' ? 2.4 : 1.8}
                 />
-                {creatorTab === 'SCHEDULE' && <View style={styles.activeDot} />}
               </View>
               <Text style={[styles.tabLabel, creatorTab === 'SCHEDULE' && styles.tabLabelActive]}>
                 Schedule
@@ -319,8 +318,6 @@ export default function AppNavigator() {
                   color={creatorTab === 'REQUESTS' ? colors.primary : '#94a3b8'}
                   strokeWidth={creatorTab === 'REQUESTS' ? 2.4 : 1.8}
                 />
-                <View style={styles.badgePulseDot} />
-                {creatorTab === 'REQUESTS' && <View style={styles.activeDot} />}
               </View>
               <Text style={[styles.tabLabel, creatorTab === 'REQUESTS' && styles.tabLabelActive]}>
                 Requests
@@ -338,7 +335,6 @@ export default function AppNavigator() {
                   color={creatorTab === 'SETTINGS' ? colors.primary : '#94a3b8'}
                   strokeWidth={creatorTab === 'SETTINGS' ? 2.4 : 1.8}
                 />
-                {creatorTab === 'SETTINGS' && <View style={styles.activeDot} />}
               </View>
               <Text style={[styles.tabLabel, creatorTab === 'SETTINGS' && styles.tabLabelActive]}>
                 Settings
@@ -362,7 +358,6 @@ export default function AppNavigator() {
                   color={clientTab === 'DISCOVER' ? colors.primary : '#94a3b8'}
                   strokeWidth={clientTab === 'DISCOVER' ? 2.4 : 1.8}
                 />
-                {clientTab === 'DISCOVER' && <View style={styles.activeDot} />}
               </View>
               <Text style={[styles.tabLabel, clientTab === 'DISCOVER' && styles.tabLabelActive]}>
                 Discover
@@ -380,10 +375,6 @@ export default function AppNavigator() {
                   color={clientTab === 'MY_BOOKINGS' ? colors.primary : '#94a3b8'}
                   strokeWidth={clientTab === 'MY_BOOKINGS' ? 2.4 : 1.8}
                 />
-                <View style={styles.badgeNumber}>
-                  <Text style={styles.badgeNumberText}>2</Text>
-                </View>
-                {clientTab === 'MY_BOOKINGS' && <View style={styles.activeDot} />}
               </View>
               <Text style={[styles.tabLabel, clientTab === 'MY_BOOKINGS' && styles.tabLabelActive]}>
                 Bookings
@@ -401,7 +392,6 @@ export default function AppNavigator() {
                   color={clientTab === 'SETTINGS' ? colors.primary : '#94a3b8'}
                   strokeWidth={clientTab === 'SETTINGS' ? 2.4 : 1.8}
                 />
-                {clientTab === 'SETTINGS' && <View style={styles.activeDot} />}
               </View>
               <Text style={[styles.tabLabel, clientTab === 'SETTINGS' && styles.tabLabelActive]}>
                 Settings

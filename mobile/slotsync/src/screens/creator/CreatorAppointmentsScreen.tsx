@@ -12,7 +12,7 @@ import {
 import { colors, radii } from '../../theme/colors';
 import { getCreatorAppointments, updateAppointmentStatus } from '../../services/api';
 
-const STATUS_FILTERS = ['ALL', 'PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
+const STATUS_FILTERS = ['ALL', 'PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'REJECTED'];
 
 export default function CreatorAppointmentsScreen() {
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -102,31 +102,42 @@ export default function CreatorAppointmentsScreen() {
 
         {/* Action Controls */}
         <View style={styles.actionRow}>
-          {item.status !== 'CONFIRMED' && item.status !== 'COMPLETED' && (
-            <TouchableOpacity 
-              style={styles.confirmActionBtn} 
-              onPress={() => handleUpdateStatus(item.id, 'CONFIRMED')}
-            >
-              <Text style={styles.confirmActionText}>✓ Confirm</Text>
-            </TouchableOpacity>
+          {item.status === 'PENDING' && (
+            <>
+              <TouchableOpacity 
+                style={[styles.confirmActionBtn, { flex: 1, backgroundColor: '#16a34a' }]} 
+                onPress={() => handleUpdateStatus(item.id, 'CONFIRMED')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.confirmActionText}>✓ Accept</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.cancelActionBtn, { flex: 1, backgroundColor: '#ef4444' }]} 
+                onPress={() => handleUpdateStatus(item.id, 'REJECTED')}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.cancelActionText, { color: '#ffffff' }]}>✕ Decline</Text>
+              </TouchableOpacity>
+            </>
           )}
 
           {item.status === 'CONFIRMED' && (
-            <TouchableOpacity 
-              style={styles.completeActionBtn} 
-              onPress={() => handleUpdateStatus(item.id, 'COMPLETED')}
-            >
-              <Text style={styles.completeActionText}>🎉 Mark Complete</Text>
-            </TouchableOpacity>
-          )}
-
-          {item.status !== 'CANCELLED' && item.status !== 'REJECTED' && item.status !== 'COMPLETED' && (
-            <TouchableOpacity 
-              style={styles.cancelActionBtn} 
-              onPress={() => handleUpdateStatus(item.id, 'CANCELLED')}
-            >
-              <Text style={styles.cancelActionText}>✕ Reject / Cancel</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity 
+                style={styles.completeActionBtn} 
+                onPress={() => handleUpdateStatus(item.id, 'COMPLETED')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.completeActionText}>🎉 Mark Complete</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.cancelActionBtn} 
+                onPress={() => handleUpdateStatus(item.id, 'CANCELLED')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.cancelActionText}>Cancel Session</Text>
+              </TouchableOpacity>
+            </>
           )}
         </View>
       </View>

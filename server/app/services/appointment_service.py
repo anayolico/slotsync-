@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.creator import CreatorProfile
 from app.models.appointment import Appointment, AppointmentStatus
 from app.models.user import User
+from app.models.notification import InAppNotification
 from app.schemas.appointment import AppointmentCreate
 from app.services.notification_service import send_push_notification
 
@@ -63,31 +64,44 @@ async def create_appointment(
                 detail="Selected slot has already been booked by another user.",
             )
 
-    # 4. Create appointment instance
+    # 4. Create appointment instance with PENDING status (awaiting creator confirmation)
     appointment = Appointment(
         client_id=client.id,
         creator_id=data.creator_id,
         start_time_utc=start_dt,
         end_time_utc=end_dt,
-        status=AppointmentStatus.CONFIRMED,
+        status=AppointmentStatus.PENDING,
         notes=data.notes,
     )
     db.add(appointment)
     await db.commit()
     await db.refresh(appointment)
 
-    # 5. Send FCM Push Notification to Creator
-    formatted_start = start_dt.strftime("%Y-%m-%d %H:%M UTC")
+    # 5. In-App Notification record for Creator
+    formatted_start = start_dt.strftime("%b %d, %Y at %H:%M UTC")
+    in_app_notif = InAppNotification(
+        user_id=creator.user_id,
+        title="New Booking Request",
+        message=f"{client.full_name} has requested a {creator.slot_duration_minutes}-minute session for {formatted_start}.",
+        type="BOOKING_REQUEST",
+        appointment_id=str(appointment.id),
+        is_read=False,
+    )
+    db.add(in_app_notif)
+    await db.commit()
+
+    # 6. Send FCM Push Notification to Creator
     await send_push_notification(
         db=db,
         user_id=creator.user_id,
-        title="🎉 New Appointment Booked!",
-        body=f"{client.full_name} booked a {creator.slot_duration_minutes}-minute session for {formatted_start}.",
+        title="🔔 New Booking Request",
+        body=f"{client.full_name} has requested a {creator.slot_duration_minutes}-minute session for {formatted_start}. Open app to Accept or Decline.",
         data={
             "appointment_id": str(appointment.id),
             "client_name": client.full_name,
             "start_time": start_dt.isoformat(),
-            "type": "NEW_BOOKING",
+            "type": "NEW_BOOKING_REQUEST",
+            "status": "PENDING",
         },
     )
 

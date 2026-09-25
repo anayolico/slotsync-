@@ -38,8 +38,10 @@ import {
   X,
   Check,
   ImageIcon,
+  Calendar,
 } from '../../components/LucideIcons';
 import OtpInput from '../../components/OtpInput';
+import DatePickerModal from '../../components/DatePickerModal';
 import { useToast } from '../../context/ToastContext';
 import {
   updateUserProfile,
@@ -105,6 +107,10 @@ export default function SettingsScreen({
   // Form states for Account Details
   const [fullName, setFullName] = useState(currentUser?.full_name || '');
   const [phoneNumber, setPhoneNumber] = useState(currentUser?.phone_number || '');
+  const [gender, setGender] = useState<string>(currentUser?.gender || 'Male');
+  const [dateOfBirth, setDateOfBirth] = useState<string>(currentUser?.date_of_birth || '');
+  const [maritalStatus, setMaritalStatus] = useState<string>(currentUser?.marital_status || 'Single');
+  const [showDobPicker, setShowDobPicker] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatar_url || '');
   const [category, setCategory] = useState(creatorProfile?.category || 'Doctor');
   const [title, setTitle] = useState(creatorProfile?.title || 'Specialist');
@@ -217,6 +223,9 @@ export default function SettingsScreen({
     if (currentUser) {
       setFullName(currentUser.full_name || '');
       setPhoneNumber(currentUser.phone_number || '');
+      setGender(currentUser.gender || 'Male');
+      setDateOfBirth(currentUser.date_of_birth || '');
+      setMaritalStatus(currentUser.marital_status || 'Single');
       setAvatarUrl(currentUser.avatar_url || '');
       if (currentUser.creator_profile) {
         setCategory(currentUser.creator_profile.category || 'Doctor');
@@ -230,7 +239,7 @@ export default function SettingsScreen({
 
   // Countdown timer for Delete OTP
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setTimeout>;
     if (deleteModalVisible && deleteStep === 3 && deleteCountdown > 0) {
       timer = setTimeout(() => setDeleteCountdown((c) => c - 1), 1000);
     } else if (deleteCountdown === 0) {
@@ -252,6 +261,9 @@ export default function SettingsScreen({
       const userRes = await updateUserProfile({
         full_name: fullName.trim(),
         phone_number: phoneNumber.trim(),
+        gender: gender || undefined,
+        date_of_birth: dateOfBirth.trim() || undefined,
+        marital_status: maritalStatus || undefined,
         avatar_url: avatarUrl.trim() || undefined,
       });
 
@@ -482,6 +494,91 @@ export default function SettingsScreen({
                   placeholderTextColor={colors.textMuted}
                   keyboardType="phone-pad"
                 />
+              </View>
+            </View>
+
+            {/* Gender */}
+            <View style={styles.inputItem}>
+              <Text style={styles.inputLabel}>Gender</Text>
+              <View style={styles.pillSelectorRow}>
+                {(['Male', 'Female'] as const).map((g) => {
+                  const isSelected = gender === g;
+                  return (
+                    <TouchableOpacity
+                      key={g}
+                      style={[styles.settingsPill, isSelected && styles.settingsPillActive]}
+                      onPress={() => setGender(g)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.settingsPillText, isSelected && styles.settingsPillTextActive]}>
+                        {g}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Date of Birth */}
+            <View style={styles.inputItem}>
+              <Text style={styles.inputLabel}>Date of Birth</Text>
+              <TouchableOpacity
+                style={styles.inputFieldBox}
+                activeOpacity={0.8}
+                onPress={() => setShowDobPicker(true)}
+              >
+                <Calendar size={18} color={colors.primary} />
+                <TextInput
+                  style={[styles.textInput, { flex: 1 }]}
+                  value={dateOfBirth}
+                  placeholder="YYYY-MM-DD (e.g. 1995-08-24)"
+                  placeholderTextColor={colors.textMuted}
+                  editable={false}
+                  pointerEvents="none"
+                />
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#e0e7ff',
+                    paddingHorizontal: 12,
+                    paddingVertical: 5,
+                    borderRadius: 8,
+                  }}
+                  onPress={() => setShowDobPicker(true)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary }}>Choose</Text>
+                </TouchableOpacity>
+              </TouchableOpacity>
+            </View>
+
+            {/* DatePickerModal for Settings */}
+            <DatePickerModal
+              visible={showDobPicker}
+              value={dateOfBirth}
+              onSelect={setDateOfBirth}
+              onClose={() => setShowDobPicker(false)}
+              title="Select Date of Birth"
+            />
+
+            {/* Marital Status */}
+            <View style={styles.inputItem}>
+              <Text style={styles.inputLabel}>Marital Status</Text>
+              <View style={styles.pillSelectorRow}>
+                {(['Single', 'Married', 'Divorced', 'Widowed'] as const).map((ms) => {
+                  const isSelected = maritalStatus === ms;
+                  return (
+                    <TouchableOpacity
+                      key={ms}
+                      style={[styles.settingsPill, isSelected && styles.settingsPillActive]}
+                      onPress={() => setMaritalStatus(ms)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.settingsPillText, isSelected && styles.settingsPillTextActive]}>
+                        {ms}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
           </View>
@@ -2121,5 +2218,32 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: '#ffffff',
+  },
+  pillSelectorRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 6,
+  },
+  settingsPill: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  settingsPillActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  settingsPillText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  settingsPillTextActive: {
+    color: '#ffffff',
+    fontWeight: '700',
   },
 });

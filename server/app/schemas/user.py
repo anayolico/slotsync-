@@ -9,6 +9,9 @@ class UserResponse(BaseModel):
     email: EmailStr
     full_name: str
     phone_number: Optional[str] = None
+    gender: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    marital_status: Optional[str] = None
     role: UserRole
     is_verified: bool = False
     avatar_url: Optional[str] = None

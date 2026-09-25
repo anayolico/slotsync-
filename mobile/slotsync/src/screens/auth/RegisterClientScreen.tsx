@@ -30,12 +30,14 @@ import {
   RotateCcw, 
   Sparkles,
   Plus,
-  X
+  X,
+  Calendar
 } from '../../components/LucideIcons';
 import { colors, radii } from '../../theme/colors';
 import { registerUser, loginUser, sendEmailOtp, verifyEmailOtp } from '../../services/api';
 import SlotSyncLogo from '../../components/SlotSyncLogo';
 import OtpInput from '../../components/OtpInput';
+import DatePickerModal from '../../components/DatePickerModal';
 import { useToast } from '../../context/ToastContext';
 
 interface Props {
@@ -74,6 +76,9 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [gender, setGender] = useState<'Male' | 'Female'>('Male');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [maritalStatus, setMaritalStatus] = useState<'Single' | 'Married' | 'Divorced' | 'Widowed'>('Single');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isGoogleVerified, setIsGoogleVerified] = useState(false);
@@ -82,7 +87,9 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
   const [fullNameTouched, setFullNameTouched] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
   const [phoneTouched, setPhoneTouched] = useState(false);
+  const [dobTouched, setDobTouched] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
+  const [showDobPicker, setShowDobPicker] = useState(false);
 
   // Step 2 State: Booking Preferences
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['General']);
@@ -146,11 +153,13 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
   const isFullNameValid = fullName.trim().length >= 2;
   const isEmailValid = EMAIL_REGEX.test(email.trim());
   const isPhoneValid = phone.trim().length >= 7 && PHONE_REGEX.test(phone.trim());
+  const isDobValid = /^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth.trim());
   const isPasswordValid = password.length >= 8;
 
   const isFullNameInvalid = fullNameTouched && !isFullNameValid;
   const isEmailInvalid = emailTouched && !isEmailValid;
   const isPhoneInvalid = phoneTouched && !isPhoneValid;
+  const isDobInvalid = dobTouched && !isDobValid;
   const isPasswordInvalid = passwordTouched && !isPasswordValid;
 
   // Countdown timer for OTP resend
@@ -229,10 +238,16 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
     setFullNameTouched(true);
     setEmailTouched(true);
     setPhoneTouched(true);
+    setDobTouched(true);
     setPasswordTouched(true);
 
     if (!isFullNameValid || !isEmailValid || !isPhoneValid || (!isGoogleVerified && !isPasswordValid)) {
       showWarning('Please enter all required fields including a valid phone number.', 'Incomplete Details');
+      return;
+    }
+
+    if (!isDobValid) {
+      showWarning('Please enter a valid Date of Birth (YYYY-MM-DD, e.g. 1995-08-24).', 'Date of Birth Required');
       return;
     }
 
@@ -316,6 +331,9 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
         full_name: fullName.trim(),
         avatar_url: avatarUrl || undefined,
         phone_number: phone.trim() || undefined,
+        gender,
+        date_of_birth: dateOfBirth.trim() || undefined,
+        marital_status: maritalStatus,
         role: 'CLIENT',
         verification_token: token,
       });
@@ -573,6 +591,120 @@ export default function RegisterClientScreen({ onRegisterSuccess, onBackToChoice
                   Please enter a valid phone number (7-15 digits)
                 </Text>
               )}
+            </View>
+
+            {/* Gender Selection */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Gender</Text>
+                <Text style={styles.subHint}>Select your gender</Text>
+              </View>
+              <View style={styles.pillSelectorRow}>
+                {(['Male', 'Female'] as const).map((g) => {
+                  const isSelected = gender === g;
+                  return (
+                    <TouchableOpacity
+                      key={g}
+                      style={[styles.pillOption, isSelected && styles.pillOptionActive]}
+                      onPress={() => setGender(g)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.pillOptionText, isSelected && styles.pillOptionTextActive]}>{g}</Text>
+                      {isSelected && <Check size={16} color="#ffffff" strokeWidth={2.5} />}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Date of Birth Input */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Date of Birth</Text>
+                <Text style={styles.subHint}>YYYY-MM-DD</Text>
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setShowDobPicker(true)}
+                style={[
+                  styles.inputWithIcon,
+                  isDobInvalid && styles.inputInvalidBorder,
+                  isDobValid && dobTouched && styles.inputValidBorder
+                ]}
+              >
+                <View style={styles.iconHolder}>
+                  <Calendar
+                    size={19}
+                    color={isDobInvalid ? '#ef4444' : isDobValid && dobTouched ? colors.primary : '#64748b'}
+                    strokeWidth={2}
+                  />
+                </View>
+                <TextInput
+                  style={[styles.textInput, { flex: 1 }]}
+                  placeholder="YYYY-MM-DD (e.g. 1995-08-24)"
+                  placeholderTextColor={colors.textDim}
+                  value={dateOfBirth}
+                  editable={false}
+                  pointerEvents="none"
+                />
+                <TouchableOpacity 
+                  style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#e0e7ff', borderRadius: 8, marginRight: 8 }}
+                  onPress={() => setShowDobPicker(true)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary }}>Choose</Text>
+                </TouchableOpacity>
+                {dobTouched && (
+                  <View style={styles.validationIconHolder}>
+                    {isDobValid ? (
+                      <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
+                    ) : (
+                      <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
+                    )}
+                  </View>
+                )}
+              </TouchableOpacity>
+              {isDobInvalid && (
+                <Text style={styles.helperErrorText}>
+                  Please enter a valid Date of Birth (YYYY-MM-DD, e.g. 1995-08-24)
+                </Text>
+              )}
+            </View>
+
+            {/* DatePickerModal Component */}
+            <DatePickerModal
+              visible={showDobPicker}
+              value={dateOfBirth}
+              onSelect={(d) => {
+                setDateOfBirth(d);
+                setDobTouched(true);
+              }}
+              onClose={() => setShowDobPicker(false)}
+              title="Select Date of Birth"
+            />
+
+            {/* Marital Status Selection */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Marital Status</Text>
+                <Text style={styles.subHint}>Select status</Text>
+              </View>
+              <View style={styles.pillSelectorRow}>
+                {(['Single', 'Married', 'Divorced', 'Widowed'] as const).map((ms) => {
+                  const isSelected = maritalStatus === ms;
+                  return (
+                    <TouchableOpacity
+                      key={ms}
+                      style={[styles.pillOption, isSelected && styles.pillOptionActive]}
+                      onPress={() => setMaritalStatus(ms)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.pillOptionText, isSelected && styles.pillOptionTextActive]}>{ms}</Text>
+                      {isSelected && <Check size={14} color="#ffffff" strokeWidth={2.5} />}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
 
             {/* Password Input */}
@@ -1492,5 +1624,42 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 2,
     opacity: 0.6,
+  },
+  pillSelectorRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  pillOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  pillOptionActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  pillOptionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748b',
+  },
+  pillOptionTextActive: {
+    color: '#ffffff',
   },
 });

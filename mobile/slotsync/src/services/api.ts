@@ -130,6 +130,9 @@ export const registerUser = async (payload: {
   full_name: string;
   avatar_url?: string;
   phone_number?: string;
+  gender?: string;
+  date_of_birth?: string;
+  marital_status?: string;
   role: 'CLIENT' | 'CREATOR';
   category?: string;
   title?: string;
@@ -176,8 +179,11 @@ export const getCreatorById = async (creatorId: string) => {
   return apiFetch(`/creators/${creatorId}`);
 };
 
-export const getCreatorAvailabilityRules = async (creatorId: string) => {
-  return apiFetch(`/availability/${creatorId}/rules`);
+export const getCreatorAvailabilityRules = async (creatorId?: string) => {
+  if (creatorId) {
+    return apiFetch(`/availability/${creatorId}/rules`);
+  }
+  return apiFetch('/availability/me');
 };
 
 export const getAvailableSlots = async (creatorId: string, date: string) => {
@@ -220,15 +226,9 @@ export const addAvailabilityRule = async (
   end_time: string, 
   existingRules: any[] = []
 ) => {
-  const newRule = { day_of_week, start_time, end_time };
-  const rulesPayload = [
-    ...existingRules.map(r => ({ day_of_week: r.day_of_week, start_time: r.start_time, end_time: r.end_time })),
-    newRule
-  ];
-
-  return apiFetch('/availability', {
+  return apiFetch('/availability/rule', {
     method: 'POST',
-    body: JSON.stringify({ rules: rulesPayload }),
+    body: JSON.stringify({ day_of_week, start_time, end_time }),
   });
 };
 
@@ -243,6 +243,9 @@ export const deleteAvailabilityRule = async (ruleId: string) => {
 export const updateUserProfile = async (data: {
   full_name?: string;
   phone_number?: string;
+  gender?: string;
+  date_of_birth?: string;
+  marital_status?: string;
   avatar_url?: string;
 }) => {
   return apiFetch('/auth/me', {
@@ -320,4 +323,23 @@ export const uploadAvatarImage = async (uri: string) => {
 
   return response.json();
 };
+
+// ── In-App Notifications Endpoints ──
+
+export const getNotifications = async () => {
+  return apiFetch('/notifications');
+};
+
+export const markNotificationRead = async (notificationId: string) => {
+  return apiFetch(`/notifications/${notificationId}/read`, {
+    method: 'PATCH',
+  });
+};
+
+export const markAllNotificationsRead = async () => {
+  return apiFetch('/notifications/read-all', {
+    method: 'POST',
+  });
+};
+
 

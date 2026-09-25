@@ -35,12 +35,8 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
   const slotDuration = creatorProfile?.slot_duration_minutes || 30;
 
   const fetchRules = async () => {
-    if (!creatorProfile?.id) {
-      setLoading(false);
-      return;
-    }
     try {
-      const data = await getCreatorAvailabilityRules(creatorProfile.id);
+      const data = await getCreatorAvailabilityRules(creatorProfile?.id);
       setRules(Array.isArray(data) ? data : []);
     } catch (err) {
       console.warn('Fetch rules error:', err);
@@ -61,7 +57,7 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
 
     setSubmitting(true);
     try {
-      await addAvailabilityRule(selectedDay, startTime.trim(), endTime.trim(), rules);
+      await addAvailabilityRule(selectedDay, startTime.trim(), endTime.trim());
       setModalVisible(false);
       fetchRules();
     } catch (err: any) {

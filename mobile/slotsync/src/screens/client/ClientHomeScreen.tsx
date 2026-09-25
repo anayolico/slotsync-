@@ -8,33 +8,48 @@ import {
   FlatList, 
   ActivityIndicator, 
   RefreshControl,
-  ScrollView
+  ScrollView,
+  Image
 } from 'react-native';
 import { colors, radii } from '../../theme/colors';
-import { getCreators } from '../../services/api';
+import { getCreators, getNotifications } from '../../services/api';
+import { Star, Bookmark, Clock, ChevronRight, CheckCircle2, Bell } from '../../components/LucideIcons';
+import NotificationsModal from '../../components/NotificationsModal';
 
 interface Props {
   onSelectCreator: (creator: any) => void;
   currentUser: any;
+  onNavigateToBookings?: () => void;
 }
 
 const CATEGORY_ITEMS = [
-  { label: 'ALL', icon: '⚡', key: 'ALL', color: '#4f46e5', bg: '#4f46e5', text: '#ffffff' },
-  { label: 'Doctor', icon: '🩺', key: 'Doctor', color: '#0d9488', bg: '#f0fdfa', text: '#0f766e', border: '#bbf7d0' },
-  { label: 'Lawyer', icon: '⚖️', key: 'Lawyer', color: '#059669', bg: '#ecfdf5', text: '#047857', border: '#a7f3d0' },
-  { label: 'Barber', icon: '✂️', key: 'Barber', color: '#e11d48', bg: '#fff1f2', text: '#be123c', border: '#fecdd3' },
-  { label: 'Consultant', icon: '📊', key: 'Consultant', color: '#d97706', bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
-  { label: 'Fitness', icon: '💪', key: 'Fitness', color: '#0284c7', bg: '#f0f9ff', text: '#0369a1', border: '#bae6fd' },
-  { label: 'General', icon: '🌟', key: 'General', color: '#64748b', bg: '#f8fafc', text: '#334155', border: '#e2e8f0' },
+  { label: 'ALL', key: 'ALL', color: '#4f46e5', bg: '#4f46e5', text: '#ffffff' },
+  { label: 'Doctor', key: 'Doctor', color: '#0d9488', bg: '#f0fdfa', text: '#0f766e', border: '#bbf7d0' },
+  { label: 'Lawyer', key: 'Lawyer', color: '#059669', bg: '#ecfdf5', text: '#047857', border: '#a7f3d0' },
+  { label: 'Barber', key: 'Barber', color: '#e11d48', bg: '#fff1f2', text: '#be123c', border: '#fecdd3' },
+  { label: 'Consultant', key: 'Consultant', color: '#d97706', bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
+  { label: 'Fitness', key: 'Fitness', color: '#0284c7', bg: '#f0f9ff', text: '#0369a1', border: '#bae6fd' },
+  { label: 'General', key: 'General', color: '#64748b', bg: '#f8fafc', text: '#334155', border: '#e2e8f0' },
 ];
 
-export default function ClientHomeScreen({ onSelectCreator, currentUser }: Props) {
+export default function ClientHomeScreen({ onSelectCreator, currentUser, onNavigateToBookings }: Props) {
   const [creators, setCreators] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [bookmarked, setBookmarked] = useState<Record<string, boolean>>({});
+  const [showNotifModal, setShowNotifModal] = useState(false);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await getNotifications();
+      if (res && typeof res.unread_count === 'number') {
+        setUnreadNotifCount(res.unread_count);
+      }
+    } catch {}
+  };
 
   const fetchCreators = async () => {
     try {
@@ -53,6 +68,7 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser }: Props
 
   useEffect(() => {
     fetchCreators();
+    fetchUnreadCount();
   }, [selectedCategory]);
 
   const handleSearchSubmit = () => {
@@ -63,6 +79,7 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser }: Props
   const onRefresh = () => {
     setRefreshing(true);
     fetchCreators();
+    fetchUnreadCount();
   };
 
   const toggleBookmark = (id: string) => {
@@ -77,9 +94,15 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser }: Props
 
   const renderCreatorCard = ({ item }: { item: any }) => {
     const catTheme = getCategoryTheme(item.category);
-    const initials = item.title 
-      ? item.title.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase() || 'C'
-      : 'C';
+    const creatorName = item.user?.full_name || item.title || 'Specialist Creator';
+    const creatorRole = item.title || item.category || 'Professional Consultant';
+    const avatarUrl = item.user?.avatar_url;
+    const initials = creatorName
+      .split(' ')
+      .map((n: string) => n[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() || 'CR';
     const isBookmarked = !!bookmarked[item.id];
 
     return (
@@ -89,19 +112,39 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser }: Props
         onPress={() => onSelectCreator(item)}
       >
         <View style={styles.cardHeader}>
-          {/* Avatar squircle with verified badge */}
+          {/* Avatar with real photo or clean monogram + verified badge */}
           <View style={styles.avatarWrapper}>
-            <View style={[styles.avatarCircle, { backgroundColor: catTheme.color }]}>
-              <Text style={styles.avatarLetter}>{initials}</Text>
-            </View>
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarPhoto} />
+            ) : (
+              <View style={[styles.avatarCircle, { backgroundColor: catTheme.color }]}>
+                <Text style={styles.avatarLetter}>{initials}</Text>
+              </View>
+            )}
             <View style={styles.verifiedBadge}>
-              <Text style={styles.verifiedCheck}>✓</Text>
+              <CheckCircle2 size={13} color="#ffffff" strokeWidth={2.6} />
             </View>
           </View>
 
-          {/* Name & Title */}
+          {/* Name, Role & Rating */}
           <View style={styles.headerInfo}>
-            <Text style={styles.creatorTitle} numberOfLines={1}>{item.title || 'Specialist Creator'}</Text>
+            <View style={styles.nameBookmarkRow}>
+              <Text style={styles.creatorName} numberOfLines={1}>{creatorName}</Text>
+              <TouchableOpacity 
+                style={styles.bookmarkBtn}
+                onPress={() => toggleBookmark(item.id)}
+                activeOpacity={0.7}
+              >
+                <Bookmark 
+                  size={18} 
+                  color={isBookmarked ? colors.primary : '#94a3b8'} 
+                  fill={isBookmarked ? colors.primary : 'none'} 
+                />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.creatorTitle} numberOfLines={1}>{creatorRole}</Text>
+
             <View style={styles.metaRow}>
               <View style={[styles.categoryBadge, { backgroundColor: catTheme.bg, borderColor: catTheme.border || '#cbd5e1' }]}>
                 <Text style={[styles.categoryBadgeText, { color: catTheme.text }]}>
@@ -109,23 +152,12 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser }: Props
                 </Text>
               </View>
               <View style={styles.ratingBadge}>
-                <Text style={styles.starIcon}>★</Text>
+                <Star size={13} color="#f59e0b" fill="#f59e0b" />
                 <Text style={styles.ratingValue}>4.9</Text>
                 <Text style={styles.ratingCount}>(128)</Text>
               </View>
             </View>
           </View>
-
-          {/* Quick Bookmark Button */}
-          <TouchableOpacity 
-            style={styles.bookmarkBtn}
-            onPress={() => toggleBookmark(item.id)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.bookmarkIcon, isBookmarked && styles.bookmarkIconActive]}>
-              {isBookmarked ? '🔖' : '🔖'}
-            </Text>
-          </TouchableOpacity>
         </View>
 
         {/* Short Bio */}
@@ -139,22 +171,25 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser }: Props
         <View style={styles.cardFooter}>
           <View style={styles.footerMeta}>
             <View style={styles.durationRow}>
-              <Text style={styles.clockIcon}>🕒</Text>
+              <Clock size={13} color="#64748b" />
               <Text style={styles.durationText}>{item.slot_duration_minutes || 30} mins</Text>
             </View>
-            <Text style={styles.rateText}>
-              ₦{item.hourly_rate || 0}<Text style={styles.rateUnit}>/hr</Text>
-            </Text>
+            <View style={styles.priceContainer}>
+              <Text style={styles.rateText}>
+                ₦{Number(item.hourly_rate || 0).toLocaleString()}
+              </Text>
+              <Text style={styles.rateUnit}>/hr</Text>
+            </View>
           </View>
 
           {/* Book Slot CTA Button */}
           <TouchableOpacity 
             style={styles.bookSlotBtn}
-            activeOpacity={0.8}
+            activeOpacity={0.82}
             onPress={() => onSelectCreator(item)}
           >
-            <Text style={styles.bookSlotBtnText}>Book Slot</Text>
-            <Text style={styles.bookSlotBtnArrow}>›</Text>
+            <Text style={styles.bookSlotBtnText}>Book Session</Text>
+            <ChevronRight size={15} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -174,21 +209,30 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser }: Props
         </View>
 
         <View style={styles.headerRight}>
+          <TouchableOpacity 
+            style={styles.bellBtn} 
+            onPress={() => setShowNotifModal(true)}
+            activeOpacity={0.75}
+          >
+            <Bell size={21} color="#334155" strokeWidth={2} />
+            {unreadNotifCount > 0 && (
+              <View style={styles.bellBadge}>
+                <Text style={styles.bellBadgeText}>
+                  {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
           <View style={styles.clientRoleBadge}>
-            <View style={styles.pulseDot} />
             <Text style={styles.clientRoleBadgeText}>CLIENT</Text>
           </View>
-          <TouchableOpacity style={styles.settingsQuickBtn} activeOpacity={0.8}>
-            <Text style={styles.settingsQuickIcon}>⚙️</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Search Bar */}
+      {/* Clean Search Bar (Without left/right icons) */}
       <View style={styles.searchBox}>
-        <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
-          style={styles.searchInput}
+          style={styles.searchInputClean}
           placeholder="Search doctor, lawyer, barber..."
           placeholderTextColor={colors.textDim}
           value={searchQuery}
@@ -196,18 +240,14 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser }: Props
           onSubmitEditing={handleSearchSubmit}
           returnKeyType="search"
         />
-        {searchQuery.length > 0 ? (
+        {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => { setSearchQuery(''); fetchCreators(); }}>
             <Text style={styles.clearSearch}>✕</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.filterBtn} activeOpacity={0.7}>
-            <Text style={styles.filterIcon}>🎛️</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Category Chips with Icons */}
+      {/* Category Chips (Clean text-only without emojis) */}
       <View style={styles.categorySection}>
         <ScrollView 
           horizontal 
@@ -226,9 +266,6 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser }: Props
                 activeOpacity={0.8}
                 onPress={() => setSelectedCategory(cat.key)}
               >
-                {cat.icon && cat.key !== 'ALL' && (
-                  <Text style={styles.chipIcon}>{cat.icon}</Text>
-                )}
                 <Text style={[
                   styles.categoryChipText,
                   { color: isActive ? '#ffffff' : cat.text }
@@ -240,6 +277,20 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser }: Props
           })}
         </ScrollView>
       </View>
+
+      {/* Notifications Modal */}
+      <NotificationsModal
+        visible={showNotifModal}
+        onClose={() => {
+          setShowNotifModal(false);
+          fetchUnreadCount();
+        }}
+        onNotificationsUpdated={fetchUnreadCount}
+        onSelectAppointment={() => {
+          setShowNotifModal(false);
+          if (onNavigateToBookings) onNavigateToBookings();
+        }}
+      />
 
       {/* Specialist Feed */}
       {loading ? (
@@ -311,43 +362,51 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+  },
+  bellBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    position: 'relative',
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#ef4444',
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  bellBadgeText: {
+    color: '#ffffff',
+    fontSize: 9.5,
+    fontWeight: '800',
   },
   clientRoleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
     backgroundColor: '#eef2ff',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: radii.pill,
     borderWidth: 1,
     borderColor: '#c7d2fe',
   },
-  pulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.primary,
-  },
   clientRoleBadgeText: {
-    fontSize: 10.5,
+    fontSize: 11,
     fontWeight: '800',
     color: colors.primary,
-    letterSpacing: 0.6,
-  },
-  settingsQuickBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  settingsQuickIcon: {
-    fontSize: 16,
+    letterSpacing: 0.8,
   },
   searchBox: {
     flexDirection: 'row',
@@ -355,8 +414,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 18,
     marginHorizontal: 20,
-    paddingHorizontal: 14,
-    height: 46,
+    paddingHorizontal: 16,
+    height: 48,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     marginBottom: 14,
@@ -366,13 +425,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  searchIcon: {
-    marginRight: 8,
-    fontSize: 15,
-  },
-  searchInput: {
+  searchInputClean: {
     flex: 1,
-    fontSize: 13.5,
+    fontSize: 14,
     fontWeight: '500',
     color: colors.textMain,
   },
@@ -437,44 +492,62 @@ const styles = StyleSheet.create({
   avatarWrapper: {
     position: 'relative',
   },
+  avatarPhoto: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#f1f5f9',
+  },
   avatarCircle: {
-    width: 48,
-    height: 48,
+    width: 52,
+    height: 52,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarLetter: {
     color: '#ffffff',
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '800',
   },
   verifiedBadge: {
     position: 'absolute',
-    bottom: -3,
-    right: -3,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: colors.primary,
+    bottom: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#10b981',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: '#ffffff',
   },
-  verifiedCheck: {
-    color: '#ffffff',
-    fontSize: 9,
-    fontWeight: '900',
-  },
   headerInfo: {
     flex: 1,
   },
-  creatorTitle: {
-    fontSize: 15.5,
+  nameBookmarkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  creatorName: {
+    flex: 1,
+    fontSize: 16,
     fontWeight: '800',
-    color: colors.textMain,
+    color: '#0f172a',
     letterSpacing: -0.2,
+  },
+  creatorTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748b',
+    marginTop: 1,
+    marginBottom: 4,
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
   },
   metaRow: {
     flexDirection: 'row',
