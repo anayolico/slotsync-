@@ -220,22 +220,47 @@ export const updateAppointmentStatus = async (appointmentId: string, status: str
 
 // ── Creator Availability Rules Endpoints ──
 
-export const addAvailabilityRule = async (
-  day_of_week: number, 
-  start_time: string, 
-  end_time: string, 
-  existingRules: any[] = []
+// Replace ALL availability rules in one call (backend replaces full schedule).
+export const setAllAvailabilityRules = async (
+  rules: { day_of_week: number; start_time: string; end_time: string }[]
 ) => {
-  return apiFetch('/availability/rule', {
+  return apiFetch('/availability', {
     method: 'POST',
-    body: JSON.stringify({ day_of_week, start_time, end_time }),
+    body: JSON.stringify({ rules }),
   });
 };
 
-export const deleteAvailabilityRule = async (ruleId: string) => {
-  return apiFetch(`/availability/${ruleId}`, {
-    method: 'DELETE',
-  });
+// Convenience: add a single rule by merging with existing rules then sending all
+export const addAvailabilityRule = async (
+  day_of_week: number,
+  start_time: string,
+  end_time: string,
+  existingRules: { day_of_week: number; start_time: string; end_time: string }[] = []
+) => {
+  const newRules = [
+    ...existingRules.map((r) => ({
+      day_of_week: r.day_of_week,
+      start_time: r.start_time,
+      end_time: r.end_time,
+    })),
+    { day_of_week, start_time, end_time },
+  ];
+  return setAllAvailabilityRules(newRules);
+};
+
+// Convenience: delete a rule by id — filters it out from existing list then sends remainder
+export const deleteAvailabilityRule = async (
+  ruleId: string,
+  existingRules: { id: string; day_of_week: number; start_time: string; end_time: string }[] = []
+) => {
+  const remaining = existingRules
+    .filter((r) => r.id !== ruleId)
+    .map((r) => ({
+      day_of_week: r.day_of_week,
+      start_time: r.start_time,
+      end_time: r.end_time,
+    }));
+  return setAllAvailabilityRules(remaining);
 };
 
 // ── Profile & Account Management Endpoints ──
