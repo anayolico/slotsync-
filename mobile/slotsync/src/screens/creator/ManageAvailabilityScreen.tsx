@@ -57,7 +57,7 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
 
     setSubmitting(true);
     try {
-      await addAvailabilityRule(selectedDay, startTime.trim(), endTime.trim());
+      await addAvailabilityRule(selectedDay, startTime.trim(), endTime.trim(), rules);
       setModalVisible(false);
       fetchRules();
     } catch (err: any) {
@@ -78,7 +78,7 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteAvailabilityRule(ruleId);
+              await deleteAvailabilityRule(ruleId, rules);
               fetchRules();
             } catch (err: any) {
               Alert.alert('Error', err.message || 'Failed to delete rule.');
