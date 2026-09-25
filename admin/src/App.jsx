@@ -105,6 +105,7 @@ export default function App() {
   }, [isAuthenticated, loadData]);
 
   const handleLoginSuccess = () => {
+    setActiveTab('dashboard');
     loadData();
   };
 
@@ -112,6 +113,7 @@ export default function App() {
     removeStoredToken();
     setIsAuthenticated(false);
     setCurrentUser(null);
+    setActiveTab('dashboard');
     setCreators([]);
     setAppointments([]);
     setUsers([]);

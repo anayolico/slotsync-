@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { getItem, setItem, removeItem, StorageKeys } from './storage';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
 
@@ -7,40 +8,22 @@ let memoryToken: string | null = null;
 // Storage Helper
 export const setStoredToken = async (token: string) => {
   memoryToken = token;
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem('slotsync_mobile_token', token);
-    }
-  } catch (e) {
-    console.warn('Storage set error:', e);
-  }
+  await setItem(StorageKeys.TOKEN, token);
 };
 
 export const getStoredToken = async (): Promise<string | null> => {
   if (memoryToken) return memoryToken;
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const stored = window.localStorage.getItem('slotsync_mobile_token');
-      if (stored) {
-        memoryToken = stored;
-        return stored;
-      }
-    }
-  } catch (e) {
-    console.warn('Storage get error:', e);
+  const stored = await getItem(StorageKeys.TOKEN);
+  if (stored) {
+    memoryToken = stored;
+    return stored;
   }
   return memoryToken;
 };
 
 export const removeStoredToken = async () => {
   memoryToken = null;
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.removeItem('slotsync_mobile_token');
-    }
-  } catch (e) {
-    console.warn('Storage remove error:', e);
-  }
+  await removeItem(StorageKeys.TOKEN);
 };
 
 // Generic Fetch Wrapper
@@ -97,6 +80,28 @@ export const verifyEmailOtp = async (email: string, otp_code: string) => {
     body: JSON.stringify({ email, otp_code }),
   });
 };
+
+export const sendForgotPasswordOtp = async (identifier: string) => {
+  return apiFetch('/auth/forgot-password/send-otp', {
+    method: 'POST',
+    body: JSON.stringify({ identifier }),
+  });
+};
+
+export const verifyForgotPasswordOtp = async (email: string, otp_code: string) => {
+  return apiFetch('/auth/forgot-password/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp_code }),
+  });
+};
+
+export const resetPassword = async (email: string, reset_token: string, new_password: string) => {
+  return apiFetch('/auth/forgot-password/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ email, reset_token, new_password }),
+  });
+};
+
 
 export const logoutUser = async () => {
   try {

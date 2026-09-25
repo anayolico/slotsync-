@@ -3,16 +3,19 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, LogBox } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
+import { ToastProvider } from './src/context/ToastContext';
 
 LogBox.ignoreLogs(['Cannot connect to Expo CLI']);
 
 export default function App() {
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.container}>
-        <AppNavigator />
-        <StatusBar style="dark" />
-      </SafeAreaView>
+      <ToastProvider>
+        <SafeAreaView style={styles.container}>
+          <AppNavigator />
+          <StatusBar style="dark" />
+        </SafeAreaView>
+      </ToastProvider>
     </SafeAreaProvider>
   );
 }

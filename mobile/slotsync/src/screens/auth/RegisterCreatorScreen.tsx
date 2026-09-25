@@ -6,10 +6,13 @@ import {
   TextInput, 
   TouchableOpacity, 
   ScrollView, 
-  ActivityIndicator,
-  StatusBar,
-  Platform,
-  PanResponder
+  ActivityIndicator, 
+  StatusBar, 
+  Platform, 
+  PanResponder,
+  Animated,
+  Easing,
+  KeyboardAvoidingView
 } from 'react-native';
 import { 
   User, 
@@ -26,12 +29,17 @@ import {
   ShieldCheck, 
   RotateCcw, 
   MapPin, 
-  Sparkles 
+  Sparkles,
+  Plus,
+  X,
+  ChevronDown,
+  ChevronUp
 } from '../../components/LucideIcons';
 import { colors, radii } from '../../theme/colors';
 import { registerUser, loginUser, sendEmailOtp, verifyEmailOtp } from '../../services/api';
 import SlotSyncLogo from '../../components/SlotSyncLogo';
-import AvatarUpload from '../../components/AvatarUpload';
+import OtpInput from '../../components/OtpInput';
+import { useToast } from '../../context/ToastContext';
 
 interface Props {
   onRegisterSuccess: () => void;
@@ -39,6 +47,24 @@ interface Props {
 }
 
 const CATEGORIES = ['Doctor', 'Lawyer', 'Barber', 'Consultant', 'General', 'Fitness', 'Beauty', 'Tutor'];
+const SUGGESTED_TITLES: Record<string, string[]> = {
+  Doctor: ['General Practitioner (MD)', 'Specialist Physician', 'Clinical Consultant', 'Dentist / Dental Surgeon', 'Pediatrician'],
+  Lawyer: ['Corporate Attorney', 'Legal Counsel & Advisor', 'Litigation Specialist', 'Notary & Property Solicitor'],
+  Barber: ['Master Barber & Stylist', 'Grooming Specialist', 'Senior Hair Stylist', 'Celebrity Stylist'],
+  Consultant: ['Senior Business Consultant', 'Financial Advisor', 'Strategy & Operations Lead', 'Management Consultant'],
+  General: ['Professional Consultant', 'Independent Specialist', 'Creative Director', 'Operations Specialist'],
+  Fitness: ['Certified Fitness Coach', 'Personal Trainer & Nutritionist', 'Strength & Conditioning Specialist'],
+  Beauty: ['Licensed Esthetician', 'Professional Makeup Artist', 'Skincare Specialist', 'Spa & Wellness Director'],
+  Tutor: ['Academic Tutor & Educator', 'Senior Language Instructor', 'STEM Education Specialist', 'Test Prep Specialist']
+};
+const DEFAULT_TITLE_SUGGESTIONS = [
+  'Senior Consultant',
+  'Master Practitioner',
+  'Director & Specialist',
+  'Professional Advisor',
+  'Founder & Lead Expert'
+];
+
 const CONSULTATION_MODES = [
   { id: 'VIRTUAL', label: 'Virtual (Online)' },
   { id: 'IN_PERSON', label: 'In-Person (Office)' },
@@ -49,6 +75,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^\+?[0-9\s\-()]{7,20}$/;
 
 export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoice }: Props) {
+  const { showError, showWarning, showSuccess } = useToast();
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
 
   // Step 1 State: Credentials & Avatar
@@ -59,9 +86,6 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isGoogleVerified, setIsGoogleVerified] = useState(false);
-  const [googleId, setGoogleId] = useState<string | null>(null);
-  const [googleIdToken, setGoogleIdToken] = useState<string | null>(null);
-  const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null);
 
   // Touched states
   const [fullNameTouched, setFullNameTouched] = useState(false);
@@ -71,7 +95,10 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
 
   // Step 2 State: Service Details & Consultation Setup
   const [category, setCategory] = useState('Doctor');
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [newCategoryInput, setNewCategoryInput] = useState('');
   const [title, setTitle] = useState('');
+  const [showTitleDropdown, setShowTitleDropdown] = useState(false);
   const [hourlyRate, setHourlyRate] = useState('');
   const [slotDuration, setSlotDuration] = useState(30);
   const [consultationMode, setConsultationMode] = useState('VIRTUAL');
@@ -80,25 +107,87 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
 
   // Step 3 State: OTP Verification
   const [otpCode, setOtpCode] = useState('');
-  const [otpTouched, setOtpTouched] = useState(false);
+  const [otpError, setOtpError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(60);
   const [canResend, setCanResend] = useState(false);
 
   const [loading, setLoading] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
+
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Floating Ambient Glow Animation
+  const glowAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (currentStep === 3) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 250);
+    }
+  }, [currentStep]);
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, {
+          toValue: 1,
+          duration: 3800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(glowAnim, {
+          toValue: 0,
+          duration: 3800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [glowAnim]);
+
+  const glowTranslateX = glowAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-35, 35],
+  });
+
+  const glowScale = glowAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [1.0, 1.15, 1.0],
+  });
 
   // Validation Calculations
   const isFullNameValid = fullName.trim().length >= 2;
   const isEmailValid = EMAIL_REGEX.test(email.trim());
-  const isPhoneValid = phone.trim().length === 0 || PHONE_REGEX.test(phone.trim());
+  const isPhoneValid = phone.trim().length >= 7 && PHONE_REGEX.test(phone.trim());
   const isPasswordValid = password.length >= 8;
-  const isOtpValid = otpCode.trim().length === 6;
 
   const isFullNameInvalid = fullNameTouched && !isFullNameValid;
   const isEmailInvalid = emailTouched && !isEmailValid;
-  const isPhoneInvalid = phoneTouched && phone.trim().length > 0 && !isPhoneValid;
+  const isPhoneInvalid = phoneTouched && !isPhoneValid;
   const isPasswordInvalid = passwordTouched && !isPasswordValid;
-  const isOtpInvalid = otpTouched && !isOtpValid;
+
+  // Custom category handlers
+  const handleAddCustomCategory = () => {
+    const trimmed = newCategoryInput.trim();
+    if (!trimmed) return;
+    if (!customCategories.includes(trimmed) && !CATEGORIES.includes(trimmed)) {
+      setCustomCategories(prev => [...prev, trimmed]);
+    }
+    setCategory(trimmed);
+    setNewCategoryInput('');
+  };
+
+  const handleRemoveCustomCategory = (catToRemove: string) => {
+    const updated = customCategories.filter(c => c !== catToRemove);
+    setCustomCategories(updated);
+    if (category === catToRemove) {
+      setCategory(CATEGORIES[0]);
+    }
+  };
+
+  const currentTitleSuggestions = SUGGESTED_TITLES[category] || DEFAULT_TITLE_SUGGESTIONS;
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -123,47 +212,15 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gestureState) => {
-        return (
-          gestureState.dx > 25 && 
-          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5
-        );
+        return gestureState.dx > 25 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5;
       },
       onPanResponderRelease: (evt, gestureState) => {
         if (gestureState.dx > 60 || (gestureState.dx > 30 && gestureState.vx > 0.4)) {
-          if (currentStep === 3) {
-            setCurrentStep(2);
-          } else if (currentStep === 2) {
-            setCurrentStep(1);
-          } else {
-            onBackToChoice();
-          }
+          handleBackNavigation();
         }
       },
     })
   ).current;
-
-  const handleGooglePrepopulate = async () => {
-    setLoading(true);
-    setApiError(null);
-    try {
-      setFullName('Dr. Jane Smith');
-      setEmail('dr.janesmith@gmail.com');
-      setAvatarUrl('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80');
-      setPassword('GoogleSecureCreatorPass123!');
-      setIsGoogleVerified(true);
-      setFullNameTouched(true);
-      setEmailTouched(true);
-
-      // Advance directly to Step 2 so creator configures their services
-      setTimeout(() => {
-        setCurrentStep(2);
-      }, 400);
-    } catch (err: any) {
-      setApiError(err.message || 'Google sync failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleStep1ToStep2 = () => {
     setFullNameTouched(true);
@@ -171,26 +228,46 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
     setPhoneTouched(true);
     setPasswordTouched(true);
 
-    if (!isFullNameValid || !isEmailValid || (!isGoogleVerified && !isPasswordValid) || (phone.trim().length > 0 && !isPhoneValid)) {
+    if (!isFullNameValid || !isEmailValid || !isPhoneValid || (!isGoogleVerified && !isPasswordValid)) {
+      showWarning('Please enter all required fields including a valid business phone number.', 'Incomplete Details');
       return;
     }
 
-    setApiError(null);
     setCurrentStep(2);
   };
 
   const handleStep2Submit = async () => {
-    // If Google-verified, create profile directly with Google details
+    // Validate all compulsory fields for Creator
+    if (!category.trim()) {
+      showWarning('Please select or add a professional category.', 'Required Field');
+      return;
+    }
+    if (!title.trim()) {
+      showWarning('Please enter or select your professional title.', 'Required Field');
+      return;
+    }
+    if (!hourlyRate.trim() || isNaN(parseFloat(hourlyRate)) || parseFloat(hourlyRate) <= 0) {
+      showWarning('Please enter a valid hourly consultation rate (greater than 0).', 'Required Field');
+      return;
+    }
+    if (consultationMode !== 'VIRTUAL' && !officeAddress.trim()) {
+      showWarning('Please provide your physical office or clinic address for in-person consultations.', 'Required Field');
+      return;
+    }
+    if (!bio.trim() || bio.trim().length < 10) {
+      showWarning('Please write a brief introduction/bio (at least 10 characters) about your services.', 'Required Field');
+      return;
+    }
+
     if (isGoogleVerified) {
       setLoading(true);
-      setApiError(null);
       try {
         await registerUser({
           email: email.trim(),
           password,
           full_name: fullName.trim(),
           avatar_url: avatarUrl || undefined,
-          phone_number: phone.trim() || undefined,
+          phone_number: phone.trim(),
           role: 'CREATOR',
           category,
           title: title.trim(),
@@ -205,24 +282,24 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
         await loginUser(email.trim(), password);
         onRegisterSuccess();
       } catch (err: any) {
-        setApiError(err.message || 'Failed to create creator profile with Google.');
+        showError(err.message || 'Failed to create creator profile with Google.', 'Registration Failed');
       } finally {
         setLoading(false);
       }
       return;
     }
 
-    // Standard registration -> send OTP
-    setApiError(null);
     setLoading(true);
 
     try {
       await sendEmailOtp(email.trim());
       setCountdown(60);
       setCanResend(false);
+      setOtpError(null);
+      setOtpCode('');
       setCurrentStep(3);
     } catch (err: any) {
-      setApiError(err.message || 'Failed to send verification code. Please check your email.');
+      showError(err.message || 'Failed to send verification code. Please check your email.', 'Verification Error');
     } finally {
       setLoading(false);
     }
@@ -230,7 +307,7 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
 
   const handleResendOtp = async () => {
     if (!canResend) return;
-    setApiError(null);
+    setOtpError(null);
     setLoading(true);
 
     try {
@@ -238,29 +315,28 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
       setCountdown(60);
       setCanResend(false);
       setOtpCode('');
-      setOtpTouched(false);
+      showSuccess('A fresh 6-digit verification code has been sent to your email.', 'Code Sent');
     } catch (err: any) {
-      setApiError(err.message || 'Failed to resend code.');
+      showError(err.message || 'Failed to resend code.', 'Resend Failed');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifyAndRegister = async () => {
-    setOtpTouched(true);
-    if (!isOtpValid) {
+  const handleVerifyAndRegister = async (customCode?: string) => {
+    const codeToVerify = (customCode || otpCode).trim();
+    if (codeToVerify.length !== 6) {
+      setOtpError('Please enter the complete 6-digit verification code.');
       return;
     }
 
-    setApiError(null);
+    setOtpError(null);
     setLoading(true);
 
     try {
-      // 1. Verify OTP with backend
-      const otpRes = await verifyEmailOtp(email.trim(), otpCode.trim());
+      const otpRes = await verifyEmailOtp(email.trim(), codeToVerify);
       const token = otpRes?.verification_token || 'verified';
 
-      // 2. Complete Creator Profile Setup & Registration
       await registerUser({
         email: email.trim(),
         password,
@@ -279,11 +355,10 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
         verification_token: token,
       });
 
-      // 3. Log user in and transition
       await loginUser(email.trim(), password);
       onRegisterSuccess();
     } catch (err: any) {
-      setApiError(err.message || 'Verification failed. Please check the code and try again.');
+      setOtpError(err.message || 'Invalid verification code. Please check and try again.');
     } finally {
       setLoading(false);
     }
@@ -300,28 +375,46 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
   };
 
   return (
-    <View style={styles.outerWrapper} {...panResponder.panHandlers}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
-      
-      {/* Floating Minimalist Back Button */}
-      <View style={styles.topNavigation}>
-        <TouchableOpacity 
-          style={styles.backButtonCircle} 
-          onPress={handleBackNavigation} 
-          activeOpacity={0.7}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        >
-          <ChevronLeft size={20} color={colors.primary} strokeWidth={2.5} />
-        </TouchableOpacity>
-      </View>
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }} 
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    >
+      <View style={styles.outerWrapper} {...panResponder.panHandlers}>
+        <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
+        
+        {/* Floating Minimalist Back Button */}
+        <View style={styles.topNavigation}>
+          <TouchableOpacity 
+            style={styles.backButtonCircle} 
+            onPress={handleBackNavigation} 
+            activeOpacity={0.7}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <ChevronLeft size={20} color={colors.primary} strokeWidth={2.5} />
+          </TouchableOpacity>
+        </View>
 
-      <ScrollView 
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Ambient Top Glow Effect */}
-        <View style={styles.topGlow} />
+        <ScrollView 
+          ref={scrollViewRef}
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets={true}
+          showsVerticalScrollIndicator={false}
+        >
+        {/* Animated Ambient Top Glow Effect */}
+        <Animated.View 
+          style={[
+            styles.animatedGlow, 
+            { 
+              transform: [
+                { translateX: glowTranslateX },
+                { scale: glowScale }
+              ] 
+            }
+          ]} 
+        />
 
         {/* Heading Section */}
         <View style={styles.headingSection}>
@@ -357,7 +450,7 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
             <View style={[styles.stepBadgeNum, currentStep === 2 && styles.stepBadgeNumActive]}>
               <Text style={[styles.stepBadgeText, currentStep === 2 && styles.stepBadgeTextActive]}>2</Text>
             </View>
-            <Text style={[styles.stepTabLabel, currentStep === 2 && styles.stepTabLabelActive]}>Service Details</Text>
+            <Text style={[styles.stepTabLabel, currentStep === 2 && styles.stepTabLabelActive]}>Services</Text>
           </TouchableOpacity>
 
           {!isGoogleVerified && (
@@ -373,22 +466,12 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
           )}
         </View>
 
-        {/* API Error Box */}
-        {apiError && (
-          <View style={styles.errorBox}>
-            <AlertCircle size={18} color="#dc2626" strokeWidth={2} />
-            <Text style={styles.errorText}>{apiError}</Text>
-          </View>
-        )}
-
         {/* STEP 1: ACCOUNT CREDENTIALS */}
         {currentStep === 1 && (
-          <View style={styles.cardSection}>
-            <View style={styles.cardHeaderRow}>
-              <View style={styles.cardHeaderLeft}>
-                <View style={styles.headerIconDot} />
-                <Text style={styles.cardHeaderTitle}>ACCOUNT CREDENTIALS</Text>
-              </View>
+          <View style={styles.formContainer}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={styles.headerIconDot} />
+              <Text style={styles.sectionHeaderTitle}>ACCOUNT CREDENTIALS</Text>
             </View>
 
             {/* Full Name Input */}
@@ -397,12 +480,13 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
 
               <View style={[
                 styles.inputWithIcon,
-                isFullNameInvalid && styles.inputInvalidBorder
+                isFullNameInvalid && styles.inputInvalidBorder,
+                isFullNameValid && fullNameTouched && styles.inputValidBorder
               ]}>
                 <View style={styles.iconHolder}>
                   <User 
                     size={19} 
-                    color={isFullNameInvalid ? '#ef4444' : '#64748b'} 
+                    color={isFullNameInvalid ? '#ef4444' : isFullNameValid && fullNameTouched ? colors.primary : '#64748b'} 
                     strokeWidth={2}
                   />
                 </View>
@@ -414,7 +498,6 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
                   onChangeText={(val) => {
                     setFullName(val);
                     if (!fullNameTouched) setFullNameTouched(true);
-                    if (apiError) setApiError(null);
                   }}
                   onBlur={() => setFullNameTouched(true)}
                   autoCapitalize="words"
@@ -442,12 +525,13 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
 
               <View style={[
                 styles.inputWithIcon,
-                isEmailInvalid && styles.inputInvalidBorder
+                isEmailInvalid && styles.inputInvalidBorder,
+                isEmailValid && emailTouched && styles.inputValidBorder
               ]}>
                 <View style={styles.iconHolder}>
                   <Mail 
                     size={19} 
-                    color={isEmailInvalid ? '#ef4444' : '#64748b'} 
+                    color={isEmailInvalid ? '#ef4444' : isEmailValid && emailTouched ? colors.primary : '#64748b'} 
                     strokeWidth={2}
                   />
                 </View>
@@ -459,7 +543,6 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
                   onChangeText={(val) => {
                     setEmail(val);
                     if (!emailTouched) setEmailTouched(true);
-                    if (apiError) setApiError(null);
                   }}
                   onBlur={() => setEmailTouched(true)}
                   keyboardType="email-address"
@@ -484,16 +567,17 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
 
             {/* Phone Number Input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Business Phone Number (Optional)</Text>
+              <Text style={styles.inputLabel}>Business Phone Number</Text>
 
               <View style={[
                 styles.inputWithIcon,
-                isPhoneInvalid && styles.inputInvalidBorder
+                isPhoneInvalid && styles.inputInvalidBorder,
+                isPhoneValid && phoneTouched && styles.inputValidBorder
               ]}>
                 <View style={styles.iconHolder}>
                   <Phone 
                     size={19} 
-                    color={isPhoneInvalid ? '#ef4444' : '#64748b'} 
+                    color={isPhoneInvalid ? '#ef4444' : isPhoneValid && phoneTouched ? colors.primary : '#64748b'} 
                     strokeWidth={2}
                   />
                 </View>
@@ -505,12 +589,11 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
                   onChangeText={(val) => {
                     setPhone(val);
                     if (!phoneTouched) setPhoneTouched(true);
-                    if (apiError) setApiError(null);
                   }}
                   onBlur={() => setPhoneTouched(true)}
                   keyboardType="phone-pad"
                 />
-                {phoneTouched && phone.trim().length > 0 && (
+                {phoneTouched && (
                   <View style={styles.validationIconHolder}>
                     {isPhoneValid ? (
                       <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
@@ -533,12 +616,13 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
 
               <View style={[
                 styles.inputWithIcon,
-                isPasswordInvalid && styles.inputInvalidBorder
+                isPasswordInvalid && styles.inputInvalidBorder,
+                isPasswordValid && passwordTouched && styles.inputValidBorder
               ]}>
                 <View style={styles.iconHolder}>
                   <Lock 
                     size={19} 
-                    color={isPasswordInvalid ? '#ef4444' : '#64748b'} 
+                    color={isPasswordInvalid ? '#ef4444' : isPasswordValid && passwordTouched ? colors.primary : '#64748b'} 
                     strokeWidth={2}
                   />
                 </View>
@@ -550,7 +634,6 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
                   onChangeText={(val) => {
                     setPassword(val);
                     if (!passwordTouched) setPasswordTouched(true);
-                    if (apiError) setApiError(null);
                   }}
                   onBlur={() => setPasswordTouched(true)}
                   secureTextEntry={!showPassword}
@@ -590,23 +673,23 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
 
         {/* STEP 2: CREATOR PROFILE DETAILS */}
         {currentStep === 2 && (
-          <View style={styles.cardSection}>
-            <View style={styles.cardHeaderRow}>
-              <View style={styles.cardHeaderLeft}>
-                <View style={styles.headerIconDot} />
-                <Text style={styles.cardHeaderTitle}>CREATOR PROFILE DETAILS</Text>
-              </View>
+          <View style={styles.formContainer}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={styles.headerIconDot} />
+              <Text style={styles.sectionHeaderTitle}>CREATOR SERVICE DETAILS</Text>
             </View>
 
-            {/* Professional Category Pills */}
+            {/* Professional Category */}
             <View style={styles.inputGroup}>
               <View style={styles.labelRow}>
                 <Text style={styles.inputLabel}>Professional Category</Text>
-                <Text style={styles.subHint}>Select primary focus</Text>
+                <Text style={styles.subHint}>Tap to select</Text>
               </View>
+
               <ScrollView 
                 horizontal 
                 showsHorizontalScrollIndicator={false} 
+                style={styles.horizontalScrollWrapper}
                 contentContainerStyle={styles.categoryPillsRow}
               >
                 {CATEGORIES.map((cat) => {
@@ -618,10 +701,10 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
                         styles.catPill,
                         isActive && styles.catPillActive
                       ]}
-                      activeOpacity={0.8}
+                      activeOpacity={0.75}
                       onPress={() => setCategory(cat)}
                     >
-                      {isActive && <Check size={14} color="#ffffff" strokeWidth={2.5} style={{ marginRight: 4 }} />}
+                      {isActive && <Check size={13} color="#ffffff" strokeWidth={2.8} style={{ marginRight: 6 }} />}
                       <Text style={[
                         styles.catPillText,
                         isActive && styles.catPillTextActive
@@ -631,7 +714,65 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
                     </TouchableOpacity>
                   );
                 })}
+
+                {/* Custom User-Added Categories */}
+                {customCategories.map((cat) => {
+                  const isActive = category === cat;
+                  return (
+                    <View
+                      key={cat}
+                      style={[
+                        styles.catPill,
+                        isActive && styles.catPillActive,
+                        styles.customCatWrapper
+                      ]}
+                    >
+                      <TouchableOpacity
+                        style={{ flexDirection: 'row', alignItems: 'center' }}
+                        onPress={() => setCategory(cat)}
+                        activeOpacity={0.75}
+                      >
+                        {isActive && <Check size={13} color="#ffffff" strokeWidth={2.8} style={{ marginRight: 6 }} />}
+                        <Text style={[
+                          styles.catPillText,
+                          isActive && styles.catPillTextActive
+                        ]}>
+                          {cat}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        onPress={() => handleRemoveCustomCategory(cat)}
+                        style={styles.removeCatBtn}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <X size={13} color={isActive ? '#ffffff' : '#64748b'} strokeWidth={2.5} />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
               </ScrollView>
+
+              {/* Add Custom Category Input Row */}
+              <View style={styles.addCategoryInputRow}>
+                <TextInput
+                  style={styles.addCategoryInput}
+                  placeholder="Type custom category (e.g. Software Engineer)..."
+                  placeholderTextColor={colors.textDim}
+                  value={newCategoryInput}
+                  onChangeText={setNewCategoryInput}
+                  onSubmitEditing={handleAddCustomCategory}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity
+                  style={[styles.addCategoryButton, !newCategoryInput.trim() && styles.addCategoryButtonDisabled]}
+                  onPress={handleAddCustomCategory}
+                  disabled={!newCategoryInput.trim()}
+                  activeOpacity={0.8}
+                >
+                  <Plus size={14} color="#ffffff" strokeWidth={2.5} />
+                  <Text style={styles.addCategoryButtonText}>Add</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Consultation Mode Selector */}
@@ -656,7 +797,7 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
               </View>
             </View>
 
-            {/* Office Address */}
+            {/* Office Address (Mandatory for In-Person & Both) */}
             {consultationMode !== 'VIRTUAL' && (
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Clinic / Office Physical Address</Text>
@@ -675,10 +816,13 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
               </View>
             )}
 
-            {/* Professional Title Input */}
+            {/* Professional Title Input with Modern Dropdown */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Professional Title</Text>
-              <View style={styles.inputWithoutIcon}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Professional Title</Text>
+              </View>
+
+              <View style={styles.titleInputContainer}>
                 <TextInput
                   style={styles.textInputFull}
                   placeholder="e.g. Senior Consultant / Master Barber"
@@ -686,14 +830,64 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
                   value={title}
                   onChangeText={setTitle}
                 />
+                <TouchableOpacity
+                  style={styles.titleDropdownChevron}
+                  onPress={() => setShowTitleDropdown(!showTitleDropdown)}
+                  activeOpacity={0.7}
+                >
+                  {showTitleDropdown ? (
+                    <ChevronUp size={18} color={colors.primary} strokeWidth={2.2} />
+                  ) : (
+                    <ChevronDown size={18} color="#64748b" strokeWidth={2.2} />
+                  )}
+                </TouchableOpacity>
               </View>
+
+              {/* Modern Expandable Dropdown Menu */}
+              {showTitleDropdown && (
+                <View style={styles.modernDropdownCard}>
+                  <View style={styles.dropdownHeader}>
+                    <Sparkles size={13} color={colors.primary} strokeWidth={2.2} />
+                    <Text style={styles.dropdownHeaderTitle}>Suggested Titles for {category}</Text>
+                  </View>
+                  {currentTitleSuggestions.map((item) => {
+                    const isSelected = title.trim().toLowerCase() === item.toLowerCase();
+                    return (
+                      <TouchableOpacity
+                        key={item}
+                        style={[
+                          styles.dropdownItem,
+                          isSelected && styles.dropdownItemActive
+                        ]}
+                        activeOpacity={0.75}
+                        onPress={() => {
+                          setTitle(item);
+                          setShowTitleDropdown(false);
+                        }}
+                      >
+                        <Text style={[
+                          styles.dropdownItemText,
+                          isSelected && styles.dropdownItemTextActive
+                        ]}>
+                          {item}
+                        </Text>
+                        {isSelected && (
+                          <Check size={15} color={colors.primary} strokeWidth={2.5} />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+
+            
             </View>
 
             {/* Hourly Consultation Rate */}
             <View style={styles.inputGroup}>
               <View style={styles.labelRow}>
                 <Text style={styles.inputLabel}>Hourly Consultation Rate</Text>
-                <Text style={styles.subHint}>Currency: NGN</Text>
+                <Text style={styles.subHint}>Currency: NGN (₦)</Text>
               </View>
               <View style={styles.rateInputRow}>
                 <Text style={styles.currencyPrefix}>₦</Text>
@@ -743,7 +937,7 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
               </View>
             </View>
 
-            {/* Profile Bio Textarea */}
+            {/* Profile Bio Textarea (Compulsory) */}
             <View style={styles.inputGroup}>
               <View style={styles.labelRow}>
                 <Text style={styles.inputLabel}>Profile Bio / Introduction</Text>
@@ -758,21 +952,28 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
                   onChangeText={setBio}
                   maxLength={300}
                   multiline
-                  numberOfLines={3}
+                  numberOfLines={4}
                 />
+                {bio.length > 0 && (
+                  <TouchableOpacity 
+                    style={styles.clearNotesBtn} 
+                    onPress={() => setBio('')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.clearNotesText}>Clear</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           </View>
         )}
 
-        {/* STEP 3: OTP EMAIL VERIFICATION */}
+        {/* STEP 3: OTP EMAIL VERIFICATION (Auto-verify + All Red Boxes on Error, No Top Error Alert) */}
         {currentStep === 3 && (
-          <View style={styles.cardSection}>
-            <View style={styles.cardHeaderRow}>
-              <View style={styles.cardHeaderLeft}>
-                <ShieldCheck size={18} color={colors.primary} strokeWidth={2.2} />
-                <Text style={styles.cardHeaderTitle}>CREATOR VERIFICATION</Text>
-              </View>
+          <View style={styles.formContainer}>
+            <View style={styles.sectionHeaderRow}>
+              <ShieldCheck size={18} color={colors.primary} strokeWidth={2.2} />
+              <Text style={styles.sectionHeaderTitle}>CREATOR VERIFICATION</Text>
             </View>
 
             <View style={styles.otpInfoBox}>
@@ -782,48 +983,26 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
               <Text style={styles.otpTargetEmail}>{email}</Text>
             </View>
 
-            {/* OTP Code Input */}
+            {/* Dedicated 6-Cell OTP Component */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Enter 6-Digit Code</Text>
 
-              <View style={[
-                styles.inputWithIcon,
-                isOtpInvalid && styles.inputInvalidBorder
-              ]}>
-                <View style={styles.iconHolder}>
-                  <ShieldCheck 
-                    size={19} 
-                    color={isOtpInvalid ? '#ef4444' : (isOtpValid ? colors.primary : '#64748b')} 
-                    strokeWidth={2}
-                  />
-                </View>
-                <TextInput
-                  style={[styles.textInput, styles.otpInputText]}
-                  placeholder="123456"
-                  placeholderTextColor={colors.textDim}
-                  value={otpCode}
-                  onChangeText={(val) => {
-                    const cleanVal = val.replace(/[^0-9]/g, '').slice(0, 6);
-                    setOtpCode(cleanVal);
-                    if (!otpTouched) setOtpTouched(true);
-                    if (apiError) setApiError(null);
-                  }}
-                  keyboardType="numeric"
-                  maxLength={6}
-                />
-                {otpTouched && (
-                  <View style={styles.validationIconHolder}>
-                    {isOtpValid ? (
-                      <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
-                    ) : (
-                      <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
-                    )}
-                  </View>
-                )}
-              </View>
-              {isOtpInvalid && (
-                <Text style={styles.helperErrorText}>
-                  Please enter the complete 6-digit code sent to your email
+              <OtpInput
+                code={otpCode}
+                onChangeCode={(val) => {
+                  setOtpCode(val);
+                  if (otpError) setOtpError(null);
+                }}
+                onComplete={(completedCode) => {
+                  handleVerifyAndRegister(completedCode);
+                }}
+                isInvalid={!!otpError}
+              />
+
+              {/* Inline Error Text (Below Boxes) */}
+              {otpError && (
+                <Text style={styles.inlineOtpErrorText}>
+                  {otpError}
                 </Text>
               )}
             </View>
@@ -849,7 +1028,7 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
           </View>
         )}
 
-        <View style={{ height: 120 }} />
+        <View style={{ height: 130 }} />
       </ScrollView>
 
       {/* Floating Bottom Action Bar */}
@@ -901,7 +1080,10 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
             <TouchableOpacity
               style={styles.secondaryBtn}
               activeOpacity={0.8}
-              onPress={() => setCurrentStep(2)}
+              onPress={() => {
+                setOtpError(null);
+                setCurrentStep(2);
+              }}
             >
               <ChevronLeft size={16} color="#475569" strokeWidth={2} />
               <Text style={styles.secondaryBtnText}>Edit Info</Text>
@@ -910,7 +1092,7 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
             <TouchableOpacity
               style={[styles.primaryActionButton, { flex: 1.4 }, loading && styles.buttonDisabled]}
               activeOpacity={0.88}
-              onPress={handleVerifyAndRegister}
+              onPress={() => handleVerifyAndRegister()}
               disabled={loading}
             >
               {loading ? (
@@ -937,6 +1119,7 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
         <View style={styles.bottomHomeBar} />
       </View>
     </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -947,7 +1130,7 @@ const styles = StyleSheet.create({
   },
   topNavigation: {
     paddingTop: Platform.OS === 'ios' ? 52 : 16,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingBottom: 4,
     zIndex: 20,
   },
@@ -962,25 +1145,25 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     shadowColor: '#0f172a',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 3,
   },
   scrollContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingTop: 8,
-    paddingBottom: 24,
+    paddingBottom: 160,
     gap: 16,
   },
-  topGlow: {
+  animatedGlow: {
     position: 'absolute',
     top: -60,
-    left: '20%',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: 'rgba(99, 102, 241, 0.12)',
-    transform: [{ scaleX: 1.5 }],
+    left: '15%',
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    transform: [{ scaleX: 1.6 }],
   },
   headingSection: {
     alignItems: 'center',
@@ -989,15 +1172,15 @@ const styles = StyleSheet.create({
   logoBadgeContainer: {
     marginBottom: 10,
     shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    elevation: 5,
   },
   pageTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: colors.textMain,
+    color: colors.primary,
     letterSpacing: -0.3,
     textAlign: 'center',
   },
@@ -1012,30 +1195,30 @@ const styles = StyleSheet.create({
   stepProgressBarRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
-    padding: 6,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    marginVertical: 4,
+    justifyContent: 'center',
+    marginVertical: 6,
+    gap: 8,
   },
   stepTab: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 6,
-    paddingVertical: 8,
-    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radii.pill,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   stepTabActive: {
+    borderColor: colors.primary,
     backgroundColor: '#eef2ff',
   },
   stepBadgeNum: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#cbd5e1',
+    backgroundColor: '#e2e8f0',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1045,45 +1228,24 @@ const styles = StyleSheet.create({
   stepBadgeText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#ffffff',
+    color: colors.textMuted,
   },
   stepBadgeTextActive: {
     color: '#ffffff',
   },
   stepTabLabel: {
-    fontSize: 11.5,
-    fontWeight: '600',
-    color: '#64748b',
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textMuted,
   },
   stepTabLabelActive: {
     color: colors.primary,
     fontWeight: '800',
   },
   stepLineSeparator: {
-    width: 12,
+    width: 14,
     height: 1.5,
-    backgroundColor: '#e2e8f0',
-  },
-  googleSyncBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ecfdf5',
-    borderWidth: 1,
-    borderColor: '#a7f3d0',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
-  },
-  googleSyncText: {
-    fontSize: 12,
-    color: '#047857',
-    fontWeight: '600',
-    flex: 1,
-  },
-  googleSyncEmail: {
-    fontWeight: '800',
-    color: '#065f46',
+    backgroundColor: '#cbd5e1',
   },
   errorBox: {
     backgroundColor: '#fef2f2',
@@ -1101,31 +1263,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
   },
-  cardSection: {
-    backgroundColor: '#ffffff',
-    borderRadius: 22,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    elevation: 4,
+  formContainer: {
     gap: 16,
+    marginTop: 4,
   },
-  cardHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-    paddingBottom: 12,
-  },
-  cardHeaderLeft: {
+  sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginBottom: 2,
   },
   headerIconDot: {
     width: 8,
@@ -1133,50 +1279,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: colors.primary,
   },
-  cardHeaderTitle: {
+  sectionHeaderTitle: {
     fontSize: 12,
     fontWeight: '800',
-    color: colors.textMain,
+    color: '#475569',
     letterSpacing: 0.8,
-  },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ffffff',
-    borderWidth: 1.5,
-    borderColor: '#e2e8f0',
-    borderRadius: 14,
-    height: 48,
-    gap: 10,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  googleButtonText: {
-    fontSize: 13.5,
-    fontWeight: '700',
-    color: '#334155',
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginVertical: 2,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#e2e8f0',
-  },
-  dividerText: {
-    fontSize: 11,
-    color: colors.textDim,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   inputGroup: {
     gap: 6,
@@ -1187,7 +1294,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   inputLabel: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '700',
     color: '#334155',
   },
@@ -1195,42 +1302,42 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textDim,
   },
-  valStatusText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  valGreenText: {
-    color: '#059669',
-  },
-  valRedText: {
-    color: '#dc2626',
-  },
   inputWithIcon: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
     borderWidth: 1.5,
     borderColor: '#cbd5e1',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    height: 50,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    height: 52,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
   },
   inputValidBorder: {
-    borderColor: '#10b981',
-    backgroundColor: '#f0fdf4',
+    borderColor: '#818cf8',
+    backgroundColor: '#ffffff',
   },
   inputInvalidBorder: {
     borderColor: '#ef4444',
     backgroundColor: '#fef2f2',
   },
   inputWithoutIcon: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
     borderWidth: 1.5,
     borderColor: '#cbd5e1',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    height: 50,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    height: 52,
     justifyContent: 'center',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
   },
   iconHolder: {
     marginRight: 10,
@@ -1249,21 +1356,15 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 14.5,
     fontWeight: '500',
     color: colors.textMain,
   },
   textInputFull: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 14.5,
     fontWeight: '500',
     color: colors.textMain,
-  },
-  otpInputText: {
-    letterSpacing: 6,
-    fontSize: 18,
-    fontWeight: '800',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   eyeToggleBtn: {
     padding: 6,
@@ -1277,32 +1378,218 @@ const styles = StyleSheet.create({
     marginTop: 2,
     marginLeft: 2,
   },
+  horizontalScrollWrapper: {
+    marginHorizontal: -24,
+    marginVertical: 4,
+  },
   categoryPillsRow: {
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
   },
   catPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: radii.pill,
+    paddingHorizontal: 15,
+    paddingVertical: 8.5,
+    borderRadius: 22,
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   catPillActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.28,
+    shadowRadius: 6,
+    elevation: 3,
   },
   catPillText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#475569',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#334155',
   },
   catPillTextActive: {
     color: '#ffffff',
+  },
+  customCatWrapper: {
+    paddingRight: 8,
+    gap: 6,
+  },
+  removeCatBtn: {
+    padding: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 2,
+  },
+  addCategoryInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 6,
+  },
+  addCategoryInput: {
+    flex: 1,
+    height: 44,
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#cbd5e1',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    fontSize: 13,
+    color: colors.textMain,
+  },
+  addCategoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 44,
+    paddingHorizontal: 15,
+    backgroundColor: colors.primary,
+    borderRadius: 14,
+    justifyContent: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  addCategoryButtonDisabled: {
+    opacity: 0.5,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  addCategoryButtonText: {
+    color: '#ffffff',
+    fontSize: 12.5,
+    fontWeight: '800',
+  },
+  dropdownToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 2,
+  },
+  dropdownToggleText: {
+    fontSize: 11.5,
     fontWeight: '700',
+    color: colors.primary,
+  },
+  titleInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#cbd5e1',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    height: 52,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  titleDropdownChevron: {
+    padding: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modernDropdownCard: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    borderRadius: 16,
+    padding: 8,
+    marginTop: 6,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+    gap: 4,
+  },
+  dropdownHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+    marginBottom: 2,
+  },
+  dropdownHeaderTitle: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#f8fafc',
+  },
+  dropdownItemActive: {
+    backgroundColor: '#eef2ff',
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  dropdownItemText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#334155',
+    flex: 1,
+  },
+  dropdownItemTextActive: {
+    color: colors.primary,
+    fontWeight: '800',
+  },
+  horizontalPromptsScroll: {
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 3,
+  },
+  promptChip: {
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  promptChipActive: {
+    backgroundColor: '#eef2ff',
+    borderColor: colors.primary,
+  },
+  promptChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748b',
+  },
+  promptChipTextActive: {
+    color: colors.primary,
+    fontWeight: '800',
   },
   modeCardsRow: {
     flexDirection: 'row',
@@ -1310,83 +1597,95 @@ const styles = StyleSheet.create({
   },
   modeCard: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
     borderWidth: 1.5,
     borderColor: '#e2e8f0',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 6,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
   },
   modeCardActive: {
     backgroundColor: '#eef2ff',
     borderColor: colors.primary,
   },
-  modeIcon: {
-    fontSize: 18,
-  },
   modeLabel: {
-    fontSize: 10.5,
+    fontSize: 11,
     fontWeight: '700',
     color: '#475569',
     textAlign: 'center',
   },
   modeLabelActive: {
     color: colors.primary,
+    fontWeight: '800',
   },
   rateInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
     borderWidth: 1.5,
     borderColor: '#cbd5e1',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    height: 50,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    height: 52,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
   },
   currencyPrefix: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#475569',
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.primary,
     marginRight: 6,
   },
   rateTextInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
     color: colors.textMain,
   },
   rateSuffix: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 12.5,
+    fontWeight: '700',
     color: colors.textDim,
   },
   recBadge: {
     backgroundColor: '#eef2ff',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
   recBadgeText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.primary,
   },
   segmentedContainer: {
     flexDirection: 'row',
-    backgroundColor: '#f1f5f9',
-    padding: 3,
-    borderRadius: 12,
-    borderWidth: 1,
+    backgroundColor: '#ffffff',
+    padding: 4,
+    borderRadius: 14,
+    borderWidth: 1.5,
     borderColor: '#e2e8f0',
     gap: 4,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
   },
   segmentBtn: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingVertical: 10,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1394,115 +1693,144 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 2,
   },
   segmentText: {
-    fontSize: 11.5,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
     color: '#475569',
   },
   segmentTextActive: {
     color: '#ffffff',
-    fontWeight: '700',
+    fontWeight: '800',
   },
   charCountText: {
     fontSize: 11,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontWeight: '600',
     color: colors.textDim,
   },
   textAreaContainer: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
     borderWidth: 1.5,
     borderColor: '#cbd5e1',
-    borderRadius: 12,
-    padding: 10,
+    borderRadius: 16,
+    padding: 12,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
+    position: 'relative',
   },
   textAreaInput: {
-    height: 70,
-    fontSize: 13,
+    fontSize: 13.5,
     color: colors.textMain,
+    minHeight: 80,
     textAlignVertical: 'top',
-    lineHeight: 18,
+    paddingBottom: 16,
+  },
+  clearNotesBtn: {
+    position: 'absolute',
+    bottom: 8,
+    right: 12,
+  },
+  clearNotesText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#ef4444',
   },
   otpInfoBox: {
-    backgroundColor: '#f1f5f9',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
     alignItems: 'center',
+    marginBottom: 4,
   },
   otpInfoText: {
     fontSize: 12.5,
     color: colors.textMuted,
   },
   otpTargetEmail: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontWeight: '800',
     color: colors.primary,
     marginTop: 2,
   },
+  inlineOtpErrorText: {
+    color: '#dc2626',
+    fontSize: 12.5,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginTop: 4,
+  },
   resendRow: {
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 8,
   },
   resendBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    padding: 8,
   },
   resendBtnText: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontWeight: '800',
     color: colors.primary,
   },
   resendTimerText: {
-    fontSize: 12,
-    color: colors.textDim,
+    fontSize: 12.5,
+    color: colors.textMuted,
   },
   countdownBold: {
     fontWeight: '800',
-    color: colors.textMain,
+    color: colors.primary,
   },
   floatingBottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
-    shadowColor: '#000',
+    paddingHorizontal: 24,
+    paddingTop: 14,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 16,
+    gap: 10,
+    shadowColor: '#0f172a',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.08,
-    shadowRadius: 10,
+    shadowRadius: 12,
     elevation: 10,
     zIndex: 30,
   },
   primaryActionButton: {
     height: 52,
-    borderRadius: 14,
+    borderRadius: 16,
     backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   actionButtonText: {
     color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    fontSize: 15.5,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   actionButtonRow: {
     flexDirection: 'row',
@@ -1510,40 +1838,36 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   secondaryBtn: {
+    flex: 0.6,
     height: 52,
-    paddingHorizontal: 16,
-    borderRadius: 14,
+    borderRadius: 16,
     backgroundColor: '#f1f5f9',
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: '#e2e8f0',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
   },
   secondaryBtnText: {
-    fontSize: 13.5,
-    fontWeight: '700',
     color: '#475569',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
+    fontSize: 14.5,
+    fontWeight: '700',
   },
   progressInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    marginTop: 8,
   },
   progressText: {
-    fontSize: 11,
-    fontWeight: '500',
+    fontSize: 11.5,
     color: colors.textDim,
+    fontWeight: '600',
   },
   dotSeparator: {
-    fontSize: 11,
     color: colors.textDim,
+    fontSize: 10,
   },
   bottomHomeBar: {
     width: 120,
@@ -1551,7 +1875,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#cbd5e1',
     borderRadius: 2,
     alignSelf: 'center',
-    marginTop: 10,
+    marginTop: 2,
     opacity: 0.6,
   },
 });

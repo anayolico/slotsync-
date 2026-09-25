@@ -61,3 +61,39 @@ class RegisterRequest(BaseModel):
     
     # Optional Verification Token
     verification_token: Optional[str] = None
+
+
+class ForgotPasswordSendOtpRequest(BaseModel):
+    identifier: str  # Email or phone number
+
+
+class ForgotPasswordSendOtpResponse(BaseModel):
+    message: str
+    email: str
+    masked_email: str
+    full_name: str
+    role: str
+    expires_in_seconds: int = 600
+
+
+class ForgotPasswordVerifyOtpRequest(BaseModel):
+    email: EmailStr
+    otp_code: str
+
+
+class ForgotPasswordVerifyOtpResponse(BaseModel):
+    verified: bool
+    reset_token: str
+    message: str
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    reset_token: str
+    new_password: str
+
+
+class ResetPasswordResponse(BaseModel):
+    success: bool = True
+    message: str
+

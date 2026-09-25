@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
   ScrollView, 
-  StatusBar,
-  Platform 
+  StatusBar, 
+  Platform,
+  Animated,
+  Easing
 } from 'react-native';
 import { colors, radii } from '../../theme/colors';
 import SlotSyncLogo from '../../components/SlotSyncLogo';
@@ -20,6 +22,40 @@ interface Props {
 export default function AuthChoiceScreen({ onSelectRole, onGoToLogin }: Props) {
   const [selectedRole, setSelectedRole] = useState<'CLIENT' | 'CREATOR'>('CREATOR');
 
+  // Floating Ambient Glow Animation
+  const glowAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, {
+          toValue: 1,
+          duration: 3800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(glowAnim, {
+          toValue: 0,
+          duration: 3800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [glowAnim]);
+
+  const glowTranslateX = glowAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-35, 35],
+  });
+
+  const glowScale = glowAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [1.0, 1.15, 1.0],
+  });
+
   return (
     <View style={styles.outerWrapper}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
@@ -29,8 +65,18 @@ export default function AuthChoiceScreen({ onSelectRole, onGoToLogin }: Props) {
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        {/* Background Decorative Glow */}
-        <View style={styles.topGlow} />
+        {/* Animated Background Ambient Top Glow */}
+        <Animated.View 
+          style={[
+            styles.animatedGlow, 
+            { 
+              transform: [
+                { translateX: glowTranslateX },
+                { scale: glowScale }
+              ] 
+            }
+          ]} 
+        />
 
         {/* Header Section */}
         <View style={styles.header}>
@@ -45,7 +91,7 @@ export default function AuthChoiceScreen({ onSelectRole, onGoToLogin }: Props) {
 
           {/* Subtitle Heading */}
           <View style={styles.welcomeBlock}>
-            <Text style={styles.welcomeSubtitle}>Select how you will be using SlotSync today</Text>
+            <Text style={styles.welcomeSubtitle}>Select how you will be using SlotSync</Text>
           </View>
         </View>
 
@@ -159,15 +205,15 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     justifyContent: 'space-between',
   },
-  topGlow: {
+  animatedGlow: {
     position: 'absolute',
     top: -80,
-    left: '20%',
-    width: 240,
-    height: 240,
-    borderRadius: 120,
-    backgroundColor: 'rgba(99, 102, 241, 0.12)',
-    transform: [{ scaleX: 1.5 }],
+    left: '15%',
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    transform: [{ scaleX: 1.6 }],
   },
   header: {
     alignItems: 'center',
@@ -253,9 +299,6 @@ const styles = StyleSheet.create({
   creatorIconBadge: {
     backgroundColor: '#faf5ff',
     borderColor: '#f3e8ff',
-  },
-  badgeEmoji: {
-    fontSize: 22,
   },
   radioIndicator: {
     width: 22,

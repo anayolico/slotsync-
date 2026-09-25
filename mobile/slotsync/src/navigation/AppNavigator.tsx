@@ -8,6 +8,7 @@ import AuthChoiceScreen from '../screens/auth/AuthChoiceScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterClientScreen from '../screens/auth/RegisterClientScreen';
 import RegisterCreatorScreen from '../screens/auth/RegisterCreatorScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 
 // Client Screens
 import ClientHomeScreen from '../screens/client/ClientHomeScreen';
@@ -22,7 +23,7 @@ import CreatorAppointmentsScreen from '../screens/creator/CreatorAppointmentsScr
 // Shared Profile Screen
 import ProfileScreen from '../screens/shared/ProfileScreen';
 
-type AuthScreenState = 'CHOICE' | 'LOGIN' | 'REGISTER_CLIENT' | 'REGISTER_CREATOR';
+type AuthScreenState = 'CHOICE' | 'LOGIN' | 'REGISTER_CLIENT' | 'REGISTER_CREATOR' | 'FORGOT_PASSWORD';
 type ClientTab = 'DISCOVER' | 'MY_BOOKINGS' | 'PROFILE';
 type CreatorTab = 'DASHBOARD' | 'SCHEDULE' | 'REQUESTS' | 'PROFILE';
 
@@ -33,6 +34,7 @@ export default function AppNavigator() {
 
   // Auth Screen Router
   const [authScreen, setAuthScreen] = useState<AuthScreenState>('CHOICE');
+  const [prefilledLoginEmail, setPrefilledLoginEmail] = useState<string>('');
 
   // Client Tab & Detail Router
   const [clientTab, setClientTab] = useState<ClientTab>('DISCOVER');
@@ -148,6 +150,18 @@ export default function AppNavigator() {
           <LoginScreen
             onLoginSuccess={handleLoginSuccess}
             onGoToRegister={() => setAuthScreen('CHOICE')}
+            onGoToForgotPassword={() => setAuthScreen('FORGOT_PASSWORD')}
+            initialEmail={prefilledLoginEmail}
+          />
+        );
+      case 'FORGOT_PASSWORD':
+        return (
+          <ForgotPasswordScreen
+            onBackToLogin={() => setAuthScreen('LOGIN')}
+            onPasswordResetSuccess={(email) => {
+              setPrefilledLoginEmail(email);
+              setAuthScreen('LOGIN');
+            }}
           />
         );
       case 'REGISTER_CLIENT':
