@@ -1162,5 +1162,167 @@ select.form-control {
   }
 }
 
+/* ==========================================================================
+   MOBILE CARD TABLE — Convert data tables to stacked cards on small screens
+   ========================================================================== */
 
+@media (max-width: 640px) {
 
+  /* Hide the desktop table entirely */
+  .mobile-card-table thead {
+    display: none;
+  }
+
+  .mobile-card-table,
+  .mobile-card-table tbody,
+  .mobile-card-table tr,
+  .mobile-card-table td {
+    display: block;
+    width: 100%;
+  }
+
+  /* Each row becomes a card */
+  .mobile-card-table tbody tr {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    margin-bottom: 0.85rem;
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    position: relative;
+  }
+
+  /* Each cell shows its label inline */
+  .mobile-card-table td {
+    padding: 0.35rem 0;
+    border: none;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: 0.825rem;
+  }
+
+  .mobile-card-table td::before {
+    content: attr(data-label);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    min-width: 90px;
+    flex-shrink: 0;
+    padding-top: 0.05rem;
+  }
+
+  /* First cell (profile) gets special treatment — no label, full width */
+  .mobile-card-table td.card-row-header {
+    flex-direction: row;
+    align-items: center;
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .mobile-card-table td.card-row-header::before {
+    display: none;
+  }
+
+  /* Fix responsive table wrapper — no scroll on mobile when using card mode */
+  .responsive-table-wrapper:has(.mobile-card-table) {
+    overflow-x: visible;
+  }
+
+  /* Content wrapper padding on mobile */
+  .content-wrapper {
+    padding: 0.85rem 0.75rem;
+    gap: 1rem;
+  }
+
+  /* Card panel padding */
+  .card-panel {
+    padding: 1rem 1rem;
+  }
+
+  /* Appointments / Users top bar: stack vertically on tiny screens */
+  .mobile-action-bar {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  .mobile-action-bar .scrollable-filter-row {
+    order: 1;
+  }
+
+  .mobile-action-bar .mobile-search-group {
+    order: 2;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .mobile-action-bar .mobile-search-group > div {
+    flex: 1;
+  }
+
+  .mobile-action-bar .btn-upgrade {
+    width: 100% !important;
+    justify-content: center;
+    order: 3;
+  }
+
+  /* Dashboard hero stats */
+  .hero-stats-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* Stacked metrics become a horizontal 2-col grid on mobile */
+  .stacked-metrics-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+  }
+
+  .metric-mini-card {
+    padding: 0.85rem;
+  }
+
+  .metric-mini-value {
+    font-size: 1.1rem;
+  }
+
+  .metric-mini-label {
+    font-size: 0.7rem;
+  }
+
+  /* Creators grid — single column on mobile */
+  .creators-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Modal fullscreen on mobile */
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal-card {
+    max-width: 100%;
+    width: 100%;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    max-height: 92vh;
+    overflow-y: auto;
+    padding: 1.5rem 1.25rem;
+  }
+
+  /* Top page title shrink */
+  .top-page-title {
+    font-size: 1.1rem;
+  }
+
+  /* Header user info compact */
+  .user-avatar-pill div span {
+    display: none;
+  }
+}

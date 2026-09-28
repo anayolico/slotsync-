@@ -9,6 +9,8 @@ import ServicesView from './components/ServicesView';
 import AppointmentsView from './components/AppointmentsView';
 import ClientsView from './components/ClientsView';
 import LiveScheduleView from './components/LiveScheduleView';
+import UsersView from './components/UsersView';
+import NotificationsView from './components/NotificationsView';
 
 import { 
   checkBackendHealth, 
@@ -39,10 +41,12 @@ export default function App() {
       case 'dashboard':     return 'Admin Overview';
       case 'creators':      return 'Creator Profiles';
       case 'clients':       return 'Client Profiles';
+      case 'users':         return 'User Accounts';
       case 'availability':  return 'Availability Rules';
       case 'services':      return 'Services & Slots';
       case 'appointments':  return 'All Appointments';
       case 'liveschedule':  return 'Live Schedule';
+      case 'notifications': return 'Notifications';
       default:              return 'Admin Overview';
     }
   };
@@ -190,8 +194,12 @@ export default function App() {
         );
       case 'clients':
         return <ClientsView users={users} appointments={appointments} />;
+      case 'users':
+        return <UsersView users={users} onUserCreated={loadData} />;
       case 'liveschedule':
         return <LiveScheduleView appointments={appointments} />;
+      case 'notifications':
+        return <NotificationsView users={users} appointments={appointments} creators={creators} />;
       default:
         return (
           <DashboardOverview

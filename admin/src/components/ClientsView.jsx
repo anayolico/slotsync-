@@ -71,6 +71,7 @@ export default function ClientsView({ users = [], appointments = [] }) {
               'linear-gradient(135deg, #db2777, #ec4899)',
               'linear-gradient(135deg, #d97706, #f59e0b)',
             ];
+            const grad = avatarGradients[idx % avatarGradients.length];
             const rawAvatarUrl = client.avatar_url;
             const backendBase = import.meta.env.VITE_BACKEND_URL || '';
             const avatarUrl = rawAvatarUrl 

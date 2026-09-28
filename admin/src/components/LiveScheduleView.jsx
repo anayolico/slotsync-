@@ -1,6 +1,6 @@
 import React from 'react';
 import CalendarWidget from './CalendarWidget';
-import { Clock, Database, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
 const statusStyles = {
   CONFIRMED:  { color: '#16a34a', bg: '#dcfce7', icon: CheckCircle },
@@ -11,23 +11,18 @@ const statusStyles = {
 
 export default function LiveScheduleView({ appointments = [] }) {
   return (
-    <div style={{
-      display: 'flex',
-      gap: '2rem',
-      alignItems: 'flex-start',
-      minHeight: '60vh',
-    }}>
+    <div className="live-schedule-layout">
 
       {/* ── LEFT: Live Schedule List ── */}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div className="live-schedule-list-col">
 
         {/* Section Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.15rem' }}>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.15rem' }}>
               Live Schedule
             </h2>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
               {appointments.length} appointment{appointments.length !== 1 ? 's' : ''} in real-time
             </p>
           </div>
@@ -42,20 +37,20 @@ export default function LiveScheduleView({ appointments = [] }) {
           </div>
         </div>
 
-        {/* Appointments */}
+        {/* Appointments List */}
         {appointments.length === 0 ? (
           <div style={{
             background: 'var(--bg-card)',
             border: '1px solid var(--border-light)',
             borderRadius: 'var(--radius-lg)',
-            padding: '3rem',
+            padding: '3.5rem 1.5rem',
             textAlign: 'center',
             color: 'var(--text-muted)',
           }}>
-            <Database size={40} style={{ color: 'var(--text-dim)', marginBottom: '0.75rem' }} />
-            <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>No appointments yet</div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>
-              Appointments will appear here in real-time
+            <CalendarIcon size={44} style={{ color: 'var(--text-dim)', marginBottom: '0.75rem' }} />
+            <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-main)' }}>No scheduled appointments yet</div>
+            <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+              New appointments booked by clients will appear here automatically
             </div>
           </div>
         ) : (
@@ -73,11 +68,11 @@ export default function LiveScheduleView({ appointments = [] }) {
                   alignItems: 'center',
                   gap: '1rem',
                   transition: 'box-shadow 0.2s',
-                  cursor: 'default',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
                 }}>
                   {/* Avatar */}
                   <div style={{
-                    width: '44px', height: '44px', borderRadius: '50%', flexShrink: 0,
+                    width: '42px', height: '42px', borderRadius: '50%', flexShrink: 0,
                     background: 'linear-gradient(135deg, #6366f1, #ec4899)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: '#fff', fontWeight: 700, fontSize: '1rem',
@@ -120,37 +115,62 @@ export default function LiveScheduleView({ appointments = [] }) {
                     fontSize: '0.7rem', fontWeight: 700, flexShrink: 0,
                   }}>
                     <Icon size={12} />
-                    {item.status || 'PENDING'}
+                    <span>{item.status || 'PENDING'}</span>
                   </div>
                 </div>
               );
             })}
           </div>
         )}
+      </div>
 
-        <style>{`
-          @keyframes livePulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(1.2); }
+      {/* ── RIGHT: Calendar Column ── */}
+      <div className="live-schedule-cal-col">
+        <CalendarWidget appointments={appointments} />
+      </div>
+
+      <style>{`
+        .live-schedule-layout {
+          display: flex;
+          gap: 1.75rem;
+          align-items: flex-start;
+          width: 100%;
+        }
+
+        .live-schedule-list-col {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          width: 100%;
+        }
+
+        .live-schedule-cal-col {
+          width: 330px;
+          flex-shrink: 0;
+          position: sticky;
+          top: 1.5rem;
+        }
+
+        @media (max-width: 960px) {
+          .live-schedule-layout {
+            flex-direction: column;
+            gap: 1.5rem;
           }
-        `}</style>
-      </div>
 
-      {/* ── RIGHT: Calendar ── */}
-      <div style={{
-        width: '320px',
-        flexShrink: 0,
-        position: 'sticky',
-        top: '1.5rem',
-      }}>
-        <div style={{ marginBottom: '0.5rem', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-          Calendar
-        </div>
-        <div style={{ transform: 'scale(1)', transformOrigin: 'top left' }}>
-          <CalendarWidget appointments={appointments} />
-        </div>
-      </div>
+          .live-schedule-cal-col {
+            width: 100%;
+            max-width: 100%;
+            position: static;
+          }
+        }
 
+        @keyframes livePulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(1.2); }
+        }
+      `}</style>
     </div>
   );
 }

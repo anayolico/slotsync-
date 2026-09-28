@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Clock, DollarSign, Database, Plus } from 'lucide-react';
+import { Box, Clock, Database, Plus } from 'lucide-react';
 
 export default function ServicesView({ creators = [] }) {
   return (
@@ -47,7 +47,7 @@ export default function ServicesView({ creators = [] }) {
                   <Clock size={14} /> {creator.slot_duration_minutes || 30} mins
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <DollarSign size={14} /> ${creator.hourly_rate || 0}/hr
+                  <span style={{ fontWeight: 700 }}>₦</span>{(creator.hourly_rate || 0).toLocaleString()}/hr
                 </div>
               </div>
 

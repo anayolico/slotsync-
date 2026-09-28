@@ -6,18 +6,22 @@ import {
   Calendar, 
   Users,
   CalendarClock,
-  Sparkles,
+  UserCog,
+  Bell,
   X
 } from 'lucide-react';
+import SlotSyncLogo from './SlotSyncLogo';
 
 export default function Sidebar({ activeTab, setActiveTab, backendStatus, onLogout, mobileOpen, onCloseMobile }) {
   const navItems = [
     { id: 'dashboard', label: 'Admin Overview', icon: LayoutDashboard },
     { id: 'creators', label: 'Creator Profiles', icon: UserCheck },
     { id: 'clients', label: 'Client Profiles', icon: Users },
+    { id: 'users', label: 'User Accounts', icon: UserCog },
     { id: 'availability', label: 'Availability Rules', icon: Clock },
     { id: 'appointments', label: 'All Appointments', icon: Calendar },
     { id: 'liveschedule', label: 'Live Schedule', icon: CalendarClock },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
   ];
 
   const handleNavClick = (id) => {
@@ -38,9 +42,7 @@ export default function Sidebar({ activeTab, setActiveTab, backendStatus, onLogo
         {/* Brand Header */}
         <div className="brand-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div className="brand-logo-icon">
-              <Sparkles size={22} />
-            </div>
+            <SlotSyncLogo size={38} />
             <div>
               <span className="brand-title">SLOTSYNC</span>
               <div style={{ fontSize: '0.675rem', color: 'var(--text-dim)', fontWeight: 700, letterSpacing: '0.08em' }}>

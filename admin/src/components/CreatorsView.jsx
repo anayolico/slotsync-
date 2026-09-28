@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Tag, DollarSign, Search, Clock, Globe, Edit3, UserCheck, UserPlus, Mail, ShieldCheck } from 'lucide-react';
+import { DollarSign, Search, Clock, Globe, Edit3, UserCheck, UserPlus } from 'lucide-react';
 import EditCreatorModal from './EditCreatorModal';
 import CreateUserModal from './CreateUserModal';
 
@@ -177,8 +177,7 @@ export default function CreatorsView({ creators = [], onCreatorUpdated }) {
                           {creator.user.full_name}
                         </div>
                       )}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', color: '#6366f1', fontWeight: 700, marginTop: '0.35rem' }}>
-                        <Tag size={12} />
+                      <div style={{ fontSize: '0.75rem', color: '#6366f1', fontWeight: 700, marginTop: '0.25rem' }}>
                         <span>{creator.category || 'General'}</span>
                       </div>
                     </div>
@@ -200,18 +199,10 @@ export default function CreatorsView({ creators = [], onCreatorUpdated }) {
                   </div>
                 </div>
 
-                {/* Email / Contact info if available */}
-                {email && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.775rem', color: 'var(--text-muted)' }}>
-                    <Mail size={13} style={{ color: 'var(--text-dim)' }} />
-                    <span>{email}</span>
-                  </div>
-                )}
-
-                {/* Bio */}
-                <div style={{ flex: 1 }}>
+                {/* Offering Bio Description */}
+                <div style={{ flex: 1, margin: '0.25rem 0' }}>
                   <p style={{
-                    fontSize: '0.825rem',
+                    fontSize: '0.85rem',
                     color: 'var(--text-muted)',
                     lineHeight: 1.6,
                     display: '-webkit-box',
@@ -242,8 +233,8 @@ export default function CreatorsView({ creators = [], onCreatorUpdated }) {
                   <div style={{ flex: 1, textAlign: 'center' }}>
                     <div style={{ fontSize: '0.675rem', color: 'var(--text-dim)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.2rem' }}>RATE</div>
                     <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.15rem' }}>
-                      <DollarSign size={13} />
-                      {creator.hourly_rate ? `${creator.hourly_rate}/hr` : '0/hr'}
+                      <span>₦</span>
+                      {creator.hourly_rate ? `${Number(creator.hourly_rate).toLocaleString()}/hr` : '0/hr'}
                     </div>
                   </div>
                   <div style={{ width: '1px', background: 'var(--border-light)' }} />

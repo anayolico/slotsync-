@@ -158,8 +158,11 @@ async def register_user(
         hashed_password=get_password_hash(data.password),
         full_name=data.full_name,
         phone_number=data.phone_number,
+        gender=data.gender,
+        date_of_birth=data.date_of_birth,
+        marital_status=data.marital_status,
         role=data.role,
-        is_verified=True,  # Account activated upon completion of onboarding OTP
+        is_verified=True,  # Pre-activated account
     )
     db.add(user)
     await db.commit()

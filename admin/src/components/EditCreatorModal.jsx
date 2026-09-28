@@ -194,12 +194,12 @@ export default function EditCreatorModal({ isOpen, onClose, creator, onCreatorUp
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
             <div className="form-group">
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <DollarSign size={13} /> Hourly Rate ($/hr)
+                <span style={{ fontWeight: 800, color: '#16a34a' }}>₦</span> Hourly Rate (₦/hr)
               </label>
               <input
                 type="number"
                 min="0"
-                step="5"
+                step="500"
                 className="form-control"
                 value={hourlyRate}
                 onChange={(e) => setHourlyRate(e.target.value)}

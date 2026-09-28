@@ -68,14 +68,20 @@ export async function loginUser(email, password) {
   return data;
 }
 
-export async function registerUser(email, password, fullName, role = 'CLIENT', creatorData = {}) {
-  const body = {
-    email,
-    password,
-    full_name: fullName,
-    role,
-    ...(role === 'CREATOR' ? creatorData : {})
-  };
+export async function registerUser(emailOrData, password, fullName, role = 'CLIENT', creatorData = {}, personalData = {}) {
+  let body;
+  if (typeof emailOrData === 'object' && emailOrData !== null) {
+    body = emailOrData;
+  } else {
+    body = {
+      email: emailOrData,
+      password,
+      full_name: fullName,
+      role,
+      ...personalData,
+      ...(role === 'CREATOR' ? creatorData : {})
+    };
+  }
   return await fetchWithAuth(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
     body: JSON.stringify(body),
