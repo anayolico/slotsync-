@@ -44,7 +44,7 @@ export default function DashboardOverview({
               {totalAppointmentsCount}
             </div>
             <div className="hero-card-label">
-              Total Appointments (`appointments` table)
+              Total Appointments
             </div>
           </div>
         </div>
@@ -73,22 +73,22 @@ export default function DashboardOverview({
               </div>
               <div>
                 <div className="metric-mini-value">{creatorsCount}</div>
-                <div className="metric-mini-label">Creator Profiles (`creator_profiles`)</div>
+                <div className="metric-mini-label">Creator Profiles</div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Dynamic Bar Chart: Live Appointment Status Breakdown */}
+      {/* Dynamic Bar Chart: Appointment Status Breakdown */}
       <BarChartWidget appointments={appointments} />
 
-      {/* Live Appointments Table from FastAPI */}
+      {/* Recent Appointments Table */}
       <div className="card-panel">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <h2 className="chart-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Database size={18} style={{ color: '#4f46e5' }} />
-            Backend Appointments Audit Log (`appointments` Table)
+            <Calendar size={18} style={{ color: '#4f46e5' }} />
+            Recent Appointments
           </h2>
           <button className="btn-upgrade" style={{ width: 'auto', padding: '0.4rem 0.85rem', fontSize: '0.775rem' }} onClick={() => setActiveTab('appointments')}>
             Manage All ({appointments.length})
@@ -97,10 +97,10 @@ export default function DashboardOverview({
 
         {appointments.length === 0 ? (
           <div style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)' }}>
-            <Database size={36} style={{ color: 'var(--text-dim)', marginBottom: '0.75rem' }} />
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>No appointments in backend database</h3>
+            <Calendar size={36} style={{ color: 'var(--text-dim)', marginBottom: '0.75rem' }} />
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>No appointments found</h3>
             <p style={{ fontSize: '0.825rem', marginTop: '0.25rem' }}>
-              0 records returned from FastAPI `/api/v1/appointments/`. Book an appointment via mobile or API to view real records here.
+              No scheduled appointments yet. Any new bookings will appear here in real-time.
             </p>
           </div>
         ) : (

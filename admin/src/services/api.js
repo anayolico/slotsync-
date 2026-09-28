@@ -86,6 +86,10 @@ export async function getCurrentUser() {
   return await fetchWithAuth(`${API_BASE_URL}/auth/me`);
 }
 
+export async function getUsers() {
+  return await fetchWithAuth(`${API_BASE_URL}/auth/users`);
+}
+
 // ─── Creators Endpoints ──────────────────────────────────────────────────────
 
 export async function getCreators() {

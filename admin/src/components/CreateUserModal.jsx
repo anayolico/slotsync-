@@ -85,7 +85,7 @@ export default function CreateUserModal({ isOpen, onClose, onUserCreated }) {
                 Create New Account
               </h2>
               <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>
-                Register a Client, Creator, or Admin in backend database
+                Register a Client, Creator, or Admin account
               </p>
             </div>
           </div>
@@ -187,7 +187,7 @@ export default function CreateUserModal({ isOpen, onClose, onUserCreated }) {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Account Role (`UserRole`)</label>
+              <label className="form-label">Account Role</label>
               <select
                 className="form-control"
                 value={role}

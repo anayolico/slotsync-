@@ -7,14 +7,14 @@ import CreatorsView from './components/CreatorsView';
 import AvailabilityView from './components/AvailabilityView';
 import ServicesView from './components/ServicesView';
 import AppointmentsView from './components/AppointmentsView';
-import UsersView from './components/UsersView';
-import SettingsView from './components/SettingsView';
-import RightPanel from './components/RightPanel';
+import ClientsView from './components/ClientsView';
+import LiveScheduleView from './components/LiveScheduleView';
 
 import { 
   checkBackendHealth, 
   getCreators, 
   getAppointments, 
+  getUsers,
   getCurrentUser,
   updateAppointmentStatus,
   getStoredToken,
@@ -38,11 +38,11 @@ export default function App() {
     switch (activeTab) {
       case 'dashboard':     return 'Admin Overview';
       case 'creators':      return 'Creator Profiles';
+      case 'clients':       return 'Client Profiles';
       case 'availability':  return 'Availability Rules';
       case 'services':      return 'Services & Slots';
       case 'appointments':  return 'All Appointments';
-      case 'users':         return 'User Accounts';
-      case 'settings':      return 'System Settings';
+      case 'liveschedule':  return 'Live Schedule';
       default:              return 'Admin Overview';
     }
   };
@@ -77,6 +77,13 @@ export default function App() {
         if (Array.isArray(apptsData)) setAppointments(apptsData);
       } catch (e) {
         console.warn('Appointments:', e.message);
+      }
+
+      try {
+        const usersData = await getUsers();
+        if (Array.isArray(usersData)) setUsers(usersData);
+      } catch (e) {
+        console.warn('Users:', e.message);
       }
     } catch (err) {
       console.error('Load error:', err);
@@ -181,10 +188,10 @@ export default function App() {
             onUpdateStatus={handleUpdateAppointmentStatus}
           />
         );
-      case 'users':
-        return <UsersView users={users} onUserCreated={loadData} />;
-      case 'settings':
-        return <SettingsView />;
+      case 'clients':
+        return <ClientsView users={users} appointments={appointments} />;
+      case 'liveschedule':
+        return <LiveScheduleView appointments={appointments} />;
       default:
         return (
           <DashboardOverview
@@ -218,7 +225,6 @@ export default function App() {
           />
           {renderActiveTabContent()}
         </main>
-        <RightPanel appointments={appointments} />
       </div>
     </div>
   );

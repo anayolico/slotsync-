@@ -6,16 +6,16 @@ export default function ServicesView({ creators = [] }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          Configured slot durations, pricing, and service categories across live Creator Profiles (`creator_profiles` table)
+          Configured slot durations, pricing, and service categories across Creator Profiles
         </p>
       </div>
 
       {creators.length === 0 ? (
         <div className="card-panel" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-          <Database size={44} style={{ color: 'var(--text-dim)', marginBottom: '0.75rem' }} />
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>No creator slot services in backend database</h3>
+          <Box size={44} style={{ color: 'var(--text-dim)', marginBottom: '0.75rem' }} />
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>No creator services available</h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-            0 records found from FastAPI `/api/v1/creators/`.
+            When creators configure service rates and slot durations, they will appear here.
           </p>
         </div>
       ) : (

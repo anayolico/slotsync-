@@ -44,21 +44,6 @@ export default function AvailabilityView({ creators = [] }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
-      {/* Explanation Banner */}
-      <div style={{
-        background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '12px',
-        padding: '0.85rem 1.15rem',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.65rem',
-        fontSize: '0.825rem', color: '#4338ca', fontWeight: 500,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          <User size={16} style={{ flexShrink: 0 }} />
-          <span>
-            Availability rules are configured <strong>per creator profile</strong> in the <code style={{ fontFamily: 'monospace', background: 'rgba(79,70,229,0.1)', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>availability_rules</code> database table.
-          </span>
-        </div>
-      </div>
-
       {/* Creators List */}
       {creators.length === 0 ? (
         <div className="card-panel" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
@@ -73,6 +58,14 @@ export default function AvailabilityView({ creators = [] }) {
           const isOpen = expandedCreator === creator.id;
           const rules = rulesMap[creator.id] || [];
           const isLoading = loadingId === creator.id;
+
+          const rawAvatarUrl = creator.user?.avatar_url || creator.avatar_url;
+          const backendBase = import.meta.env.VITE_BACKEND_URL || '';
+          const avatarUrl = rawAvatarUrl 
+            ? (rawAvatarUrl.startsWith('http://') || rawAvatarUrl.startsWith('https://') 
+                ? rawAvatarUrl 
+                : `${backendBase}${rawAvatarUrl.startsWith('/') ? '' : '/'}${rawAvatarUrl}`)
+            : null;
 
           return (
             <div
@@ -95,11 +88,28 @@ export default function AvailabilityView({ creators = [] }) {
                   style={{ display: 'flex', alignItems: 'center', gap: '0.9rem', cursor: 'pointer', flex: '1 1 240px' }}
                 >
                   {/* Avatar */}
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={creator.title || 'Creator'}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        if (e.currentTarget.nextElementSibling) {
+                          e.currentTarget.nextElementSibling.style.display = 'flex';
+                        }
+                      }}
+                      style={{
+                        width: '42px', height: '42px', borderRadius: '50%',
+                        objectFit: 'cover', border: '2px solid #e0e7ff', flexShrink: 0
+                      }}
+                    />
+                  ) : null}
                   <div style={{
-                    width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0,
+                    width: '42px', height: '42px', borderRadius: '50%', flexShrink: 0,
                     background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: '#fff', fontWeight: 700, fontSize: '0.9rem',
+                    display: avatarUrl ? 'none' : 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    color: '#fff', fontWeight: 700, fontSize: '0.95rem',
                   }}>
                     {creator.title ? creator.title.charAt(0).toUpperCase() : 'C'}
                   </div>

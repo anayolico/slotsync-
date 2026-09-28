@@ -5,7 +5,7 @@ import {
   Clock, 
   Calendar, 
   Users,
-  Settings,
+  CalendarClock,
   Sparkles,
   X
 } from 'lucide-react';
@@ -14,10 +14,10 @@ export default function Sidebar({ activeTab, setActiveTab, backendStatus, onLogo
   const navItems = [
     { id: 'dashboard', label: 'Admin Overview', icon: LayoutDashboard },
     { id: 'creators', label: 'Creator Profiles', icon: UserCheck },
+    { id: 'clients', label: 'Client Profiles', icon: Users },
     { id: 'availability', label: 'Availability Rules', icon: Clock },
     { id: 'appointments', label: 'All Appointments', icon: Calendar },
-    { id: 'users', label: 'User Accounts', icon: Users },
-    { id: 'settings', label: 'Server Settings', icon: Settings },
+    { id: 'liveschedule', label: 'Live Schedule', icon: CalendarClock },
   ];
 
   const handleNavClick = (id) => {

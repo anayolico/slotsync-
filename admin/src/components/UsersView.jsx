@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Shield, Mail, Database, Search, UserPlus } from 'lucide-react';
+import { Users, Mail, Database, Search, UserPlus } from 'lucide-react';
 import CreateUserModal from './CreateUserModal';
 
 export default function UsersView({ users = [], onUserCreated }) {
@@ -17,11 +17,10 @@ export default function UsersView({ users = [], onUserCreated }) {
 
   return (
     <div className="card-panel" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      {/* Top Action Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      {/* Top Action Bar — all in one line */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
         {/* Role Filter Pills */}
-        <div className="scrollable-filter-row">
-          <Shield size={16} style={{ color: '#4f46e5', flexShrink: 0 }} />
+        <div className="scrollable-filter-row" style={{ flex: 1, minWidth: 0 }}>
           {['ALL', 'CLIENT', 'CREATOR', 'ADMIN'].map((role) => (
             <button
               key={role}
@@ -33,29 +32,28 @@ export default function UsersView({ users = [], onUserCreated }) {
           ))}
         </div>
 
-        {/* Right Tools: Search & Create User Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', width: '100%', maxWidth: '220px' }}>
-            <Search size={15} style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Search users..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ paddingLeft: '2.2rem', borderRadius: '9999px', fontSize: '0.8rem' }}
-            />
-          </div>
-
-          <button
-            className="btn-upgrade"
-            style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.95rem', fontSize: '0.8rem' }}
-            onClick={() => setIsModalOpen(true)}
-          >
-            <UserPlus size={16} />
-            <span>Create New User</span>
-          </button>
+        {/* Search */}
+        <div style={{ position: 'relative', width: '200px', flexShrink: 0 }}>
+          <Search size={15} style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Search users..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ paddingLeft: '2.2rem', borderRadius: '9999px', fontSize: '0.8rem' }}
+          />
         </div>
+
+        {/* Create User Button */}
+        <button
+          className="btn-upgrade"
+          style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.95rem', fontSize: '0.8rem', flexShrink: 0 }}
+          onClick={() => setIsModalOpen(true)}
+        >
+          <UserPlus size={16} />
+          <span>Create New User</span>
+        </button>
       </div>
 
       {filteredUsers.length === 0 ? (
@@ -79,7 +77,7 @@ export default function UsersView({ users = [], onUserCreated }) {
                 </th>
                 <th>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <Shield size={14} /> Role (`UserRole`)
+                    <Shield size={14} /> Role
                   </div>
                 </th>
                 <th>Registered Date</th>

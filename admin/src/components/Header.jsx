@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Bell, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 
 export default function Header({ pageTitle = "Admin Overview", currentUser, onLogout, onToggleMobileMenu }) {
   return (
@@ -18,18 +18,6 @@ export default function Header({ pageTitle = "Admin Overview", currentUser, onLo
       </div>
 
       <div className="header-right-tools">
-        {/* Admin Badge */}
-        <div className="plan-badge" style={{ background: '#eef2ff', color: '#4f46e5', border: '1px solid #c7d2fe' }}>
-          <ShieldCheck size={15} />
-          <span>Admin Control</span>
-        </div>
-
-        {/* Notification Bell */}
-        <button className="notification-btn" title="System Alerts">
-          <Bell size={18} />
-          <span className="notification-badge-dot" />
-        </button>
-
         {/* Admin Avatar + Name */}
         <div className="user-avatar-pill" style={{ cursor: 'default' }}>
           <div className="user-avatar-img">

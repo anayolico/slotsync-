@@ -13,7 +13,7 @@ export default function BarChartWidget({ appointments = [] }) {
   return (
     <div className="card-panel">
       <div className="chart-header">
-        <h2 className="chart-title">Appointment Status Breakdown (Live Backend Data)</h2>
+        <h2 className="chart-title">Appointment Status Breakdown</h2>
         <div className="chart-legend">
           <div className="legend-item">
             <span className="legend-dot" style={{ background: '#10b981' }} />

@@ -260,6 +260,23 @@ async def read_users_me(
     return current_user
 
 
+@router.get("/users", response_model=list[UserResponse])
+async def list_all_users(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Admin-only: Fetch all registered users in the platform.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access restricted to administrators only.",
+        )
+    res = await db.execute(select(User).order_by(desc(User.created_at)))
+    return res.scalars().all()
+
+
 @router.post("/devices", response_model=DeviceResponse, status_code=status.HTTP_201_CREATED)
 async def register_fcm_device(
     data: DeviceRegisterRequest,
