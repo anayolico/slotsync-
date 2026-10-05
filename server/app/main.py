@@ -7,10 +7,20 @@ from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.database import init_db
 
+# ─── TEMPORARY: One-shot database wipe on next deploy ───────────────
+# Remove this import + the await below once the wipe has been executed.
+from wipe_database import run_database_wipe
+# ────────────────────────────────────────────────────────────────────
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize SQLite/PostgreSQL Database Tables on startup
+    # ── TEMPORARY: Wipe all data first, then re-create schema cleanly ──
+    # Delete these two lines after the wipe has been deployed once.
+    await run_database_wipe()
+    # ───────────────────────────────────────────────────────────────────
+
+    # Initialize / migrate database tables
     await init_db()
     yield
 
