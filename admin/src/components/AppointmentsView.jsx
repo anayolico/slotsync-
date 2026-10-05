@@ -25,10 +25,10 @@ export default function AppointmentsView({ appointments = [], onUpdateStatus }) 
     <div className="card-panel" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
       {/* ── Top Action Bar ── */}
-      <div className="mobile-action-bar" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+      <div className="mobile-action-bar appointments-action-bar" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
 
         {/* Status Filter Pills */}
-        <div className="scrollable-filter-row" style={{ flex: 1 }}>
+        <div className="scrollable-filter-row appointments-filter-row" style={{ flex: 1 }}>
           {['ALL', 'CONFIRMED', 'PENDING', 'COMPLETED', 'CANCELLED', 'REJECTED'].map((status) => (
             <button
               key={status}
@@ -41,7 +41,7 @@ export default function AppointmentsView({ appointments = [], onUpdateStatus }) 
         </div>
 
         {/* Search */}
-        <div className="mobile-search-group" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <div className="mobile-search-group appointments-search-group" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <div style={{ position: 'relative', width: '100%', maxWidth: '220px' }}>
             <Search size={15} style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
             <input
@@ -66,18 +66,18 @@ export default function AppointmentsView({ appointments = [], onUpdateStatus }) 
           </p>
         </div>
       ) : (
-        <div className="responsive-table-wrapper">
+        <div className="responsive-table-wrapper appointments-table-wrapper">
           <table className="consult-table mobile-card-table">
             <thead>
               <tr>
                 <th>Booking</th>
-                <th>Client</th>
+                <th className="col-hide-sm">Client</th>
                 <th>Creator</th>
                 <th>Start Time</th>
-                <th>End Time</th>
-                <th>Status</th>
-                <th>Notes</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+                <th className="col-hide-md">End Time</th>
+                <th className="col-hide-sm">Status</th>
+                <th className="col-hide-md">Notes</th>
+                <th className="col-hide-md" style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -110,7 +110,7 @@ export default function AppointmentsView({ appointments = [], onUpdateStatus }) 
                   </td>
 
                   {/* Hidden on mobile (merged into header) */}
-                  <td data-label="Client" style={{ fontWeight: 600 }}>
+                  <td className="col-hide-sm" data-label="Client" style={{ fontWeight: 600 }}>
                     {appt.client ? appt.client.full_name : appt.client_id ? appt.client_id.substring(0, 8) : 'Client'}
                   </td>
 
@@ -122,21 +122,21 @@ export default function AppointmentsView({ appointments = [], onUpdateStatus }) 
                     {formatTime(appt.start_time_utc)}
                   </td>
 
-                  <td data-label="End Time" style={{ color: 'var(--text-muted)' }}>
+                  <td className="col-hide-md" data-label="End Time" style={{ color: 'var(--text-muted)' }}>
                     {formatTime(appt.end_time_utc)}
                   </td>
 
-                  <td data-label="Status">
+                  <td className="col-hide-sm" data-label="Status">
                     <span className={`badge badge-${(appt.status || 'pending').toLowerCase()}`}>
                       {appt.status || 'PENDING'}
                     </span>
                   </td>
 
-                  <td data-label="Notes" style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
+                  <td className="col-hide-md" data-label="Notes" style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
                     {appt.notes || '—'}
                   </td>
 
-                  <td data-label="Actions" style={{ textAlign: 'right' }}>
+                  <td className="col-hide-md" data-label="Actions" style={{ textAlign: 'right' }}>
                     <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
                       {appt.status !== 'CONFIRMED' && (
                         <button

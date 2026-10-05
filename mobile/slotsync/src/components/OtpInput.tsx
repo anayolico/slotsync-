@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     borderColor: '#cbd5e1',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0f172a',
+    shadowColor: '#172033',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 22,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#172033',
   },
   cellInputInvalid: {
     color: '#dc2626',

@@ -8,10 +8,22 @@ import {
   TextInput, 
   ActivityIndicator, 
   Alert, 
-  Modal 
+  Modal,
+  Platform
 } from 'react-native';
-import { colors, radii } from '../../theme/colors';
+import { colors, radii, shadows } from '../../theme/colors';
 import { getCreatorAvailabilityRules, addAvailabilityRule, deleteAvailabilityRule } from '../../services/api';
+import { 
+  Calendar, 
+  Clock, 
+  ChevronLeft, 
+  Trash2, 
+  Plus, 
+  Sparkles, 
+  Check, 
+  X 
+} from '../../components/LucideIcons';
+import AppBackground from '../../components/AppBackground';
 
 interface Props {
   currentUser: any;
@@ -108,39 +120,56 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
   const estimatedSlots = calculateSlotCount();
 
   return (
-    <View style={styles.container}>
+    <AppBackground variant="violet" style={styles.container}>
       {/* Top Navigation Bar */}
       <View style={styles.header}>
         {onBack && (
-          <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-            <Text style={styles.backBtnText}>‹ Back</Text>
+          <TouchableOpacity 
+            style={styles.backButtonCircle} 
+            onPress={onBack}
+            activeOpacity={0.7}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <ChevronLeft size={20} color={colors.accentViolet} strokeWidth={2.5} />
           </TouchableOpacity>
         )}
         <View style={styles.titleRow}>
           <View>
             <Text style={styles.title}>Weekly Schedule Rules</Text>
-            <Text style={styles.subtitle}>Automated slot generation & active hours</Text>
+            <Text style={styles.subtitle}>Automated slot generation & working hours</Text>
           </View>
-          <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)} activeOpacity={0.8}>
-            <Text style={styles.addBtnText}>+ Add Rule</Text>
+          <TouchableOpacity 
+            style={styles.addBtn} 
+            onPress={() => setModalVisible(true)} 
+            activeOpacity={0.85}
+          >
+            <Plus size={15} color="#ffffff" strokeWidth={2.8} />
+            <Text style={styles.addBtnText}>Add Rule</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {loading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={colors.accentViolet} />
           <Text style={styles.loadingText}>Fetching schedule rules...</Text>
         </View>
       ) : rules.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Text style={styles.emptyIcon}>⏰</Text>
-          <Text style={styles.emptyTitle}>No availability rules configured</Text>
+          <View style={styles.emptyIconCircle}>
+            <Clock size={36} color={colors.accentViolet} strokeWidth={2} />
+          </View>
+          <Text style={styles.emptyTitle}>No schedule rules configured</Text>
           <Text style={styles.emptySubtitle}>
-            Add weekly working hours (e.g. Monday 09:00 to 17:00) to open client booking slots.
+            Add recurring weekly working hours (e.g. Monday 09:00 to 17:00) to open client booking slots.
           </Text>
-          <TouchableOpacity style={styles.createFirstBtn} onPress={() => setModalVisible(true)} activeOpacity={0.88}>
-            <Text style={styles.createFirstBtnText}>+ Add Availability Rule</Text>
+          <TouchableOpacity 
+            style={styles.createFirstBtn} 
+            onPress={() => setModalVisible(true)} 
+            activeOpacity={0.88}
+          >
+            <Plus size={16} color="#ffffff" strokeWidth={2.8} />
+            <Text style={styles.createFirstBtnText}>Add Availability Rule</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -156,7 +185,7 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
                   <View>
                     <Text style={styles.dayTitle}>{dayName} Working Hours</Text>
                     <Text style={styles.timeRangeText}>
-                      🕒 {rule.start_time} - {rule.end_time} ({slotDuration} min slots)
+                      {rule.start_time} - {rule.end_time} ({slotDuration}m slots)
                     </Text>
                   </View>
                 </View>
@@ -164,8 +193,9 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
                   style={styles.deleteBtn} 
                   onPress={() => handleDeleteRule(rule.id, dayName)}
                   activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Text style={styles.deleteBtnText}>Delete</Text>
+                  <Trash2 size={16} color={colors.danger} strokeWidth={2} />
                 </TouchableOpacity>
               </View>
             );
@@ -173,11 +203,11 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
         </ScrollView>
       )}
 
-      {/* Availability Scheduling Bottom Sheet Modal (Stitch Screen 4 Spec) */}
+      {/* Availability Scheduling Bottom Sheet Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.bottomSheetCard}>
-            {/* Sheet Drag Handle Indicator */}
+            {/* Drag Handle */}
             <View style={styles.dragHandleContainer}>
               <View style={styles.dragHandle} />
             </View>
@@ -186,14 +216,14 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
             <View style={styles.sheetHeader}>
               <View>
                 <Text style={styles.sheetTitle}>Add Availability Rule</Text>
-                <Text style={styles.sheetSubtitle}>Specify working day & active hours (24h format)</Text>
+                <Text style={styles.sheetSubtitle}>Specify active working hours (24h format)</Text>
               </View>
               <TouchableOpacity 
                 style={styles.closeSheetBtn} 
                 onPress={() => setModalVisible(false)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.closeSheetText}>✕</Text>
+                <X size={16} color={colors.textDim} strokeWidth={2.5} />
               </TouchableOpacity>
             </View>
 
@@ -231,7 +261,7 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
                     value={startTime}
                     onChangeText={setStartTime}
                   />
-                  <Text style={styles.clockInputIcon}>🕒</Text>
+                  <Clock size={16} color={colors.textDim} />
                 </View>
               </View>
 
@@ -245,16 +275,16 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
                     value={endTime}
                     onChangeText={setEndTime}
                   />
-                  <Text style={styles.clockInputIcon}>🕒</Text>
+                  <Clock size={16} color={colors.textDim} />
                 </View>
               </View>
             </View>
 
             {/* Slot Auto-generation Preview Badge */}
             <View style={styles.previewBadge}>
-              <Text style={styles.lightningIcon}>⚡</Text>
+              <Sparkles size={16} color={colors.accentViolet} strokeWidth={2.2} />
               <Text style={styles.previewBadgeText}>
-                Will generate <Text style={styles.previewHighlight}>{estimatedSlots} slots</Text> ({slotDuration}-min duration) per active day
+                Generates <Text style={styles.previewHighlight}>{estimatedSlots} slots</Text> ({slotDuration}m duration) on this day
               </Text>
             </View>
 
@@ -278,7 +308,7 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
                   <ActivityIndicator color="#ffffff" size="small" />
                 ) : (
                   <>
-                    <Text style={styles.saveCheckIcon}>✓</Text>
+                    <Check size={16} color="#ffffff" strokeWidth={2.8} />
                     <Text style={styles.saveModalBtnText}>Save Schedule</Text>
                   </>
                 )}
@@ -287,28 +317,32 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
           </View>
         </View>
       </Modal>
-    </View>
+    </AppBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bgApp,
-    paddingTop: 48,
+    backgroundColor: 'transparent',
+    paddingTop: Platform.OS === 'ios' ? 48 : 24,
   },
   header: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 22,
     marginBottom: 16,
     gap: 8,
   },
-  backBtn: {
+  backButtonCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.2,
+    borderColor: 'rgba(124, 58, 237, 0.2)',
     marginBottom: 4,
-  },
-  backBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.primary,
+    ...shadows.subtle,
   },
   titleRow: {
     flexDirection: 'row',
@@ -316,51 +350,46 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '900',
-    color: colors.textMain,
+    color: '#6D28D9',
     letterSpacing: -0.3,
   },
   subtitle: {
-    fontSize: 12,
-    color: colors.textMuted,
+    fontSize: 12.5,
+    color: colors.textDim,
     marginTop: 2,
   },
   addBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accentViolet,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3,
+    paddingVertical: 9,
+    borderRadius: radii.md,
+    ...shadows.violetGlow,
   },
   addBtnText: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '800',
   },
   rulesList: {
-    paddingHorizontal: 20,
-    paddingBottom: 30,
+    paddingHorizontal: 22,
+    paddingBottom: 40,
     gap: 12,
   },
   ruleCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderRadius: radii.xl,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
+    borderWidth: 1.5,
+    borderColor: 'rgba(226, 232, 240, 0.95)',
+    ...shadows.card,
   },
   ruleLeft: {
     flexDirection: 'row',
@@ -370,54 +399,54 @@ const styles = StyleSheet.create({
   dayTag: {
     width: 44,
     height: 44,
-    borderRadius: 14,
-    backgroundColor: '#eef2ff',
+    borderRadius: radii.md,
+    backgroundColor: colors.accentPurpleWash,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dayTagText: {
     fontSize: 13,
-    fontWeight: '800',
-    color: colors.primary,
+    fontWeight: '900',
+    color: colors.accentViolet,
   },
   dayTitle: {
-    fontSize: 14.5,
+    fontSize: 15,
     fontWeight: '800',
     color: colors.textMain,
   },
   timeRangeText: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '600',
-    color: colors.textMuted,
+    color: colors.textDim,
     marginTop: 2,
   },
   deleteBtn: {
-    backgroundColor: '#fff1f2',
+    backgroundColor: colors.dangerBg,
     borderWidth: 1,
-    borderColor: '#fecdd3',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
-  deleteBtnText: {
-    color: '#e11d48',
-    fontSize: 11.5,
-    fontWeight: '700',
+    borderColor: colors.dangerBorder,
+    padding: 10,
+    borderRadius: radii.sm,
   },
   centerContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 40,
+    gap: 10,
+  },
+  emptyIconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: colors.accentPurpleWash,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
   },
   loadingText: {
-    fontSize: 13,
+    fontSize: 13.5,
     color: colors.textMuted,
     marginTop: 10,
-  },
-  emptyIcon: {
-    fontSize: 40,
-    marginBottom: 10,
   },
   emptyTitle: {
     fontSize: 18,
@@ -426,21 +455,20 @@ const styles = StyleSheet.create({
   },
   emptySubtitle: {
     fontSize: 13,
-    color: colors.textMuted,
+    color: colors.textDim,
     textAlign: 'center',
-    marginTop: 4,
-    marginBottom: 16,
+    lineHeight: 18,
+    marginBottom: 8,
   },
   createFirstBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accentViolet,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 14,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 4,
+    borderRadius: radii.md,
+    ...shadows.violetGlow,
   },
   createFirstBtnText: {
     color: '#ffffff',
@@ -456,16 +484,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    paddingHorizontal: 22,
+    paddingHorizontal: 24,
     paddingTop: 10,
-    paddingBottom: 32,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
     width: '100%',
     gap: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.16,
-    shadowRadius: 40,
-    elevation: 10,
+    ...shadows.modal,
   },
   dragHandleContainer: {
     alignItems: 'center',
@@ -475,7 +499,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#cbd5e1',
+    backgroundColor: colors.borderDark,
   },
   sheetHeader: {
     flexDirection: 'row',
@@ -483,33 +507,29 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sheetTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.textMain,
+    fontSize: 19,
+    fontWeight: '900',
+    color: colors.textHeading,
+    letterSpacing: -0.2,
   },
   sheetSubtitle: {
-    fontSize: 12,
-    color: colors.textMuted,
+    fontSize: 12.5,
+    color: colors.textDim,
     marginTop: 2,
   },
   closeSheetBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#f1f5f9',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.bgSubtle,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  closeSheetText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.textMuted,
   },
   inputGroup: {
     gap: 6,
   },
   inputLabel: {
-    fontSize: 10.5,
+    fontSize: 11,
     fontWeight: '800',
     color: colors.textDim,
     letterSpacing: 0.8,
@@ -520,28 +540,27 @@ const styles = StyleSheet.create({
   },
   dayGridBtn: {
     flex: 1,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: '#f1f5f9',
+    height: 44,
+    borderRadius: radii.md,
+    backgroundColor: 'rgba(241, 245, 249, 0.9)',
+    borderWidth: 1,
+    borderColor: colors.borderColor,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dayGridBtnSelected: {
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: colors.accentViolet,
+    borderColor: colors.accentViolet,
+    ...shadows.violetGlow,
   },
   dayGridText: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '700',
-    color: '#334155',
+    color: colors.textMuted,
   },
   dayGridTextSelected: {
     color: '#ffffff',
-    fontWeight: '800',
+    fontWeight: '900',
   },
   timeInputsRow: {
     flexDirection: 'row',
@@ -550,43 +569,37 @@ const styles = StyleSheet.create({
   timeInputBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 44,
+    backgroundColor: 'rgba(248, 250, 252, 0.9)',
+    borderWidth: 1.5,
+    borderColor: colors.borderColor,
+    borderRadius: radii.md,
+    paddingHorizontal: 14,
+    height: 48,
   },
   timeInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 14.5,
     fontWeight: '700',
     color: colors.textMain,
   },
-  clockInputIcon: {
-    fontSize: 14,
-  },
   previewBadge: {
-    backgroundColor: '#eef2ff',
+    backgroundColor: colors.accentPurpleWash,
     borderWidth: 1,
-    borderColor: '#c7d2fe',
-    borderRadius: 14,
+    borderColor: 'rgba(124, 58, 237, 0.25)',
+    borderRadius: radii.md,
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  lightningIcon: {
-    fontSize: 16,
-  },
   previewBadgeText: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '600',
-    color: colors.primaryDark,
+    color: colors.accentViolet,
     flex: 1,
   },
   previewHighlight: {
-    fontWeight: '800',
+    fontWeight: '900',
     textDecorationLine: 'underline',
   },
   modalActions: {
@@ -596,44 +609,36 @@ const styles = StyleSheet.create({
   },
   cancelModalBtn: {
     flex: 1,
-    backgroundColor: '#f1f5f9',
-    paddingVertical: 12,
-    borderRadius: 14,
+    backgroundColor: 'rgba(241, 245, 249, 0.9)',
+    paddingVertical: 13,
+    borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderColor,
   },
   cancelModalBtnText: {
-    color: '#334155',
-    fontSize: 13,
+    color: colors.textMuted,
+    fontSize: 13.5,
     fontWeight: '700',
   },
   saveModalBtn: {
     flex: 2,
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    borderRadius: 14,
+    backgroundColor: colors.accentViolet,
+    paddingVertical: 13,
+    borderRadius: radii.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  saveCheckIcon: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '900',
+    ...shadows.violetGlow,
   },
   saveModalBtnText: {
     color: '#ffffff',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '800',
   },
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.65,
   },
 });
-

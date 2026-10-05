@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, BackHandler } from 'react-native';
-import { colors, radii } from '../theme/colors';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, BackHandler, Animated, Easing, Platform } from 'react-native';
+import { colors, radii, shadows } from '../theme/colors';
 import { getCurrentUser, getStoredToken, removeStoredToken, logoutUser } from '../services/api';
 
 // Auth Screens
@@ -31,14 +31,16 @@ import {
   Inbox,
   Settings as SettingsIcon,
   Compass,
+  Sparkles,
 } from '../components/LucideIcons';
 
 type AuthScreenState = 'CHOICE' | 'LOGIN' | 'REGISTER_CLIENT' | 'REGISTER_CREATOR' | 'FORGOT_PASSWORD';
 type ClientTab = 'DISCOVER' | 'MY_BOOKINGS' | 'SETTINGS';
 type CreatorTab = 'DASHBOARD' | 'SCHEDULE' | 'REQUESTS' | 'SETTINGS';
 
-
 export default function AppNavigator() {
+  const screenOpacity = useRef(new Animated.Value(1)).current;
+  const screenOffset = useRef(new Animated.Value(0)).current;
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any | null>(null);
@@ -134,12 +136,34 @@ export default function AppNavigator() {
     checkAuth();
   };
 
+  useEffect(() => {
+    screenOpacity.setValue(0);
+    screenOffset.setValue(6);
+    Animated.parallel([
+      Animated.timing(screenOpacity, {
+        toValue: 1,
+        duration: 200,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(screenOffset, {
+        toValue: 0,
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [authScreen, clientTab, creatorTab, selectedCreator, screenOpacity, screenOffset]);
+
   // ── Loading Screen ──
   if (loading) {
     return (
       <View style={styles.loadingScreen}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingTitle}>Connecting to SlotSync Engine...</Text>
+        <View style={styles.loadingCard}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingTitle}>Connecting to SlotSync...</Text>
+          <Text style={styles.loadingSubtitle}>Securing your schedule environment</Text>
+        </View>
       </View>
     );
   }
@@ -206,7 +230,7 @@ export default function AppNavigator() {
 
   return (
     <View style={styles.appFrame}>
-      <View style={styles.screenArea}>
+      <Animated.View style={[styles.screenArea, { opacity: screenOpacity, transform: [{ translateY: screenOffset }] }]}>
         {isCreator ? (
           // ── Creator Flow ──
           <>
@@ -266,9 +290,9 @@ export default function AppNavigator() {
             )}
           </>
         )}
-      </View>
+      </Animated.View>
 
-      {/* Bottom Navigation Tab Bar */}
+      {/* Modern High-End Floating Tab Bar */}
       <View style={styles.tabBar}>
         {isCreator ? (
           // Creator Tabs: Dashboard, Schedule, Requests, Settings
@@ -278,11 +302,11 @@ export default function AppNavigator() {
               onPress={() => setCreatorTab('DASHBOARD')}
               activeOpacity={0.7}
             >
-              <View style={styles.tabIconWrapper}>
+              <View style={[styles.tabIconWrapper, creatorTab === 'DASHBOARD' && styles.tabIconWrapperActive]}>
                 <LayoutDashboard
-                  size={22}
-                  color={creatorTab === 'DASHBOARD' ? colors.primary : '#94a3b8'}
-                  strokeWidth={creatorTab === 'DASHBOARD' ? 2.4 : 1.8}
+                  size={20}
+                  color={creatorTab === 'DASHBOARD' ? colors.primary : colors.textDim}
+                  strokeWidth={creatorTab === 'DASHBOARD' ? 2.5 : 1.9}
                 />
               </View>
               <Text style={[styles.tabLabel, creatorTab === 'DASHBOARD' && styles.tabLabelActive]}>
@@ -295,11 +319,11 @@ export default function AppNavigator() {
               onPress={() => setCreatorTab('SCHEDULE')}
               activeOpacity={0.7}
             >
-              <View style={styles.tabIconWrapper}>
+              <View style={[styles.tabIconWrapper, creatorTab === 'SCHEDULE' && styles.tabIconWrapperActive]}>
                 <Calendar
-                  size={22}
-                  color={creatorTab === 'SCHEDULE' ? colors.primary : '#94a3b8'}
-                  strokeWidth={creatorTab === 'SCHEDULE' ? 2.4 : 1.8}
+                  size={20}
+                  color={creatorTab === 'SCHEDULE' ? colors.primary : colors.textDim}
+                  strokeWidth={creatorTab === 'SCHEDULE' ? 2.5 : 1.9}
                 />
               </View>
               <Text style={[styles.tabLabel, creatorTab === 'SCHEDULE' && styles.tabLabelActive]}>
@@ -312,11 +336,11 @@ export default function AppNavigator() {
               onPress={() => setCreatorTab('REQUESTS')}
               activeOpacity={0.7}
             >
-              <View style={styles.tabIconWrapper}>
+              <View style={[styles.tabIconWrapper, creatorTab === 'REQUESTS' && styles.tabIconWrapperActive]}>
                 <Inbox
-                  size={22}
-                  color={creatorTab === 'REQUESTS' ? colors.primary : '#94a3b8'}
-                  strokeWidth={creatorTab === 'REQUESTS' ? 2.4 : 1.8}
+                  size={20}
+                  color={creatorTab === 'REQUESTS' ? colors.primary : colors.textDim}
+                  strokeWidth={creatorTab === 'REQUESTS' ? 2.5 : 1.9}
                 />
               </View>
               <Text style={[styles.tabLabel, creatorTab === 'REQUESTS' && styles.tabLabelActive]}>
@@ -329,11 +353,11 @@ export default function AppNavigator() {
               onPress={() => setCreatorTab('SETTINGS')}
               activeOpacity={0.7}
             >
-              <View style={styles.tabIconWrapper}>
+              <View style={[styles.tabIconWrapper, creatorTab === 'SETTINGS' && styles.tabIconWrapperActive]}>
                 <SettingsIcon
-                  size={22}
-                  color={creatorTab === 'SETTINGS' ? colors.primary : '#94a3b8'}
-                  strokeWidth={creatorTab === 'SETTINGS' ? 2.4 : 1.8}
+                  size={20}
+                  color={creatorTab === 'SETTINGS' ? colors.primary : colors.textDim}
+                  strokeWidth={creatorTab === 'SETTINGS' ? 2.5 : 1.9}
                 />
               </View>
               <Text style={[styles.tabLabel, creatorTab === 'SETTINGS' && styles.tabLabelActive]}>
@@ -352,11 +376,11 @@ export default function AppNavigator() {
               }}
               activeOpacity={0.7}
             >
-              <View style={styles.tabIconWrapper}>
+              <View style={[styles.tabIconWrapper, clientTab === 'DISCOVER' && styles.tabIconWrapperActive]}>
                 <Compass
-                  size={22}
-                  color={clientTab === 'DISCOVER' ? colors.primary : '#94a3b8'}
-                  strokeWidth={clientTab === 'DISCOVER' ? 2.4 : 1.8}
+                  size={20}
+                  color={clientTab === 'DISCOVER' ? colors.primary : colors.textDim}
+                  strokeWidth={clientTab === 'DISCOVER' ? 2.5 : 1.9}
                 />
               </View>
               <Text style={[styles.tabLabel, clientTab === 'DISCOVER' && styles.tabLabelActive]}>
@@ -369,11 +393,11 @@ export default function AppNavigator() {
               onPress={() => setClientTab('MY_BOOKINGS')}
               activeOpacity={0.7}
             >
-              <View style={styles.tabIconWrapper}>
+              <View style={[styles.tabIconWrapper, clientTab === 'MY_BOOKINGS' && styles.tabIconWrapperActive]}>
                 <Calendar
-                  size={22}
-                  color={clientTab === 'MY_BOOKINGS' ? colors.primary : '#94a3b8'}
-                  strokeWidth={clientTab === 'MY_BOOKINGS' ? 2.4 : 1.8}
+                  size={20}
+                  color={clientTab === 'MY_BOOKINGS' ? colors.primary : colors.textDim}
+                  strokeWidth={clientTab === 'MY_BOOKINGS' ? 2.5 : 1.9}
                 />
               </View>
               <Text style={[styles.tabLabel, clientTab === 'MY_BOOKINGS' && styles.tabLabelActive]}>
@@ -386,11 +410,11 @@ export default function AppNavigator() {
               onPress={() => setClientTab('SETTINGS')}
               activeOpacity={0.7}
             >
-              <View style={styles.tabIconWrapper}>
+              <View style={[styles.tabIconWrapper, clientTab === 'SETTINGS' && styles.tabIconWrapperActive]}>
                 <SettingsIcon
-                  size={22}
-                  color={clientTab === 'SETTINGS' ? colors.primary : '#94a3b8'}
-                  strokeWidth={clientTab === 'SETTINGS' ? 2.4 : 1.8}
+                  size={20}
+                  color={clientTab === 'SETTINGS' ? colors.primary : colors.textDim}
+                  strokeWidth={clientTab === 'SETTINGS' ? 2.5 : 1.9}
                 />
               </View>
               <Text style={[styles.tabLabel, clientTab === 'SETTINGS' && styles.tabLabelActive]}>
@@ -410,12 +434,29 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgApp,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 16,
+    padding: 24,
+  },
+  loadingCard: {
+    backgroundColor: colors.bgCard,
+    paddingVertical: 32,
+    paddingHorizontal: 28,
+    borderRadius: radii.xl,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderColor,
+    ...shadows.card,
   },
   loadingTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '700',
-    color: colors.textMuted,
+    color: colors.textMain,
+    marginTop: 18,
+    letterSpacing: -0.2,
+  },
+  loadingSubtitle: {
+    fontSize: 13,
+    color: colors.textDim,
+    marginTop: 4,
   },
   appFrame: {
     flex: 1,
@@ -426,78 +467,38 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
     borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-    paddingVertical: 10,
-    paddingBottom: 22,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 10,
+    borderTopColor: 'rgba(226, 232, 240, 0.9)',
+    paddingTop: 8,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 14,
+    ...shadows.cardHover,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 4,
   },
   tabIconWrapper: {
-    position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-    width: 32,
-    height: 28,
+    width: 44,
+    height: 30,
+    borderRadius: radii.pill,
+    marginBottom: 2,
   },
-  tabIcon: {
-    fontSize: 20,
-  },
-  activeDot: {
-    position: 'absolute',
-    bottom: -4,
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: colors.primary,
-  },
-  badgePulseDot: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: colors.primary,
-    borderWidth: 1,
-    borderColor: '#ffffff',
-  },
-  badgeNumber: {
-    position: 'absolute',
-    top: -2,
-    right: -6,
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-    width: 16,
-    height: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: '#ffffff',
-  },
-  badgeNumberText: {
-    color: '#ffffff',
-    fontSize: 9,
-    fontWeight: '900',
+  tabIconWrapperActive: {
+    backgroundColor: colors.primaryWash,
   },
   tabLabel: {
     fontSize: 11,
     fontWeight: '600',
     color: colors.textDim,
-    marginTop: 2,
+    letterSpacing: 0.1,
   },
   tabLabelActive: {
     color: colors.primary,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 });
-

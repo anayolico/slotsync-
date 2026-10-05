@@ -1,12 +1,40 @@
-// API Client for SlotSync FastAPI Backend
+/**
+ * SlotSync Admin — API Client
+ *
+ * All GET calls go through the SWR cache (see services/cache.js).
+ * Components that need live updates should subscribe to a CACHE_KEY via
+ * the `subscribe` re-export rather than passing onUpdate callbacks.
+ *
+ * All mutations (POST / PUT / PATCH) invalidate the relevant cache tags
+ * so the next read always reflects the latest server state.
+ */
+import { cachedFetch, invalidate, clearCache, TTL, subscribe } from './cache.js';
+
+// Re-export subscribe so components only need one import
+export { subscribe };
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
+const BACKEND_URL  = import.meta.env.VITE_BACKEND_URL  || '';
 
-export const getStoredToken = () => localStorage.getItem('slotsync_token');
-export const setStoredToken = (token) => localStorage.setItem('slotsync_token', token);
-export const removeStoredToken = () => localStorage.removeItem('slotsync_token');
+// ── Stable cache keys ─────────────────────────────────────────────────────────
+// Export these so subscribers in App.jsx reference the exact same strings
+// as the fetchers — no magic strings scattered across files.
+export const CACHE_KEYS = {
+  CURRENT_USER: 'auth:me',
+  USERS:        'auth:users',
+  CREATORS:     'creators:all',
+  APPOINTMENTS: 'appointments:all',
+};
 
+// ── Token helpers ─────────────────────────────────────────────────────────────
+export const getStoredToken    = ()      => localStorage.getItem('slotsync_token');
+export const setStoredToken    = (token) => localStorage.setItem('slotsync_token', token);
+export const removeStoredToken = ()      => {
+  localStorage.removeItem('slotsync_token');
+  clearCache(); // wipe all cached data so no stale data leaks between sessions
+};
+
+// ── Core fetch wrapper ────────────────────────────────────────────────────────
 async function fetchWithAuth(url, options = {}) {
   const token = getStoredToken();
   const headers = {
@@ -42,12 +70,11 @@ async function fetchWithAuth(url, options = {}) {
   return response.json();
 }
 
-// ─── Health Check ────────────────────────────────────────────────────────────
-
+// ── Health Check ──────────────────────────────────────────────────────────────
 export async function checkBackendHealth() {
   try {
-    const healthEndpoint = BACKEND_URL ? `${BACKEND_URL}/health` : '/health';
-    const res = await fetch(healthEndpoint);
+    const endpoint = BACKEND_URL ? `${BACKEND_URL}/health` : '/health';
+    const res = await fetch(endpoint);
     if (!res.ok) return { status: 'offline' };
     return await res.json();
   } catch (err) {
@@ -55,7 +82,7 @@ export async function checkBackendHealth() {
   }
 }
 
-// ─── Auth Endpoints ──────────────────────────────────────────────────────────
+// ── Auth Endpoints ────────────────────────────────────────────────────────────
 
 export async function loginUser(email, password) {
   const data = await fetchWithAuth(`${API_BASE_URL}/auth/login`, {
@@ -64,6 +91,7 @@ export async function loginUser(email, password) {
   });
   if (data.access_token) {
     setStoredToken(data.access_token);
+    clearCache(); // clear any stale data from a previous session
   }
   return data;
 }
@@ -79,88 +107,132 @@ export async function registerUser(emailOrData, password, fullName, role = 'CLIE
       full_name: fullName,
       role,
       ...personalData,
-      ...(role === 'CREATOR' ? creatorData : {})
+      ...(role === 'CREATOR' ? creatorData : {}),
     };
   }
-  return await fetchWithAuth(`${API_BASE_URL}/auth/register`, {
+  const result = await fetchWithAuth(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
     body: JSON.stringify(body),
   });
+  invalidate('users');
+  return result;
 }
 
+/** Current admin profile — cached 5 min. Subscribe via CACHE_KEYS.CURRENT_USER. */
 export async function getCurrentUser() {
-  return await fetchWithAuth(`${API_BASE_URL}/auth/me`);
+  return cachedFetch(
+    CACHE_KEYS.CURRENT_USER,
+    () => fetchWithAuth(`${API_BASE_URL}/auth/me`),
+    { ttl: TTL.LONG, tags: ['currentUser'] },
+  );
 }
 
+/** All platform users — cached 2 min. Subscribe via CACHE_KEYS.USERS. */
 export async function getUsers() {
-  return await fetchWithAuth(`${API_BASE_URL}/auth/users`);
+  return cachedFetch(
+    CACHE_KEYS.USERS,
+    () => fetchWithAuth(`${API_BASE_URL}/auth/users`),
+    { ttl: TTL.MEDIUM, tags: ['users'] },
+  );
 }
 
-// ─── Creators Endpoints ──────────────────────────────────────────────────────
+// ── Creators Endpoints ────────────────────────────────────────────────────────
 
+/** All creators — cached 2 min. Subscribe via CACHE_KEYS.CREATORS. */
 export async function getCreators() {
-  return await fetchWithAuth(`${API_BASE_URL}/creators`);
+  return cachedFetch(
+    CACHE_KEYS.CREATORS,
+    () => fetchWithAuth(`${API_BASE_URL}/creators`),
+    { ttl: TTL.MEDIUM, tags: ['creators'] },
+  );
 }
 
 export async function getCreatorById(id) {
-  return await fetchWithAuth(`${API_BASE_URL}/creators/${id}`);
+  return cachedFetch(
+    `creators:${id}`,
+    () => fetchWithAuth(`${API_BASE_URL}/creators/${id}`),
+    { ttl: TTL.MEDIUM, tags: ['creators'] },
+  );
 }
 
 export async function updateCreatorProfile(data) {
-  return await fetchWithAuth(`${API_BASE_URL}/creators/me`, {
+  const result = await fetchWithAuth(`${API_BASE_URL}/creators/me`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
+  invalidate('creators');
+  return result;
 }
 
 export async function updateCreatorProfileAdmin(creatorId, data) {
-  return await fetchWithAuth(`${API_BASE_URL}/creators/${creatorId}`, {
+  const result = await fetchWithAuth(`${API_BASE_URL}/creators/${creatorId}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
+  invalidate('creators');
+  return result;
 }
 
-// ─── Availability Endpoints ──────────────────────────────────────────────────
-// Routes defined in server/app/api/v1/endpoints/availability.py:
-//   POST /availability              → set_creator_availability (creator auth required)
-//   GET  /availability/me           → get_my_availability (creator auth required)
-//   GET  /availability/{id}/slots   → get_creator_slots (public, ?date=YYYY-MM-DD)
+// ── Availability Endpoints ────────────────────────────────────────────────────
 
 export async function getMyAvailabilityRules() {
-  return await fetchWithAuth(`${API_BASE_URL}/availability/me`);
+  return cachedFetch(
+    'availability:me',
+    () => fetchWithAuth(`${API_BASE_URL}/availability/me`),
+    { ttl: TTL.MEDIUM, tags: ['availability'] },
+  );
 }
 
 export async function getAvailableSlots(creatorId, dateStr) {
-  return await fetchWithAuth(`${API_BASE_URL}/availability/${creatorId}/slots?date=${dateStr}`);
+  return cachedFetch(
+    `availability:slots:${creatorId}:${dateStr}`,
+    () => fetchWithAuth(`${API_BASE_URL}/availability/${creatorId}/slots?date=${dateStr}`),
+    { ttl: TTL.SHORT, tags: ['availability', `creator:${creatorId}`] },
+  );
 }
 
 export async function getAvailabilityRules(creatorId) {
-  return await fetchWithAuth(`${API_BASE_URL}/availability/${creatorId}/rules`);
+  return cachedFetch(
+    `availability:rules:${creatorId}`,
+    () => fetchWithAuth(`${API_BASE_URL}/availability/${creatorId}/rules`),
+    { ttl: TTL.MEDIUM, tags: ['availability', `creator:${creatorId}`] },
+  );
 }
 
 export async function setCreatorAvailabilityRulesAdmin(creatorId, rules) {
-  return await fetchWithAuth(`${API_BASE_URL}/availability/${creatorId}/rules`, {
+  const result = await fetchWithAuth(`${API_BASE_URL}/availability/${creatorId}/rules`, {
     method: 'POST',
     body: JSON.stringify({ rules }),
   });
+  invalidate('availability', `creator:${creatorId}`);
+  return result;
 }
 
-// ─── Appointments Endpoints ──────────────────────────────────────────────────
+// ── Appointments Endpoints ────────────────────────────────────────────────────
 
+/** All appointments — cached 30 s. Subscribe via CACHE_KEYS.APPOINTMENTS. */
 export async function getAppointments() {
-  return await fetchWithAuth(`${API_BASE_URL}/appointments`);
+  return cachedFetch(
+    CACHE_KEYS.APPOINTMENTS,
+    () => fetchWithAuth(`${API_BASE_URL}/appointments`),
+    { ttl: TTL.SHORT, tags: ['appointments'] },
+  );
 }
 
 export async function createAppointment(creatorId, startTimeUtc, notes = '') {
-  return await fetchWithAuth(`${API_BASE_URL}/appointments`, {
+  const result = await fetchWithAuth(`${API_BASE_URL}/appointments`, {
     method: 'POST',
     body: JSON.stringify({ creator_id: creatorId, start_time_utc: startTimeUtc, notes }),
   });
+  invalidate('appointments');
+  return result;
 }
 
 export async function updateAppointmentStatus(id, status) {
-  return await fetchWithAuth(`${API_BASE_URL}/appointments/${id}/status`, {
+  const result = await fetchWithAuth(`${API_BASE_URL}/appointments/${id}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status }),
   });
+  invalidate('appointments');
+  return result;
 }

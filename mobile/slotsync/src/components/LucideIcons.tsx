@@ -9,7 +9,7 @@ interface IconProps {
   style?: any;
 }
 
-export function Mail({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function Mail({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Rect x="2" y="4" width="20" height="16" rx="2" stroke={color} strokeWidth={strokeWidth} />
@@ -18,7 +18,7 @@ export function Mail({ size = 20, color = '#64748b', strokeWidth = 2, style }: I
   );
 }
 
-export function Lock({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function Lock({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke={color} strokeWidth={strokeWidth} />
@@ -27,7 +27,7 @@ export function Lock({ size = 20, color = '#64748b', strokeWidth = 2, style }: I
   );
 }
 
-export function User({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function User({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Path d="M19 21V19A4 4 0 0 0 15 15H9A4 4 0 0 0 5 19V21" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -36,7 +36,7 @@ export function User({ size = 20, color = '#64748b', strokeWidth = 2, style }: I
   );
 }
 
-export function Phone({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function Phone({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Path
@@ -59,7 +59,7 @@ export function Eye({ size = 20, color = '#6366f1', strokeWidth = 2, style }: Ic
   );
 }
 
-export function EyeOff({ size = 20, color = '#94a3b8', strokeWidth = 2, style }: IconProps) {
+export function EyeOff({ size = 20, color = '#71809A', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Path d="M9.88 9.88A3 3 0 1 0 14.12 14.12" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -189,7 +189,7 @@ export function X({ size = 20, color = '#475569', strokeWidth = 2, style }: Icon
   );
 }
 
-export function ChevronDown({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function ChevronDown({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Path d="M6 9L12 15L18 9" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -197,7 +197,7 @@ export function ChevronDown({ size = 20, color = '#64748b', strokeWidth = 2, sty
   );
 }
 
-export function ChevronUp({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function ChevronUp({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Path d="M18 15L12 9L6 15" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -205,7 +205,7 @@ export function ChevronUp({ size = 20, color = '#64748b', strokeWidth = 2, style
   );
 }
 
-export function ChevronRight({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function ChevronRight({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Path d="M9 18L15 12L9 6" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -213,7 +213,7 @@ export function ChevronRight({ size = 20, color = '#64748b', strokeWidth = 2, st
   );
 }
 
-export function KeyRound({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function KeyRound({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -222,7 +222,7 @@ export function KeyRound({ size = 20, color = '#64748b', strokeWidth = 2, style 
   );
 }
 
-export function LayoutDashboard({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function LayoutDashboard({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Rect width="7" height="9" x="3" y="3" rx="1" stroke={color} strokeWidth={strokeWidth} />
@@ -233,7 +233,7 @@ export function LayoutDashboard({ size = 20, color = '#64748b', strokeWidth = 2,
   );
 }
 
-export function Calendar({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function Calendar({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Path d="M8 2v4M16 2v4" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -243,7 +243,7 @@ export function Calendar({ size = 20, color = '#64748b', strokeWidth = 2, style 
   );
 }
 
-export function Inbox({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function Inbox({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Polyline points="22 12 16 12 14 15 10 15 8 12 2 12" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -252,7 +252,7 @@ export function Inbox({ size = 20, color = '#64748b', strokeWidth = 2, style }: 
   );
 }
 
-export function Settings({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function Settings({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -261,7 +261,7 @@ export function Settings({ size = 20, color = '#64748b', strokeWidth = 2, style 
   );
 }
 
-export function Compass({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function Compass({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={strokeWidth} />
@@ -270,7 +270,7 @@ export function Compass({ size = 20, color = '#64748b', strokeWidth = 2, style }
   );
 }
 
-export function Clock({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function Clock({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={strokeWidth} />
@@ -279,7 +279,7 @@ export function Clock({ size = 20, color = '#64748b', strokeWidth = 2, style }: 
   );
 }
 
-export function Briefcase({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function Briefcase({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Rect width="20" height="14" x="2" y="7" rx="2" ry="2" stroke={color} strokeWidth={strokeWidth} />
@@ -288,7 +288,7 @@ export function Briefcase({ size = 20, color = '#64748b', strokeWidth = 2, style
   );
 }
 
-export function LogOut({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function LogOut({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -298,7 +298,7 @@ export function LogOut({ size = 20, color = '#64748b', strokeWidth = 2, style }:
   );
 }
 
-export function Bell({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function Bell({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -307,7 +307,7 @@ export function Bell({ size = 20, color = '#64748b', strokeWidth = 2, style }: I
   );
 }
 
-export function HelpCircle({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function HelpCircle({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={strokeWidth} />
@@ -339,7 +339,7 @@ export function ShieldAlert({ size = 20, color = '#ef4444', strokeWidth = 2, sty
   );
 }
 
-export function Edit3({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function Edit3({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Path d="M12 20h9" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -349,7 +349,7 @@ export function Edit3({ size = 20, color = '#64748b', strokeWidth = 2, style }: 
 }
 
 
-export function Search({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function Search({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Circle cx="11" cy="11" r="8" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -358,7 +358,7 @@ export function Search({ size = 20, color = '#64748b', strokeWidth = 2, style }:
   );
 }
 
-export function Sliders({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function Sliders({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Line x1="4" y1="21" x2="4" y2="14" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -374,7 +374,7 @@ export function Sliders({ size = 20, color = '#64748b', strokeWidth = 2, style }
   );
 }
 
-export function Sparkles({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function Sparkles({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -385,7 +385,7 @@ export function Sparkles({ size = 20, color = '#64748b', strokeWidth = 2, style 
   );
 }
 
-export function ImageIcon({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function ImageIcon({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -396,7 +396,7 @@ export function ImageIcon({ size = 20, color = '#64748b', strokeWidth = 2, style
 }
 
 
-export function Heart({ size = 20, color = '#64748b', strokeWidth = 2, style }: IconProps) {
+export function Heart({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
       <Path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -412,7 +412,7 @@ export function Star({ size = 20, color = '#f59e0b', fill = '#f59e0b', strokeWid
   );
 }
 
-export function Bookmark({ size = 20, color = '#64748b', fill = 'none', strokeWidth = 2, style }: IconProps & { fill?: string }) {
+export function Bookmark({ size = 20, color = '#526078', fill = 'none', strokeWidth = 2, style }: IconProps & { fill?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill={fill} style={style}>
       <Path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -420,4 +420,80 @@ export function Bookmark({ size = 20, color = '#64748b', fill = 'none', strokeWi
   );
 }
 
+export function XCircle({ size = 20, color = '#ef4444', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={strokeWidth} />
+      <Line x1="15" y1="9" x2="9" y2="15" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="9" y1="9" x2="15" y2="15" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
 
+export function Globe({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={strokeWidth} />
+      <Line x1="2" y1="12" x2="22" y2="12" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function SlidersHorizontal({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Line x1="21" y1="4" x2="14" y2="4" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="10" y1="4" x2="3" y2="4" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="21" y1="12" x2="12" y2="12" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="8" y1="12" x2="3" y2="12" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="21" y1="20" x2="16" y2="20" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="12" y1="20" x2="3" y2="20" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="14" y1="2" x2="14" y2="6" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="8" y1="10" x2="8" y2="14" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="16" y1="18" x2="16" y2="22" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function DollarSign({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Line x1="12" y1="1" x2="12" y2="23" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function Tag({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Line x1="7" y1="7" x2="7.01" y2="7" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function MessageSquareQuote({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M8 10h.01" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M12 10h.01" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M16 10h.01" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function LayoutList({ size = 20, color = '#526078', strokeWidth = 2, style }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <Rect x="3" y="5" width="6" height="6" rx="1" stroke={color} strokeWidth={strokeWidth} />
+      <Path d="M12 6h8" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M12 9h5" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Rect x="3" y="14" width="6" height="6" rx="1" stroke={color} strokeWidth={strokeWidth} />
+      <Path d="M12 15h8" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M12 18h5" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}

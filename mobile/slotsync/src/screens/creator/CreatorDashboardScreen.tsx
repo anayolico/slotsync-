@@ -8,13 +8,14 @@ import {
   ActivityIndicator, 
   RefreshControl,
   Animated,
-  Easing
+  Easing,
+  Platform
 } from 'react-native';
-import { colors, radii } from '../../theme/colors';
+import { colors, radii, shadows } from '../../theme/colors';
 import { getCreatorAppointments, getCreatorAvailabilityRules, getNotifications } from '../../services/api';
-
-import { Clock, Inbox, Calendar, ArrowRight, Bell } from '../../components/LucideIcons';
+import { Clock, Inbox, Calendar, ArrowRight, Bell, Sparkles, CheckCircle2 } from '../../components/LucideIcons';
 import NotificationsModal from '../../components/NotificationsModal';
+import AppBackground from '../../components/AppBackground';
 
 interface Props {
   currentUser: any;
@@ -116,16 +117,17 @@ export default function CreatorDashboardScreen({
   const pendingCount = appointments.filter(a => a.status === 'PENDING').length;
 
   return (
-    <ScrollView 
-      contentContainerStyle={styles.container}
+    <AppBackground variant="violet">
+      <ScrollView 
+        contentContainerStyle={styles.container}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
       showsVerticalScrollIndicator={false}
     >
       {/* Top Header Row: Welcome & Creator Badge */}
       <View style={styles.topBar}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.welcomeText}>WELCOME BACK,</Text>
-          <Text style={styles.userName}>{currentUser ? currentUser.full_name : 'Dr. Sarah Jenkins'}</Text>
+          <Text style={styles.welcomeText}>CREATOR PORTAL</Text>
+          <Text style={styles.userName}>{currentUser ? currentUser.full_name : 'Specialist Creator'}</Text>
         </View>
 
         <View style={styles.topBarRight}>
@@ -134,7 +136,7 @@ export default function CreatorDashboardScreen({
             onPress={() => setShowNotifModal(true)}
             activeOpacity={0.75}
           >
-            <Bell size={21} color="#334155" strokeWidth={2} />
+            <Bell size={20} color={colors.textMain} strokeWidth={2.2} />
             {unreadNotifCount > 0 && (
               <View style={styles.bellBadge}>
                 <Text style={styles.bellBadgeText}>
@@ -163,9 +165,9 @@ export default function CreatorDashboardScreen({
         }}
       />
 
-      {/* Analytics Card (Luminous Indigo Gradient with Floating Ambient Orb) */}
+      {/* Radiant Analytics Card (Luminous Indigo & Violet Gradient with Floating Ambient Orb) */}
       <View style={styles.heroGradientCard}>
-        {/* Animated Moving Orb in bottom right */}
+        {/* Animated Moving Orb */}
         <Animated.View 
           style={[
             styles.heroAnimatedOrb,
@@ -181,7 +183,10 @@ export default function CreatorDashboardScreen({
         />
 
         <View style={styles.heroHeader}>
-          <View />
+          <View style={styles.heroBadge}>
+            <Sparkles size={12} color="#ffffff" strokeWidth={2.4} />
+            <Text style={styles.heroBadgeText}>LIVE SCHEDULE ACTIVE</Text>
+          </View>
           <TouchableOpacity style={styles.heroDetailBtn} onPress={onNavigateToBookings} activeOpacity={0.8}>
             <Text style={styles.heroDetailBtnText}>View Bookings →</Text>
           </TouchableOpacity>
@@ -197,7 +202,7 @@ export default function CreatorDashboardScreen({
         <View style={styles.heroFooter}>
           <View style={styles.subMetric}>
             <Text style={styles.subValue}>{confirmedCount}</Text>
-            <Text style={styles.subLabel}>Confirmed / Done</Text>
+            <Text style={styles.subLabel}>Confirmed / Completed</Text>
           </View>
           <View style={styles.subMetricDivider} />
           <View style={styles.subMetric}>
@@ -211,7 +216,7 @@ export default function CreatorDashboardScreen({
       <View style={styles.rulesHeaderRow}>
         <View>
           <Text style={styles.rulesTitle}>Weekly Schedule Rules</Text>
-          <Text style={styles.rulesSubtitle}>Automated slot generation</Text>
+          <Text style={styles.rulesSubtitle}>Automated calendar slot generation</Text>
         </View>
         <TouchableOpacity style={styles.addRuleBtn} onPress={onNavigateToSchedule} activeOpacity={0.8}>
           <Text style={styles.addRuleBtnText}>+ Add Rule</Text>
@@ -230,7 +235,7 @@ export default function CreatorDashboardScreen({
                 </View>
                 <View>
                   <Text style={styles.ruleNameText}>{dayName} Working Hours</Text>
-                  <Text style={styles.ruleTimeText}>{rule.start_time} - {rule.end_time} ({creatorProfile.slot_duration_minutes || 30} min)</Text>
+                  <Text style={styles.ruleTimeText}>{rule.start_time} - {rule.end_time} ({creatorProfile.slot_duration_minutes || 30} min slots)</Text>
                 </View>
               </View>
               <View style={styles.activeGreenDot} />
@@ -252,12 +257,14 @@ export default function CreatorDashboardScreen({
         </View>
       )}
 
-      {/* Profile Configuration Card Panel */}
+      {/* Profile Configuration Glass Panel */}
       <View style={styles.cardPanel}>
         <Text style={styles.panelTitle}>Profile Configuration</Text>
         <View style={styles.profileRow}>
           <Text style={styles.profileLabel}>Category:</Text>
-          <Text style={styles.profileValue}>{creatorProfile.category || 'Doctor'}</Text>
+          <View style={styles.categoryPill}>
+            <Text style={styles.categoryPillText}>{creatorProfile.category || 'General'}</Text>
+          </View>
         </View>
         <View style={styles.profileRow}>
           <Text style={styles.profileLabel}>Professional Title:</Text>
@@ -265,7 +272,9 @@ export default function CreatorDashboardScreen({
         </View>
         <View style={styles.profileRow}>
           <Text style={styles.profileLabel}>Hourly Rate:</Text>
-          <Text style={[styles.profileValue, { color: colors.primary }]}>₦{creatorProfile.hourly_rate || 0}/hr</Text>
+          <Text style={[styles.profileValue, { color: colors.successDark, fontWeight: '900' }]}>
+            ₦{Number(creatorProfile.hourly_rate || 0).toLocaleString()}/hr
+          </Text>
         </View>
         <View style={styles.profileRow}>
           <Text style={styles.profileLabel}>Slot Duration:</Text>
@@ -278,32 +287,32 @@ export default function CreatorDashboardScreen({
       
       <View style={styles.actionsGrid}>
         <TouchableOpacity style={styles.actionCard} onPress={onNavigateToSchedule} activeOpacity={0.88}>
-          <View style={[styles.actionIconCircle, { backgroundColor: '#eef2ff' }]}>
-            <Clock size={24} color={colors.primary} />
+          <View style={[styles.actionIconCircle, { backgroundColor: colors.primaryWash }]}>
+            <Clock size={22} color={colors.primary} strokeWidth={2.2} />
           </View>
           <Text style={styles.actionTitle}>Weekly Schedule</Text>
-          <Text style={styles.actionSubtitle}>Configure working hours & day rules</Text>
+          <Text style={styles.actionSubtitle}>Configure working hours, breaks & day rules</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionCard} onPress={onNavigateToBookings} activeOpacity={0.88}>
-          <View style={[styles.actionIconCircle, { backgroundColor: '#ecfdf5' }]}>
-            <Inbox size={24} color="#10b981" />
+          <View style={[styles.actionIconCircle, { backgroundColor: colors.accentPurpleWash }]}>
+            <Inbox size={22} color={colors.accentViolet} strokeWidth={2.2} />
           </View>
           <Text style={styles.actionTitle}>Client Requests</Text>
-          <Text style={styles.actionSubtitle}>Approve, complete, or cancel bookings</Text>
+          <Text style={styles.actionSubtitle}>Approve, complete, or reschedule bookings</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
+  </AppBackground>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    backgroundColor: colors.bgApp,
-    paddingHorizontal: 20,
-    paddingTop: 48,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 22,
+    paddingTop: Platform.OS === 'ios' ? 48 : 24,
     paddingBottom: 40,
     gap: 16,
   },
@@ -316,21 +325,15 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 11,
     fontWeight: '800',
-    color: colors.textDim,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+    color: '#7C3AED',
+    letterSpacing: 1.2,
   },
   userName: {
     fontSize: 22,
     fontWeight: '900',
-    color: colors.textMain,
+    color: '#6D28D9',
     letterSpacing: -0.4,
     marginTop: 2,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   topBarRight: {
     flexDirection: 'row',
@@ -338,21 +341,22 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   bellBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#ffffff',
+    width: 40,
+    height: 40,
+    borderRadius: radii.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(226, 232, 240, 0.9)',
+    ...shadows.subtle,
     position: 'relative',
   },
   bellBadge: {
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: '#ef4444',
+    backgroundColor: colors.danger,
     minWidth: 18,
     height: 18,
     borderRadius: 9,
@@ -365,42 +369,38 @@ const styles = StyleSheet.create({
   bellBadgeText: {
     color: '#ffffff',
     fontSize: 9.5,
-    fontWeight: '800',
+    fontWeight: '900',
   },
   creatorBadge: {
-    backgroundColor: '#e0e7ff',
+    backgroundColor: colors.accentPurpleWash,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: radii.pill,
     borderWidth: 1.2,
-    borderColor: '#c7d2fe',
+    borderColor: 'rgba(124, 58, 237, 0.25)',
   },
   creatorBadgeText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#4338ca',
+    color: colors.accentViolet,
     letterSpacing: 0.8,
   },
   heroGradientCard: {
     backgroundColor: colors.primary,
-    borderRadius: 28,
+    borderRadius: radii.xl,
     padding: 22,
     position: 'relative',
     overflow: 'hidden',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    elevation: 8,
+    ...shadows.primaryGlow,
   },
   heroAnimatedOrb: {
     position: 'absolute',
     right: -20,
     bottom: -20,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(255, 255, 255, 0.28)',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
   },
   heroHeader: {
     flexDirection: 'row',
@@ -408,19 +408,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 16,
   },
-  heroIconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+  heroBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radii.pill,
   },
-  heroIconText: {
-    fontSize: 20,
+  heroBadgeText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
   },
   heroDetailBtn: {
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    backgroundColor: 'rgba(255, 255, 255, 0.24)',
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: radii.pill,
@@ -428,20 +432,20 @@ const styles = StyleSheet.create({
   heroDetailBtnText: {
     color: '#ffffff',
     fontSize: 11.5,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   heroMetrics: {
     marginBottom: 16,
   },
   heroValue: {
-    fontSize: 38,
+    fontSize: 40,
     fontWeight: '900',
     color: '#ffffff',
     letterSpacing: -1,
   },
   heroLabel: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.85)',
+    color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: '500',
     marginTop: 2,
   },
@@ -458,14 +462,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   subValue: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 19,
+    fontWeight: '900',
     color: '#ffffff',
   },
   subLabel: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.75)',
+    fontSize: 11.5,
+    color: 'rgba(255, 255, 255, 0.8)',
     marginTop: 1,
+    fontWeight: '500',
   },
   subMetricDivider: {
     width: 1,
@@ -482,23 +487,20 @@ const styles = StyleSheet.create({
   rulesTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.textMain,
+    color: colors.textHeading,
+    letterSpacing: -0.2,
   },
   rulesSubtitle: {
     fontSize: 12,
-    color: colors.textMuted,
+    color: colors.textDim,
     marginTop: 2,
   },
   addRuleBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accentViolet,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 12,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
+    borderRadius: radii.md,
+    ...shadows.violetGlow,
   },
   addRuleBtnText: {
     color: '#ffffff',
@@ -506,19 +508,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   scheduleRuleCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    borderRadius: radii.lg,
     padding: 14,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderWidth: 1.5,
+    borderColor: 'rgba(226, 232, 240, 0.95)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
+    ...shadows.subtle,
   },
   ruleCardLeft: {
     flexDirection: 'row',
@@ -526,52 +524,49 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   ruleDayCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#eef2ff',
+    width: 42,
+    height: 42,
+    borderRadius: radii.md,
+    backgroundColor: colors.accentPurpleWash,
     alignItems: 'center',
     justifyContent: 'center',
   },
   ruleDayText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.primary,
+    fontSize: 12.5,
+    fontWeight: '900',
+    color: colors.accentViolet,
   },
   ruleNameText: {
-    fontSize: 13.5,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
     color: colors.textMain,
   },
   ruleTimeText: {
-    fontSize: 11.5,
-    color: colors.textMuted,
+    fontSize: 12,
+    color: colors.textDim,
     marginTop: 2,
   },
   activeGreenDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10b981',
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: colors.success,
   },
   cardPanel: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    borderRadius: radii.xl,
     padding: 18,
-    borderWidth: 1,
-    borderColor: colors.borderColor,
-    gap: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
+    borderWidth: 1.5,
+    borderColor: 'rgba(226, 232, 240, 0.95)',
+    gap: 12,
+    ...shadows.card,
   },
   panelTitle: {
-    fontSize: 15,
+    fontSize: 15.5,
     fontWeight: '800',
-    color: colors.textMain,
-    marginBottom: 4,
+    color: colors.textHeading,
+    marginBottom: 2,
+    letterSpacing: -0.2,
   },
   profileRow: {
     flexDirection: 'row',
@@ -581,43 +576,49 @@ const styles = StyleSheet.create({
   profileLabel: {
     fontSize: 13,
     color: colors.textMuted,
+    fontWeight: '500',
   },
   profileValue: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '700',
     color: colors.textMain,
+  },
+  categoryPill: {
+    backgroundColor: colors.accentPurpleWash,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: radii.pill,
+  },
+  categoryPillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.accentViolet,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.textMain,
+    color: colors.textHeading,
     marginTop: 4,
+    letterSpacing: -0.2,
   },
   actionsGrid: {
     gap: 12,
   },
   actionCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.borderColor,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 10,
-    elevation: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderRadius: radii.xl,
+    padding: 18,
+    borderWidth: 1.5,
+    borderColor: 'rgba(226, 232, 240, 0.95)',
+    ...shadows.card,
   },
   actionIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 46,
+    height: 46,
+    borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
-  },
-  actionIcon: {
-    fontSize: 20,
   },
   actionTitle: {
     fontSize: 16,
@@ -625,9 +626,8 @@ const styles = StyleSheet.create({
     color: colors.textMain,
   },
   actionSubtitle: {
-    fontSize: 12,
-    color: colors.textMuted,
+    fontSize: 12.5,
+    color: colors.textDim,
     marginTop: 2,
   },
 });
-

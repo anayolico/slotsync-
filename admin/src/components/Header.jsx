@@ -4,7 +4,7 @@ import { Menu } from 'lucide-react';
 export default function Header({ pageTitle = "Admin Overview", currentUser, onLogout, onToggleMobileMenu }) {
   return (
     <header className="top-nav-bar">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      <div className="header-left-group" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         {/* Mobile Navigation Drawer Toggle */}
         <button 
           className="hamburger-toggle-btn" 

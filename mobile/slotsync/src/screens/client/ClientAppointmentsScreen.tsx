@@ -8,11 +8,13 @@ import {
   ActivityIndicator, 
   RefreshControl, 
   Alert,
-  Image
+  Image,
+  Platform
 } from 'react-native';
-import { colors, radii } from '../../theme/colors';
+import { colors, radii, shadows } from '../../theme/colors';
 import { getMyAppointments, updateAppointmentStatus } from '../../services/api';
-import { Calendar, Clock } from '../../components/LucideIcons';
+import { Calendar, Clock, Sparkles, CheckCircle2, AlertCircle, XCircle } from '../../components/LucideIcons';
+import AppBackground from '../../components/AppBackground';
 
 const STATUS_FILTERS = ['ALL', 'CONFIRMED', 'PENDING', 'COMPLETED', 'CANCELLED'];
 
@@ -46,9 +48,9 @@ export default function ClientAppointmentsScreen() {
   const handleCancelAppointment = (id: string) => {
     Alert.alert(
       'Cancel Booking',
-      'Are you sure you want to cancel this appointment?',
+      'Are you sure you want to cancel this appointment session?',
       [
-        { text: 'No', style: 'cancel' },
+        { text: 'No, Keep Slot', style: 'cancel' },
         { 
           text: 'Yes, Cancel', 
           style: 'destructive',
@@ -72,38 +74,38 @@ export default function ClientAppointmentsScreen() {
 
   const renderBadge = (status: string) => {
     const s = (status || 'PENDING').toUpperCase();
-    let bg = '#fff7ed';
-    let text = '#ea580c';
-    let label = 'AWAITING APPROVAL';
+    let bg = colors.warningBg;
+    let text = colors.warning;
+    let border = colors.warningBorder;
+    let label = 'PENDING';
 
     if (s === 'CONFIRMED') {
-      bg = '#ecfdf5';
-      text = '#059669';
+      bg = colors.successBg;
+      text = colors.success;
+      border = colors.successBorder;
       label = 'CONFIRMED';
     } else if (s === 'COMPLETED') {
-      bg = '#eff6ff';
-      text = '#2563eb';
+      bg = colors.infoBg;
+      text = colors.info;
+      border = colors.infoBorder;
       label = 'COMPLETED';
-    } else if (s === 'REJECTED') {
-      bg = '#fef2f2';
-      text = '#dc2626';
-      label = 'DECLINED';
-    } else if (s === 'CANCELLED') {
-      bg = '#fef2f2';
-      text = '#dc2626';
-      label = 'CANCELLED';
+    } else if (s === 'REJECTED' || s === 'CANCELLED') {
+      bg = colors.dangerBg;
+      text = colors.danger;
+      border = colors.dangerBorder;
+      label = s === 'REJECTED' ? 'DECLINED' : 'CANCELLED';
     }
 
     return (
-      <View style={[styles.badge, { backgroundColor: bg }]}>
-        <Text style={[styles.badgeText, { color: text, fontWeight: '700' }]}>{label}</Text>
+      <View style={[styles.badge, { backgroundColor: bg, borderColor: border }]}>
+        <Text style={[styles.badgeText, { color: text }]}>{label}</Text>
       </View>
     );
   };
 
   const renderItem = ({ item }: { item: any }) => {
     const creatorName = item.creator?.user?.full_name || item.creator?.title || 'Specialist Consultant';
-    const creatorRole = item.creator?.title || item.creator?.category || 'Professional';
+    const creatorRole = item.creator?.title || item.creator?.category || 'Professional Specialist';
     const avatarUrl = item.creator?.user?.avatar_url;
     const initials = creatorName
       .split(' ')
@@ -133,7 +135,7 @@ export default function ClientAppointmentsScreen() {
     const canCancel = isPending || isConfirmed;
 
     return (
-      <View style={styles.card}>
+      <View style={styles.appointmentCard}>
         {/* Card Header: Avatar, Name, Title, and Status Badge */}
         <View style={styles.cardHeader}>
           <View style={styles.avatarWrapper}>
@@ -150,7 +152,7 @@ export default function ClientAppointmentsScreen() {
             <Text style={styles.creatorName} numberOfLines={1}>{creatorName}</Text>
             <Text style={styles.creatorTitle} numberOfLines={1}>{creatorRole}</Text>
             <View style={styles.bookingIdRow}>
-              <Text style={styles.bookingIdText}>REF: #{(item.id || '').substring(0, 8).toUpperCase()}</Text>
+              <Text style={styles.bookingIdText}>REF #{String(item.id || '').substring(0, 8).toUpperCase()}</Text>
             </View>
           </View>
 
@@ -162,20 +164,20 @@ export default function ClientAppointmentsScreen() {
         {/* Schedule Info Box */}
         <View style={styles.scheduleBox}>
           <View style={styles.scheduleItem}>
-            <Calendar size={15} color={colors.primary} />
+            <Calendar size={15} color={colors.primary} strokeWidth={2.2} />
             <Text style={styles.scheduleDateText}>{dateFormatted}</Text>
           </View>
           <View style={styles.scheduleDivider} />
           <View style={styles.scheduleItem}>
-            <Clock size={15} color="#64748b" />
-            <Text style={styles.scheduleTimeText}>{timeFormatted} (UTC)</Text>
+            <Clock size={15} color={colors.textDim} strokeWidth={2.2} />
+            <Text style={styles.scheduleTimeText}>{timeFormatted}</Text>
           </View>
         </View>
 
         {/* Client Notes if any */}
         {item.notes ? (
           <View style={styles.notesBox}>
-            <Text style={styles.notesLabel}>Your Note:</Text>
+            <Text style={styles.notesLabel}>Your Consultation Note:</Text>
             <Text style={styles.notesText}>"{item.notes}"</Text>
           </View>
         ) : null}
@@ -199,13 +201,13 @@ export default function ClientAppointmentsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <AppBackground variant="indigo" style={styles.container}>
       <View style={styles.topHeader}>
-        <Text style={styles.title}>My Appointments</Text>
-        <Text style={styles.subtitle}>Track your booked consultations and schedules</Text>
+        <Text style={styles.title}>My Bookings</Text>
+        <Text style={styles.subtitle}>Track your upcoming sessions and consultation history</Text>
       </View>
 
-      {/* Filter Row */}
+      {/* Status Filter Horizontal Tabs */}
       <View style={styles.filterSection}>
         <FlatList
           horizontal
@@ -219,6 +221,7 @@ export default function ClientAppointmentsScreen() {
               <TouchableOpacity
                 style={[styles.filterPill, isActive && styles.filterPillActive]}
                 onPress={() => setStatusFilter(item)}
+                activeOpacity={0.8}
               >
                 <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>
                   {item}
@@ -236,9 +239,11 @@ export default function ClientAppointmentsScreen() {
         </View>
       ) : filteredAppointments.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Text style={styles.emptyEmoji}>📋</Text>
+          <View style={styles.emptyIconCircle}>
+            <Calendar size={32} color={colors.primary} />
+          </View>
           <Text style={styles.emptyTitle}>No appointments found</Text>
-          <Text style={styles.emptySubtitle}>You don't have any bookings matching this status.</Text>
+          <Text style={styles.emptySubtitle}>You don't have any bookings matching this status filter.</Text>
         </View>
       ) : (
         <FlatList
@@ -246,78 +251,79 @@ export default function ClientAppointmentsScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
           }
         />
       )}
-    </View>
+    </AppBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bgApp,
-    paddingTop: 50,
+    backgroundColor: 'transparent',
+    paddingTop: Platform.OS === 'ios' ? 48 : 24,
   },
   topHeader: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
+    paddingHorizontal: 22,
+    marginBottom: 14,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.textMain,
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#3730A3',
+    letterSpacing: -0.4,
   },
   subtitle: {
     fontSize: 13,
-    color: colors.textMuted,
-    marginTop: 2,
+    color: colors.textDim,
+    marginTop: 3,
   },
   filterSection: {
     marginBottom: 14,
   },
   filterList: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 22,
     gap: 8,
   },
   filterPill: {
-    backgroundColor: colors.bgCard,
-    borderColor: colors.borderColor,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderColor: 'rgba(226, 232, 240, 0.95)',
+    borderWidth: 1.5,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
     borderRadius: radii.pill,
+    ...shadows.subtle,
   },
   filterPillActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
+    ...shadows.primaryGlow,
   },
   filterPillText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.textMuted,
+    letterSpacing: 0.3,
   },
   filterPillTextActive: {
     color: '#ffffff',
   },
   listContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 30,
+    paddingHorizontal: 22,
+    paddingBottom: 40,
     gap: 14,
   },
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#4f46e5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 2,
+  appointmentCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderRadius: radii.xl,
+    padding: 18,
+    borderWidth: 1.5,
+    borderColor: 'rgba(226, 232, 240, 0.95)',
+    ...shadows.card,
     gap: 12,
   },
   cardHeader: {
@@ -329,47 +335,47 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   avatarPhoto: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    backgroundColor: '#f1f5f9',
+    width: 48,
+    height: 48,
+    borderRadius: radii.md,
+    backgroundColor: colors.bgSubtle,
   },
   avatarCircle: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
+    width: 48,
+    height: 48,
+    borderRadius: radii.md,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarLetter: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
   },
   creatorInfo: {
     flex: 1,
   },
   creatorName: {
-    fontSize: 15.5,
+    fontSize: 16,
     fontWeight: '800',
-    color: '#0f172a',
+    color: colors.textMain,
     letterSpacing: -0.2,
   },
   creatorTitle: {
     fontSize: 12.5,
     fontWeight: '600',
-    color: '#64748b',
+    color: colors.textDim,
     marginTop: 1,
   },
   bookingIdRow: {
-    marginTop: 3,
+    marginTop: 2,
   },
   bookingIdText: {
     fontSize: 10,
-    fontWeight: '700',
-    color: '#94a3b8',
-    letterSpacing: 0.4,
+    fontWeight: '800',
+    color: colors.primary,
+    letterSpacing: 0.5,
   },
   badgeWrapper: {
     alignSelf: 'flex-start',
@@ -378,19 +384,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: radii.pill,
+    borderWidth: 1,
   },
   badgeText: {
-    fontSize: 10.5,
-    fontWeight: '800',
-    letterSpacing: 0.2,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   scheduleBox: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.primaryWash,
     paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    paddingHorizontal: 14,
+    borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: 'rgba(99, 102, 241, 0.15)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -403,35 +410,35 @@ const styles = StyleSheet.create({
   scheduleDivider: {
     width: 1,
     height: 16,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: 'rgba(99, 102, 241, 0.25)',
   },
   scheduleDateText: {
     fontSize: 12.5,
-    fontWeight: '700',
-    color: '#1e293b',
+    fontWeight: '800',
+    color: colors.textMain,
   },
   scheduleTimeText: {
     fontSize: 12.5,
-    fontWeight: '600',
-    color: '#475569',
+    fontWeight: '700',
+    color: colors.textMuted,
   },
   notesBox: {
-    backgroundColor: '#fffbeb',
-    borderRadius: 10,
+    backgroundColor: colors.warningBg,
+    borderRadius: radii.sm,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#fef3c7',
+    borderColor: colors.warningBorder,
   },
   notesLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#b45309',
+    color: colors.warningDark,
     textTransform: 'uppercase',
     marginBottom: 2,
   },
   notesText: {
-    fontSize: 12,
-    color: '#78350f',
+    fontSize: 12.5,
+    color: '#78350F',
     fontStyle: 'italic',
   },
   actionRow: {
@@ -441,39 +448,47 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 10,
-    backgroundColor: '#fee2e2',
+    paddingVertical: 8,
+    borderRadius: radii.sm,
+    backgroundColor: colors.dangerBg,
+    borderWidth: 1,
+    borderColor: colors.dangerBorder,
   },
   cancelButtonText: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#dc2626',
+    fontWeight: '800',
+    color: colors.danger,
   },
   centerContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 40,
+    gap: 10,
+  },
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.primaryWash,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
   },
   loadingText: {
-    fontSize: 13,
+    fontSize: 13.5,
     color: colors.textMuted,
     marginTop: 10,
   },
-  emptyEmoji: {
-    fontSize: 36,
-    marginBottom: 10,
-  },
   emptyTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
     color: colors.textMain,
   },
   emptySubtitle: {
-    fontSize: 12,
-    color: colors.textMuted,
+    fontSize: 13,
+    color: colors.textDim,
     textAlign: 'center',
-    marginTop: 4,
+    lineHeight: 18,
   },
 });

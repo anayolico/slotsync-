@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
-  FlatList, 
-  ActivityIndicator, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  ActivityIndicator,
   RefreshControl,
   ScrollView,
-  Image
+  Image,
+  Platform
 } from 'react-native';
-import { colors, radii } from '../../theme/colors';
+import { colors, radii, shadows } from '../../theme/colors';
 import { getCreators, getNotifications } from '../../services/api';
-import { Star, Bookmark, Clock, ChevronRight, CheckCircle2, Bell } from '../../components/LucideIcons';
+import { Star, Bookmark, Clock, ChevronRight, CheckCircle2, Bell, Search, Sparkles } from '../../components/LucideIcons';
 import NotificationsModal from '../../components/NotificationsModal';
+import AppBackground from '../../components/AppBackground';
 
 interface Props {
   onSelectCreator: (creator: any) => void;
@@ -23,19 +25,21 @@ interface Props {
 }
 
 const CATEGORY_ITEMS = [
-  { label: 'ALL', key: 'ALL', color: '#4f46e5', bg: '#4f46e5', text: '#ffffff' },
-  { label: 'Doctor', key: 'Doctor', color: '#0d9488', bg: '#f0fdfa', text: '#0f766e', border: '#bbf7d0' },
-  { label: 'Lawyer', key: 'Lawyer', color: '#059669', bg: '#ecfdf5', text: '#047857', border: '#a7f3d0' },
-  { label: 'Barber', key: 'Barber', color: '#e11d48', bg: '#fff1f2', text: '#be123c', border: '#fecdd3' },
-  { label: 'Consultant', key: 'Consultant', color: '#d97706', bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
-  { label: 'Fitness', key: 'Fitness', color: '#0284c7', bg: '#f0f9ff', text: '#0369a1', border: '#bae6fd' },
-  { label: 'General', key: 'General', color: '#64748b', bg: '#f8fafc', text: '#334155', border: '#e2e8f0' },
+  { label: 'ALL', key: 'ALL', color: '#4F46E5', bg: '#EEF2FF', text: '#4F46E5', border: '#C7D2FE' },
+  { label: 'Doctor', key: 'Doctor', color: '#0D9488', bg: '#F0FDFA', text: '#0F766E', border: '#99F6E4' },
+  { label: 'Lawyer', key: 'Lawyer', color: '#059669', bg: '#ECFDF5', text: '#047857', border: '#A7F3D0' },
+  { label: 'Barber', key: 'Barber', color: '#E11D48', bg: '#FFF1F2', text: '#BE123C', border: '#FECDD3' },
+  { label: 'Consultant', key: 'Consultant', color: '#D97706', bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' },
+  { label: 'Fitness', key: 'Fitness', color: '#0284C7', bg: '#F0F9FF', text: '#0369A1', border: '#BAE6FD' },
+  { label: 'Beauty', key: 'Beauty', color: '#EC4899', bg: '#FDF2F8', text: '#BE185D', border: '#FBCFE8' },
+  { label: 'General', key: 'General', color: '#6366F1', bg: '#EEF2FF', text: '#4338CA', border: '#C7D2FE' },
 ];
 
 export default function ClientHomeScreen({ onSelectCreator, currentUser, onNavigateToBookings }: Props) {
   const [creators, setCreators] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [bookmarked, setBookmarked] = useState<Record<string, boolean>>({});
@@ -89,13 +93,13 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser, onNavig
   const getCategoryTheme = (cat?: string) => {
     const found = CATEGORY_ITEMS.find(c => c.key.toLowerCase() === (cat || '').toLowerCase());
     if (found) return found;
-    return CATEGORY_ITEMS[6]; // General fallback
+    return CATEGORY_ITEMS[7]; // General fallback
   };
 
   const renderCreatorCard = ({ item }: { item: any }) => {
     const catTheme = getCategoryTheme(item.category);
     const creatorName = item.user?.full_name || item.title || 'Specialist Creator';
-    const creatorRole = item.title || item.category || 'Professional Consultant';
+    const creatorRole = item.title || item.category || 'Professional Specialist';
     const avatarUrl = item.user?.avatar_url;
     const initials = creatorName
       .split(' ')
@@ -112,7 +116,7 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser, onNavig
         onPress={() => onSelectCreator(item)}
       >
         <View style={styles.cardHeader}>
-          {/* Avatar with real photo or clean monogram + verified badge */}
+          {/* Avatar with photo or vibrant monogram + verified check */}
           <View style={styles.avatarWrapper}>
             {avatarUrl ? (
               <Image source={{ uri: avatarUrl }} style={styles.avatarPhoto} />
@@ -122,7 +126,7 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser, onNavig
               </View>
             )}
             <View style={styles.verifiedBadge}>
-              <CheckCircle2 size={13} color="#ffffff" strokeWidth={2.6} />
+              <CheckCircle2 size={13} color="#ffffff" strokeWidth={2.8} />
             </View>
           </View>
 
@@ -134,10 +138,11 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser, onNavig
                 style={styles.bookmarkBtn}
                 onPress={() => toggleBookmark(item.id)}
                 activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Bookmark 
                   size={18} 
-                  color={isBookmarked ? colors.primary : '#94a3b8'} 
+                  color={isBookmarked ? colors.primary : colors.textDim} 
                   fill={isBookmarked ? colors.primary : 'none'} 
                 />
               </TouchableOpacity>
@@ -146,15 +151,10 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser, onNavig
             <Text style={styles.creatorTitle} numberOfLines={1}>{creatorRole}</Text>
 
             <View style={styles.metaRow}>
-              <View style={[styles.categoryBadge, { backgroundColor: catTheme.bg, borderColor: catTheme.border || '#cbd5e1' }]}>
+              <View style={[styles.categoryBadge, { backgroundColor: catTheme.bg, borderColor: catTheme.border }]}>
                 <Text style={[styles.categoryBadgeText, { color: catTheme.text }]}>
                   {item.category || 'General'}
                 </Text>
-              </View>
-              <View style={styles.ratingBadge}>
-                <Star size={13} color="#f59e0b" fill="#f59e0b" />
-                <Text style={styles.ratingValue}>4.9</Text>
-                <Text style={styles.ratingCount}>(128)</Text>
               </View>
             </View>
           </View>
@@ -162,7 +162,7 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser, onNavig
 
         {/* Short Bio */}
         <Text style={styles.creatorBio} numberOfLines={2}>
-          {item.bio || 'Available for professional consultation and schedule slot bookings.'}
+          {item.bio || 'Available for professional consultation and verified schedule slot bookings.'}
         </Text>
 
         <View style={styles.cardDivider} />
@@ -171,7 +171,7 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser, onNavig
         <View style={styles.cardFooter}>
           <View style={styles.footerMeta}>
             <View style={styles.durationRow}>
-              <Clock size={13} color="#64748b" />
+              <Clock size={13} color={colors.textDim} strokeWidth={2} />
               <Text style={styles.durationText}>{item.slot_duration_minutes || 30} mins</Text>
             </View>
             <View style={styles.priceContainer}>
@@ -185,11 +185,11 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser, onNavig
           {/* Book Slot CTA Button */}
           <TouchableOpacity 
             style={styles.bookSlotBtn}
-            activeOpacity={0.82}
+            activeOpacity={0.85}
             onPress={() => onSelectCreator(item)}
           >
             <Text style={styles.bookSlotBtnText}>Book Session</Text>
-            <ChevronRight size={15} color="#ffffff" strokeWidth={2.5} />
+            <ChevronRight size={15} color="#ffffff" strokeWidth={2.6} />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -197,14 +197,13 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser, onNavig
   };
 
   return (
-    <View style={styles.container}>
-      {/* Top Welcome Header Bar (Stitch Screen 3 Alignment) */}
+    <AppBackground variant="default" style={styles.container}>
+      {/* Top Welcome Header Bar */}
       <View style={styles.topBar}>
         <View>
-          <Text style={styles.welcomeText}>Welcome back,</Text>
+          <Text style={styles.welcomeText}>WELCOME BACK,</Text>
           <View style={styles.nameRow}>
-            <Text style={styles.userName}>{currentUser ? currentUser.full_name : 'Anayolico'}</Text>
-            <View style={styles.onlineDot} />
+            <Text style={styles.userName}>{currentUser ? currentUser.full_name : 'Specialist Client'}</Text>
           </View>
         </View>
 
@@ -214,7 +213,7 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser, onNavig
             onPress={() => setShowNotifModal(true)}
             activeOpacity={0.75}
           >
-            <Bell size={21} color="#334155" strokeWidth={2} />
+            <Bell size={20} color={colors.textMain} strokeWidth={2.2} />
             {unreadNotifCount > 0 && (
               <View style={styles.bellBadge}>
                 <Text style={styles.bellBadgeText}>
@@ -229,25 +228,28 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser, onNavig
         </View>
       </View>
 
-      {/* Clean Search Bar (Without left/right icons) */}
-      <View style={styles.searchBox}>
+      {/* Glass Search Bar */}
+      <View style={[styles.searchBox, searchFocused && styles.searchBoxFocused]}>
+        <Search size={18} color={searchFocused ? colors.primary : colors.textDim} strokeWidth={2.2} />
         <TextInput
           style={styles.searchInputClean}
-          placeholder="Search doctor, lawyer, barber..."
+          placeholder="Search doctor, lawyer, barber, coach..."
           placeholderTextColor={colors.textDim}
           value={searchQuery}
           onChangeText={setSearchQuery}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
           onSubmitEditing={handleSearchSubmit}
           returnKeyType="search"
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => { setSearchQuery(''); fetchCreators(); }}>
+          <TouchableOpacity onPress={() => { setSearchQuery(''); fetchCreators(); }} style={styles.clearSearchTouch}>
             <Text style={styles.clearSearch}>✕</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Category Chips (Clean text-only without emojis) */}
+      {/* Category Chips Scroll */}
       <View style={styles.categorySection}>
         <ScrollView 
           horizontal 
@@ -261,7 +263,11 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser, onNavig
                 key={cat.key}
                 style={[
                   styles.categoryChip,
-                  { backgroundColor: isActive ? colors.primary : cat.bg, borderColor: isActive ? colors.primary : (cat.border || colors.borderColor) }
+                  { 
+                    backgroundColor: isActive ? cat.color : cat.bg, 
+                    borderColor: isActive ? cat.color : cat.border 
+                  },
+                  isActive && shadows.primaryGlow
                 ]}
                 activeOpacity={0.8}
                 onPress={() => setSelectedCategory(cat.key)}
@@ -300,7 +306,6 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser, onNavig
         </View>
       ) : creators.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>🩺</Text>
           <Text style={styles.emptyTitle}>No specialists found</Text>
           <Text style={styles.emptySubtitle}>Try selecting another category or clear your search query.</Text>
         </View>
@@ -310,34 +315,34 @@ export default function ClientHomeScreen({ onSelectCreator, currentUser, onNavig
           keyExtractor={(item) => item.id}
           renderItem={renderCreatorCard}
           contentContainerStyle={styles.creatorsList}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
           }
         />
       )}
-    </View>
+    </AppBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bgApp,
-    paddingTop: 48,
+    backgroundColor: 'transparent',
+    paddingTop: Platform.OS === 'ios' ? 48 : 24,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginBottom: 14,
+    paddingHorizontal: 22,
+    marginBottom: 16,
   },
   welcomeText: {
     fontSize: 11,
     fontWeight: '800',
-    color: colors.textDim,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+    color: '#4F46E5',
+    letterSpacing: 1.2,
   },
   nameRow: {
     flexDirection: 'row',
@@ -348,15 +353,15 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 22,
     fontWeight: '900',
-    color: colors.textMain,
+    color: '#3730A3',
     letterSpacing: -0.4,
   },
   onlineDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#10b981',
-    borderWidth: 2,
+    backgroundColor: colors.success,
+    borderWidth: 1.5,
     borderColor: '#ffffff',
   },
   headerRight: {
@@ -365,21 +370,22 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   bellBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#ffffff',
+    width: 40,
+    height: 40,
+    borderRadius: radii.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(226, 232, 240, 0.9)',
+    ...shadows.subtle,
     position: 'relative',
   },
   bellBadge: {
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: '#ef4444',
+    backgroundColor: colors.danger,
     minWidth: 18,
     height: 18,
     borderRadius: 9,
@@ -392,15 +398,15 @@ const styles = StyleSheet.create({
   bellBadgeText: {
     color: '#ffffff',
     fontSize: 9.5,
-    fontWeight: '800',
+    fontWeight: '900',
   },
   clientRoleBadge: {
-    backgroundColor: '#eef2ff',
+    backgroundColor: colors.primaryWash,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: radii.pill,
     borderWidth: 1,
-    borderColor: '#c7d2fe',
+    borderColor: 'rgba(99, 102, 241, 0.25)',
   },
   clientRoleBadgeText: {
     fontSize: 11,
@@ -411,19 +417,21 @@ const styles = StyleSheet.create({
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 18,
-    marginHorizontal: 20,
-    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderRadius: radii.lg,
+    marginHorizontal: 22,
+    paddingHorizontal: 14,
     height: 48,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderWidth: 1.5,
+    borderColor: 'rgba(226, 232, 240, 0.9)',
     marginBottom: 14,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    gap: 10,
+    ...shadows.subtle,
+  },
+  searchBoxFocused: {
+    borderColor: colors.primary,
+    backgroundColor: '#FFFFFF',
+    ...shadows.card,
   },
   searchInputClean: {
     flex: 1,
@@ -431,57 +439,45 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: colors.textMain,
   },
+  clearSearchTouch: {
+    padding: 4,
+  },
   clearSearch: {
     color: colors.textDim,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
-    padding: 4,
-  },
-  filterBtn: {
-    padding: 4,
-  },
-  filterIcon: {
-    fontSize: 15,
   },
   categorySection: {
     marginBottom: 14,
   },
   categoriesList: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 22,
     gap: 8,
   },
   categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: 15,
+    paddingVertical: 7.5,
     borderRadius: radii.pill,
-    borderWidth: 1,
-  },
-  chipIcon: {
-    fontSize: 13,
+    borderWidth: 1.5,
   },
   categoryChipText: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 12.5,
+    fontWeight: '800',
   },
   creatorsList: {
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-    gap: 14,
+    paddingHorizontal: 22,
+    paddingBottom: 40,
+    gap: 16,
   },
   creatorCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 24,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#4f46e5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderRadius: radii.xl,
+    padding: 18,
+    borderWidth: 1.5,
+    borderColor: 'rgba(226, 232, 240, 0.95)',
+    ...shadows.card,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -495,13 +491,13 @@ const styles = StyleSheet.create({
   avatarPhoto: {
     width: 52,
     height: 52,
-    borderRadius: 16,
-    backgroundColor: '#f1f5f9',
+    borderRadius: radii.md,
+    backgroundColor: colors.bgSubtle,
   },
   avatarCircle: {
     width: 52,
     height: 52,
-    borderRadius: 16,
+    borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -517,7 +513,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#10b981',
+    backgroundColor: colors.success,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -535,73 +531,58 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '800',
-    color: '#0f172a',
+    color: colors.textMain,
     letterSpacing: -0.2,
   },
   creatorTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748b',
+    color: colors.textDim,
     marginTop: 1,
     marginBottom: 4,
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 3,
+    marginTop: 2,
   },
   categoryBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingVertical: 2.5,
+    borderRadius: radii.xs,
     borderWidth: 1,
   },
   categoryBadgeText: {
     fontSize: 10.5,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-  },
-  starIcon: {
-    color: '#f59e0b',
-    fontSize: 12,
+    gap: 3,
   },
   ratingValue: {
     fontSize: 11.5,
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.textMain,
   },
   ratingCount: {
-    fontSize: 10.5,
+    fontSize: 11,
     color: colors.textDim,
   },
   bookmarkBtn: {
-    padding: 6,
-  },
-  bookmarkIcon: {
-    fontSize: 16,
-    opacity: 0.4,
-  },
-  bookmarkIconActive: {
-    opacity: 1,
+    padding: 4,
   },
   creatorBio: {
-    fontSize: 12.5,
+    fontSize: 13,
     color: colors.textMuted,
-    lineHeight: 18,
+    lineHeight: 18.5,
     marginBottom: 12,
   },
   cardDivider: {
     height: 1,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: colors.borderLight,
     marginBottom: 12,
   },
   cardFooter: {
@@ -619,47 +600,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  clockIcon: {
-    fontSize: 12,
-  },
   durationText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.textMuted,
+    color: colors.textDim,
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
   },
   rateText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: colors.success,
+    fontSize: 15.5,
+    fontWeight: '900',
+    color: colors.successDark,
   },
   rateUnit: {
     fontSize: 11,
-    fontWeight: '600',
-    color: '#047857',
+    fontWeight: '700',
+    color: colors.success,
   },
   bookSlotBtn: {
     backgroundColor: colors.primary,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: radii.md,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3,
+    ...shadows.primaryGlow,
   },
   bookSlotBtnText: {
     color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  bookSlotBtnArrow: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 12.5,
+    fontWeight: '800',
   },
   loadingContainer: {
     flex: 1,
@@ -668,19 +641,26 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   loadingText: {
-    fontSize: 13,
+    fontSize: 13.5,
     color: colors.textMuted,
     marginTop: 12,
+    fontWeight: '500',
   },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 40,
+    gap: 10,
   },
-  emptyIcon: {
-    fontSize: 40,
-    marginBottom: 12,
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.primaryWash,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
   },
   emptyTitle: {
     fontSize: 18,
@@ -689,9 +669,8 @@ const styles = StyleSheet.create({
   },
   emptySubtitle: {
     fontSize: 13,
-    color: colors.textMuted,
+    color: colors.textDim,
     textAlign: 'center',
-    marginTop: 4,
+    lineHeight: 18,
   },
 });
-

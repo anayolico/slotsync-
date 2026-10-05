@@ -7,10 +7,24 @@ import {
   TouchableOpacity, 
   TextInput, 
   ActivityIndicator, 
-  Alert 
+  Alert,
+  Platform,
+  Image
 } from 'react-native';
-import { colors, radii } from '../../theme/colors';
+import { colors, radii, shadows } from '../../theme/colors';
 import { getAvailableSlots, createAppointment } from '../../services/api';
+import { 
+  ChevronLeft, 
+  Calendar, 
+  Clock, 
+  Check, 
+  Star, 
+  CheckCircle2, 
+  MapPin, 
+  Sparkles,
+  ArrowRight
+} from '../../components/LucideIcons';
+import AppBackground from '../../components/AppBackground';
 
 interface Props {
   creator: any;
@@ -27,7 +41,7 @@ export default function CreatorDetailScreen({ creator, onBack, onBookingSuccess 
       const d = new Date(today);
       d.setDate(today.getDate() + i);
       const iso = d.toISOString().split('T')[0];
-      const dayName = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-US', { weekday: 'short' });
+      const dayName = i === 0 ? 'Today' : i === 1 ? 'Tmrw' : d.toLocaleDateString('en-US', { weekday: 'short' });
       const displayDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       dates.push({ iso, dayName, displayDate });
     }
@@ -68,7 +82,7 @@ export default function CreatorDetailScreen({ creator, onBack, onBookingSuccess 
       await createAppointment(creator.id, selectedSlot.start_time_utc, notes);
       Alert.alert(
         '🎉 Appointment Confirmed!',
-        `Your slot with ${creator.title || 'Creator'} has been booked.`,
+        `Your consultation session with ${creator.title || creator.user?.full_name || 'Creator'} has been booked.`,
         [{ text: 'View My Appointments', onPress: onBookingSuccess }]
       );
     } catch (err: any) {
@@ -78,225 +92,359 @@ export default function CreatorDetailScreen({ creator, onBack, onBookingSuccess 
     }
   };
 
+  const creatorName = creator.user?.full_name || creator.title || 'Specialist Creator';
+  const creatorRole = creator.title || creator.category || 'Professional Specialist';
+  const avatarUrl = creator.user?.avatar_url;
+  const initials = creatorName
+    .split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'CR';
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* Navigation Top Bar */}
-      <TouchableOpacity style={styles.backButton} onPress={onBack}>
-        <Text style={styles.backButtonText}>← Back to Creators</Text>
-      </TouchableOpacity>
+    <AppBackground variant="default" style={styles.outerWrapper}>
+      {/* Top Floating Back Button */}
+      <View style={styles.topNavigation}>
+        <TouchableOpacity 
+          style={styles.backButtonCircle} 
+          onPress={onBack}
+          activeOpacity={0.7}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <ChevronLeft size={20} color={colors.textMain} strokeWidth={2.5} />
+        </TouchableOpacity>
+        <Text style={styles.topNavTitle}>Book Session</Text>
+        <View style={{ width: 42 }} />
+      </View>
 
-      {/* Creator Hero Header Card */}
-      <View style={styles.creatorHeroCard}>
-        <View style={styles.avatarLarge}>
-          <Text style={styles.avatarLetter}>
-            {creator.title ? creator.title.charAt(0).toUpperCase() : 'C'}
+      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        {/* Creator Hero Header Card */}
+        <View style={styles.creatorHeroCard}>
+          <View style={styles.avatarLargeWrapper}>
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarLargePhoto} />
+            ) : (
+              <View style={styles.avatarLargeCircle}>
+                <Text style={styles.avatarLargeLetter}>{initials}</Text>
+              </View>
+            )}
+            <View style={styles.verifiedBadgeLarge}>
+              <CheckCircle2 size={16} color="#ffffff" strokeWidth={3} />
+            </View>
+          </View>
+
+          <Text style={styles.creatorTitle}>{creatorName}</Text>
+          <Text style={styles.creatorCategory}>{creatorRole}</Text>
+          
+          <View style={styles.ratingRow}>
+            <Star size={14} color="#F59E0B" fill="#F59E0B" />
+            <Text style={styles.ratingValue}>4.9</Text>
+            <Text style={styles.ratingCount}>(128 reviews)</Text>
+            <View style={styles.dotSeparator} />
+            <View style={styles.categoryPill}>
+              <Text style={styles.categoryPillText}>{creator.category || 'General'}</Text>
+            </View>
+          </View>
+
+          <Text style={styles.creatorBio}>
+            {creator.bio || 'Available for professional consultation and schedule slot bookings on SlotSync.'}
           </Text>
-        </View>
-        <Text style={styles.creatorTitle}>{creator.title || 'Creator Profile'}</Text>
-        <Text style={styles.creatorCategory}>{creator.category || 'General Service'}</Text>
-        
-        <Text style={styles.creatorBio}>{creator.bio || 'No bio provided for this creator.'}</Text>
 
-        <View style={styles.metaRow}>
-          <View style={styles.metaChip}>
-            <Text style={styles.metaLabel}>HOURLY RATE</Text>
-            <Text style={styles.metaValue}>₦{creator.hourly_rate || 0}/hr</Text>
-          </View>
-          <View style={styles.metaChip}>
-            <Text style={styles.metaLabel}>SLOT LENGTH</Text>
-            <Text style={styles.metaValue}>{creator.slot_duration_minutes || 30} mins</Text>
-          </View>
-          <View style={styles.metaChip}>
-            <Text style={styles.metaLabel}>TIMEZONE</Text>
-            <Text style={styles.metaValue}>{creator.timezone || 'UTC'}</Text>
+          <View style={styles.metaRow}>
+            <View style={styles.metaChip}>
+              <Text style={styles.metaLabel}>RATE</Text>
+              <Text style={styles.metaValue}>₦{Number(creator.hourly_rate || 0).toLocaleString()}/hr</Text>
+            </View>
+            <View style={styles.metaChip}>
+              <Text style={styles.metaLabel}>DURATION</Text>
+              <Text style={styles.metaValue}>{creator.slot_duration_minutes || 30} mins</Text>
+            </View>
+            <View style={styles.metaChip}>
+              <Text style={styles.metaLabel}>TIMEZONE</Text>
+              <Text style={styles.metaValue}>{creator.timezone || 'UTC'}</Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* Date Selector */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>1. Select Booking Date</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.datesRow}>
-          {datesList.map((item) => {
-            const isSelected = selectedDate === item.iso;
-            return (
-              <TouchableOpacity
-                key={item.iso}
-                style={[styles.dateCard, isSelected && styles.dateCardSelected]}
-                onPress={() => setSelectedDate(item.iso)}
-              >
-                <Text style={[styles.dayName, isSelected && styles.dateTextSelected]}>{item.dayName}</Text>
-                <Text style={[styles.displayDate, isSelected && styles.dateTextSelected]}>{item.displayDate}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* Time Slots Selector */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>2. Choose Available Time Slot</Text>
-
-        {loadingSlots ? (
-          <View style={styles.slotsLoading}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={styles.loadingText}>Calculating available slots from backend...</Text>
+        {/* Date Selector */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <Calendar size={18} color={colors.primary} strokeWidth={2.2} />
+            <Text style={styles.sectionTitle}>1. Select Date</Text>
           </View>
-        ) : slots.length === 0 ? (
-          <View style={styles.noSlotsBox}>
-            <Text style={styles.noSlotsEmoji}>📅</Text>
-            <Text style={styles.noSlotsTitle}>No slots available on this date</Text>
-            <Text style={styles.noSlotsSubtitle}>Select another date above to view open consultation slots.</Text>
-          </View>
-        ) : (
-          <View style={styles.slotsGrid}>
-            {slots.map((slot, index) => {
-              const isSelected = selectedSlot?.start_time_utc === slot.start_time_utc;
-              const formattedTime = new Date(slot.start_time_utc).toLocaleTimeString([], { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              });
-
+          
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.datesRow}>
+            {datesList.map((item) => {
+              const isSelected = selectedDate === item.iso;
               return (
                 <TouchableOpacity
-                  key={index}
-                  style={[styles.slotChip, isSelected && styles.slotChipSelected]}
-                  onPress={() => setSelectedSlot(slot)}
+                  key={item.iso}
+                  style={[styles.dateCard, isSelected && styles.dateCardSelected]}
+                  onPress={() => setSelectedDate(item.iso)}
+                  activeOpacity={0.8}
                 >
-                  <Text style={[styles.slotTimeText, isSelected && styles.slotTimeTextSelected]}>
-                    {formattedTime}
-                  </Text>
+                  <Text style={[styles.dayName, isSelected && styles.dateTextSelected]}>{item.dayName}</Text>
+                  <Text style={[styles.displayDate, isSelected && styles.dateTextSelected]}>{item.displayDate}</Text>
                 </TouchableOpacity>
               );
             })}
+          </ScrollView>
+        </View>
+
+        {/* Time Slots Selector */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <Clock size={18} color={colors.primary} strokeWidth={2.2} />
+            <Text style={styles.sectionTitle}>2. Choose Available Time Slot</Text>
+          </View>
+
+          {loadingSlots ? (
+            <View style={styles.slotsLoading}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={styles.loadingText}>Fetching available slots...</Text>
+            </View>
+          ) : slots.length === 0 ? (
+            <View style={styles.noSlotsBox}>
+              <Calendar size={28} color={colors.primaryLight} />
+              <Text style={styles.noSlotsTitle}>No slots available on this date</Text>
+              <Text style={styles.noSlotsSubtitle}>Select another date above to view open consultation slots.</Text>
+            </View>
+          ) : (
+            <View style={styles.slotsGrid}>
+              {slots.map((slot, index) => {
+                const isSelected = selectedSlot?.start_time_utc === slot.start_time_utc;
+                const formattedTime = new Date(slot.start_time_utc).toLocaleTimeString([], { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                });
+
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.slotChip, isSelected && styles.slotChipSelected]}
+                    onPress={() => setSelectedSlot(slot)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.slotTimeText, isSelected && styles.slotTimeTextSelected]}>
+                      {formattedTime}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+        </View>
+
+        {/* Booking Form / Confirmation Button */}
+        {selectedSlot && (
+          <View style={styles.bookingGlassCard}>
+            <View style={styles.sectionHeaderRow}>
+              <Sparkles size={18} color={colors.primary} strokeWidth={2.2} />
+              <Text style={styles.sectionTitle}>3. Complete Booking</Text>
+            </View>
+            
+            <View style={styles.selectedSummary}>
+              <Text style={styles.summaryLabel}>SELECTED TIME SLOT</Text>
+              <Text style={styles.summaryValue}>
+                {new Date(selectedSlot.start_time_utc).toUTCString()}
+              </Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.notesLabel}>Booking Notes (Optional)</Text>
+              <TextInput
+                style={styles.notesInput}
+                placeholder="Specify consultation topic, questions, or goals..."
+                placeholderTextColor={colors.textDim}
+                value={notes}
+                onChangeText={setNotes}
+                multiline
+                numberOfLines={3}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.confirmButton, bookingLoading && styles.buttonDisabled]}
+              activeOpacity={0.88}
+              onPress={handleConfirmBooking}
+              disabled={bookingLoading}
+            >
+              {bookingLoading ? (
+                <ActivityIndicator color="#ffffff" size="small" />
+              ) : (
+                <>
+                  <Text style={styles.confirmButtonText}>Confirm & Book Slot</Text>
+                  <ArrowRight size={18} color="#ffffff" strokeWidth={2.4} />
+                </>
+              )}
+            </TouchableOpacity>
           </View>
         )}
-      </View>
 
-      {/* Booking Form / Confirmation Button */}
-      {selectedSlot && (
-        <View style={styles.bookingCard}>
-          <Text style={styles.sectionTitle}>3. Complete Booking</Text>
-          
-          <View style={styles.selectedSummary}>
-            <Text style={styles.summaryLabel}>SELECTED SLOT</Text>
-            <Text style={styles.summaryValue}>
-              {new Date(selectedSlot.start_time_utc).toUTCString()}
-            </Text>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.notesLabel}>Booking Notes for Creator (Optional)</Text>
-            <TextInput
-              style={styles.notesInput}
-              placeholder="e.g., Topic to discuss or consultation details..."
-              placeholderTextColor={colors.textDim}
-              value={notes}
-              onChangeText={setNotes}
-              multiline
-            />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.confirmButton, bookingLoading && styles.buttonDisabled]}
-            activeOpacity={0.85}
-            onPress={handleConfirmBooking}
-            disabled={bookingLoading}
-          >
-            {bookingLoading ? (
-              <ActivityIndicator color="#ffffff" size="small" />
-            ) : (
-              <Text style={styles.confirmButtonText}>Confirm & Book Slot</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      )}
-    </ScrollView>
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </AppBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    backgroundColor: colors.bgApp,
+  outerWrapper: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  topNavigation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 50,
+    paddingTop: Platform.OS === 'ios' ? 52 : 20,
+    paddingBottom: 8,
+  },
+  backButtonCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.2,
+    borderColor: 'rgba(99, 102, 241, 0.2)',
+    ...shadows.subtle,
+  },
+  topNavTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#3730A3',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 22,
+    paddingTop: 8,
     paddingBottom: 40,
-    gap: 20,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-  },
-  backButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.primary,
+    gap: 18,
   },
   creatorHeroCard: {
-    backgroundColor: colors.bgCard,
-    borderRadius: radii.lg,
-    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderRadius: radii.xl,
+    padding: 22,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.borderColor,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    elevation: 2,
+    borderWidth: 1.5,
+    borderColor: 'rgba(226, 232, 240, 0.95)',
+    ...shadows.card,
   },
-  avatarLarge: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  avatarLargeWrapper: {
+    position: 'relative',
+    marginBottom: 12,
+  },
+  avatarLargePhoto: {
+    width: 72,
+    height: 72,
+    borderRadius: radii.lg,
+    backgroundColor: colors.bgSubtle,
+  },
+  avatarLargeCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: radii.lg,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
   },
-  avatarLetter: {
+  avatarLargeLetter: {
     color: '#ffffff',
     fontSize: 26,
-    fontWeight: '800',
+    fontWeight: '900',
+  },
+  verifiedBadgeLarge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
   },
   creatorTitle: {
-    fontSize: 20,
+    fontSize: 21,
+    fontWeight: '900',
+    color: '#3730A3',
+    letterSpacing: -0.3,
+  },
+  creatorCategory: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: colors.primary,
+    marginTop: 2,
+    marginBottom: 6,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 12,
+  },
+  ratingValue: {
+    fontSize: 12.5,
     fontWeight: '800',
     color: colors.textMain,
   },
-  creatorCategory: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.accentCyan,
-    marginTop: 2,
-    marginBottom: 10,
+  ratingCount: {
+    fontSize: 12,
+    color: colors.textDim,
+  },
+  dotSeparator: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: colors.borderDark,
+    marginHorizontal: 4,
+  },
+  categoryPill: {
+    backgroundColor: colors.primaryWash,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: radii.pill,
+  },
+  categoryPillText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: colors.primary,
   },
   creatorBio: {
     fontSize: 13,
     color: colors.textMuted,
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 19,
     marginBottom: 16,
   },
   metaRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     width: '100%',
   },
   metaChip: {
     flex: 1,
-    backgroundColor: colors.bgInput,
+    backgroundColor: 'rgba(241, 245, 249, 0.8)',
     borderRadius: radii.md,
-    padding: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderColor,
   },
   metaLabel: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: '800',
     color: colors.textDim,
+    letterSpacing: 0.5,
   },
   metaValue: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
     color: colors.textMain,
     marginTop: 2,
@@ -304,36 +452,46 @@ const styles = StyleSheet.create({
   section: {
     gap: 10,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 15.5,
     fontWeight: '800',
-    color: colors.textMain,
+    color: colors.textHeading,
+    letterSpacing: -0.2,
   },
   datesRow: {
-    gap: 8,
+    gap: 10,
     paddingVertical: 4,
   },
   dateCard: {
-    backgroundColor: colors.bgCard,
-    borderColor: colors.borderColor,
-    borderWidth: 1,
-    borderRadius: radii.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    borderColor: 'rgba(226, 232, 240, 0.95)',
+    borderWidth: 1.5,
+    borderRadius: radii.lg,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     alignItems: 'center',
+    minWidth: 76,
+    ...shadows.subtle,
   },
   dateCardSelected: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
+    ...shadows.primaryGlow,
   },
   dayName: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '700',
-    color: colors.textMuted,
+    color: colors.textDim,
   },
   displayDate: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 13.5,
+    fontWeight: '900',
     color: colors.textMain,
     marginTop: 2,
   },
@@ -341,128 +499,132 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   slotsLoading: {
-    padding: 20,
+    padding: 24,
     alignItems: 'center',
   },
   loadingText: {
-    fontSize: 12,
-    color: colors.textMuted,
+    fontSize: 13,
+    color: colors.textDim,
     marginTop: 6,
   },
   noSlotsBox: {
-    backgroundColor: colors.bgCard,
-    borderRadius: radii.md,
-    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderRadius: radii.lg,
+    padding: 24,
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.borderColor,
-  },
-  noSlotsEmoji: {
-    fontSize: 28,
-    marginBottom: 6,
+    gap: 6,
   },
   noSlotsTitle: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 14.5,
+    fontWeight: '800',
     color: colors.textMain,
+    marginTop: 4,
   },
   noSlotsSubtitle: {
-    fontSize: 12,
-    color: colors.textMuted,
+    fontSize: 12.5,
+    color: colors.textDim,
     textAlign: 'center',
-    marginTop: 2,
   },
   slotsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
   },
   slotChip: {
-    backgroundColor: colors.bgCard,
-    borderColor: colors.borderColor,
-    borderWidth: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderColor: 'rgba(226, 232, 240, 0.95)',
+    borderWidth: 1.5,
     borderRadius: radii.md,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    minWidth: '30%',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexBasis: '31%',
+    flexGrow: 1,
     alignItems: 'center',
+    ...shadows.subtle,
   },
   slotChipSelected: {
     backgroundColor: colors.success,
     borderColor: colors.success,
+    shadowColor: colors.success,
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   slotTimeText: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 13.5,
+    fontWeight: '800',
     color: colors.textMain,
   },
   slotTimeTextSelected: {
     color: '#ffffff',
   },
-  bookingCard: {
-    backgroundColor: colors.bgCard,
-    borderRadius: radii.lg,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.borderColor,
-    gap: 12,
+  bookingGlassCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderRadius: radii.xl,
+    padding: 20,
+    borderWidth: 1.5,
+    borderColor: 'rgba(99, 102, 241, 0.2)',
+    gap: 14,
+    ...shadows.card,
   },
   selectedSummary: {
-    backgroundColor: colors.subtleBg,
-    padding: 12,
+    backgroundColor: colors.primaryWash,
+    padding: 14,
     borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: '#c7d2fe',
+    borderWidth: 1.5,
+    borderColor: 'rgba(99, 102, 241, 0.25)',
   },
   summaryLabel: {
     fontSize: 10,
     fontWeight: '800',
     color: colors.primary,
+    letterSpacing: 0.5,
   },
   summaryValue: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 13.5,
+    fontWeight: '800',
     color: colors.textMain,
     marginTop: 2,
   },
   inputGroup: {
-    gap: 4,
+    gap: 6,
   },
   notesLabel: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '700',
-    color: colors.textMuted,
+    color: colors.textMain,
   },
   notesInput: {
-    backgroundColor: colors.bgInput,
-    borderWidth: 1,
+    backgroundColor: 'rgba(248, 250, 252, 0.9)',
+    borderWidth: 1.5,
     borderColor: colors.borderColor,
     borderRadius: radii.md,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 13,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 13.5,
     color: colors.textMain,
-    height: 60,
+    height: 70,
     textAlignVertical: 'top',
   },
   confirmButton: {
-    backgroundColor: colors.primary,
+    height: 52,
     borderRadius: radii.md,
-    paddingVertical: 14,
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
+    gap: 8,
+    ...shadows.primaryGlow,
   },
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.65,
   },
   confirmButtonText: {
     color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15.5,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
 });

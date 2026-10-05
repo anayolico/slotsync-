@@ -1,31 +1,32 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
-  ScrollView, 
-  ActivityIndicator, 
-  StatusBar, 
-  Platform, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  StatusBar,
+  Platform,
   PanResponder,
   Animated,
   Easing,
   KeyboardAvoidingView
 } from 'react-native';
-import { 
-  Mail, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  CheckCircle2, 
-  AlertCircle, 
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  AlertCircle,
   ChevronLeft,
   ArrowRight,
-  Check
+  Check,
+  Sparkles
 } from '../../components/LucideIcons';
-import { colors, radii } from '../../theme/colors';
+import { colors, radii, shadows } from '../../theme/colors';
 import { loginUser } from '../../services/api';
 import { getItem, setItem, removeItem, StorageKeys } from '../../services/storage';
 import SlotSyncLogo from '../../components/SlotSyncLogo';
@@ -41,11 +42,11 @@ interface Props {
 // Email format regular expression
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export default function LoginScreen({ 
-  onLoginSuccess, 
-  onGoToRegister, 
+export default function LoginScreen({
+  onLoginSuccess,
+  onGoToRegister,
   onGoToForgotPassword,
-  initialEmail 
+  initialEmail
 }: Props) {
   const { showError, showWarning } = useToast();
   const [email, setEmail] = useState(initialEmail || '');
@@ -55,6 +56,8 @@ export default function LoginScreen({
   const [passwordTouched, setPasswordTouched] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
 
   // Load remembered credentials or initial email on mount
   useEffect(() => {
@@ -79,38 +82,66 @@ export default function LoginScreen({
     loadSavedCredentials();
   }, [initialEmail]);
 
-  // Floating Ambient Glow Animation
+  // Dual Ambient Floating Glow Animations for vibrant chromatic atmosphere
   const glowAnim = useRef(new Animated.Value(0)).current;
+  const secondaryGlowAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const loop = Animated.loop(
+    const loop1 = Animated.loop(
       Animated.sequence([
         Animated.timing(glowAnim, {
           toValue: 1,
-          duration: 3500,
+          duration: 4000,
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
         Animated.timing(glowAnim, {
           toValue: 0,
-          duration: 3500,
+          duration: 4000,
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
       ])
     );
-    loop.start();
-    return () => loop.stop();
-  }, [glowAnim]);
+
+    const loop2 = Animated.loop(
+      Animated.sequence([
+        Animated.timing(secondaryGlowAnim, {
+          toValue: 1,
+          duration: 5000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(secondaryGlowAnim, {
+          toValue: 0,
+          duration: 5000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    loop1.start();
+    loop2.start();
+    return () => {
+      loop1.stop();
+      loop2.stop();
+    };
+  }, [glowAnim, secondaryGlowAnim]);
 
   const glowTranslateX = glowAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [-35, 35],
+    outputRange: [-40, 40],
   });
 
   const glowScale = glowAnim.interpolate({
     inputRange: [0, 0.5, 1],
-    outputRange: [1.0, 1.15, 1.0],
+    outputRange: [1.0, 1.25, 1.0],
+  });
+
+  const secondaryGlowTranslateY = secondaryGlowAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [20, -30],
   });
 
   // Validation Calculations
@@ -119,7 +150,7 @@ export default function LoginScreen({
   const isEmailInvalid = emailTouched && email.length > 0 && !isEmailValid;
   const isPasswordInvalid = passwordTouched && password.length > 0 && !isPasswordValid;
 
-  // Swipe back gesture handler (PanResponder)
+  // Swipe back gesture handler
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gestureState) => {
@@ -172,19 +203,18 @@ export default function LoginScreen({
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={{ flex: 1 }} 
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       <View style={styles.outerWrapper} {...panResponder.panHandlers}>
-        <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
+        <StatusBar barStyle="dark-content" backgroundColor={colors.bgApp} />
 
         {/* Floating Minimalist Back Button */}
         <View style={styles.topNavigation}>
-          <TouchableOpacity 
-            style={styles.backButtonCircle} 
-            onPress={onGoToRegister} 
+          <TouchableOpacity
+            style={styles.backButtonCircle}
+            onPress={onGoToRegister}
             activeOpacity={0.7}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
@@ -192,208 +222,217 @@ export default function LoginScreen({
           </TouchableOpacity>
         </View>
 
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContainer}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          automaticallyAdjustKeyboardInsets={true}
           showsVerticalScrollIndicator={false}
         >
-        {/* Animated Ambient Top Glow Effect */}
-        <Animated.View 
-          style={[
-            styles.animatedGlow, 
-            { 
-              transform: [
-                { translateX: glowTranslateX },
-                { scale: glowScale }
-              ] 
-            }
-          ]} 
-        />
+          {/* Dual Radiant Ambient Glows (Indigo & Violet) */}
+          <Animated.View
+            style={[
+              styles.animatedGlowPrimary,
+              {
+                transform: [
+                  { translateX: glowTranslateX },
+                  { scale: glowScale }
+                ]
+              }
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.animatedGlowSecondary,
+              {
+                transform: [
+                  { translateY: secondaryGlowTranslateY },
+                ]
+              }
+            ]}
+          />
 
-        {/* Brand Logo & Header */}
-        <View style={styles.brandHeader}>
-          <View style={styles.logoContainer}>
-            <SlotSyncLogo size={68} />
-          </View>
-          <Text style={styles.brandTitle}>SLOTSYNC</Text>
-          <Text style={styles.brandSubtitle}>APPOINTMENT & SLOT ENGINE</Text>
-
-          <View style={styles.welcomeBlock}>
-            <Text style={styles.welcomeSubtitle}>
-              Access your Client or Creator workspace portal
-            </Text>
-          </View>
-        </View>
-
-        {/* Seamless Form Container (No Boxed Card) */}
-        <View style={styles.formContainer}>
-          <View style={styles.sectionHeaderRow}>
-            <View style={styles.headerIconDot} />
-            <Text style={styles.sectionHeaderTitle}>ACCOUNT CREDENTIALS</Text>
-          </View>
-
-          {/* Email Address Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Email Address</Text>
-
-            <View style={[
-              styles.inputWithIcon,
-              isEmailInvalid && styles.inputInvalidBorder,
-              isEmailValid && emailTouched && styles.inputValidBorder
-            ]}>
-              <View style={styles.iconHolder}>
-                <Mail 
-                  size={19} 
-                  color={isEmailInvalid ? '#ef4444' : isEmailValid && emailTouched ? colors.primary : '#64748b'} 
-                  strokeWidth={2}
-                />
-              </View>
-              <TextInput
-                style={styles.textInput}
-                placeholder="user@example.com"
-                placeholderTextColor={colors.textDim}
-                value={email}
-                onChangeText={(val) => {
-                  setEmail(val);
-                  if (!emailTouched) setEmailTouched(true);
-                }}
-                onBlur={() => setEmailTouched(true)}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-              {emailTouched && email.length > 0 && (
-                <View style={styles.validationIconHolder}>
-                  {isEmailValid ? (
-                    <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
-                  ) : (
-                    <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
-                  )}
-                </View>
-              )}
+          {/* Brand Header */}
+          <View style={styles.brandHeader}>
+            <View style={styles.logoContainer}>
+              <SlotSyncLogo size={70} />
             </View>
-            {isEmailInvalid && (
-              <Text style={styles.helperErrorText}>
-                Please enter a valid email address (e.g., name@example.com)
-              </Text>
-            )}
+            <Text style={styles.brandTitle}>Welcome back</Text>
+            <Text style={styles.brandSubtitle}>Sign in to your client or creator workspace</Text>
           </View>
 
-          {/* Password Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Password</Text>
+          {/* Seamless Floating Form (No Boxed Card) */}
+          <View style={styles.seamlessForm}>
+            {/* Section Tag */}
+            <View style={styles.sectionHeaderRow}>
+              <View style={styles.headerIconDot} />
+              <Text style={styles.sectionHeaderTitle}>ACCOUNT CREDENTIALS</Text>
+            </View>
 
-            <View style={[
-              styles.inputWithIcon,
-              isPasswordInvalid && styles.inputInvalidBorder,
-              isPasswordValid && passwordTouched && styles.inputValidBorder
-            ]}>
-              <View style={styles.iconHolder}>
-                <Lock 
-                  size={19} 
-                  color={isPasswordInvalid ? '#ef4444' : isPasswordValid && passwordTouched ? colors.primary : '#64748b'} 
-                  strokeWidth={2}
+            {/* Email Address Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Email Address</Text>
+
+              <View style={[
+                styles.glassInputContainer,
+                emailFocused && styles.glassInputFocused,
+                isEmailInvalid && styles.glassInputInvalid,
+                isEmailValid && emailTouched && styles.glassInputValid
+              ]}>
+                <View style={styles.iconHolder}>
+                  <Mail
+                    size={19}
+                    color={isEmailInvalid ? colors.danger : isEmailValid && emailTouched ? colors.primary : colors.primaryLight}
+                    strokeWidth={2}
+                  />
+                </View>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="name@domain.com"
+                  placeholderTextColor={colors.textDim}
+                  value={email}
+                  onChangeText={(val) => {
+                    setEmail(val);
+                    if (!emailTouched) setEmailTouched(true);
+                  }}
+                  onFocus={() => setEmailFocused(true)}
+                  onBlur={() => {
+                    setEmailFocused(false);
+                    setEmailTouched(true);
+                  }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
                 />
-              </View>
-              <TextInput
-                style={[styles.textInput, { flex: 1 }]}
-                placeholder="••••••••••••"
-                placeholderTextColor={colors.textDim}
-                value={password}
-                onChangeText={(val) => {
-                  setPassword(val);
-                  if (!passwordTouched) setPasswordTouched(true);
-                }}
-                onBlur={() => setPasswordTouched(true)}
-                secureTextEntry={!showPassword}
-              />
-              <View style={styles.rightActionsRow}>
-                {passwordTouched && password.length > 0 && (
+                {emailTouched && email.length > 0 && (
                   <View style={styles.validationIconHolder}>
-                    {isPasswordValid ? (
-                      <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
+                    {isEmailValid ? (
+                      <CheckCircle2 size={18} color={colors.success} strokeWidth={2.4} />
                     ) : (
-                      <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
+                      <AlertCircle size={18} color={colors.danger} strokeWidth={2.4} />
                     )}
                   </View>
                 )}
-                <TouchableOpacity 
-                  style={styles.eyeToggleBtn}
-                  onPress={() => setShowPassword(!showPassword)}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  {showPassword ? (
-                    <Eye size={20} color={colors.primary} strokeWidth={2} />
-                  ) : (
-                    <EyeOff size={20} color="#94a3b8" strokeWidth={2} />
-                  )}
-                </TouchableOpacity>
               </View>
+              {isEmailInvalid && (
+                <Text style={styles.helperErrorText}>
+                  Please enter a valid email address
+                </Text>
+              )}
             </View>
-            {isPasswordInvalid && (
-              <Text style={styles.helperErrorText}>
-                Password must be at least 8 characters ({password.length}/8)
-              </Text>
-            )}
-          </View>
 
-          {/* Remember Me & Forgot Password Options Row */}
-          <View style={styles.optionsRow}>
-            <TouchableOpacity 
-              style={styles.rememberMeContainer}
-              onPress={() => setRememberMe(!rememberMe)}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.checkboxBox, rememberMe && styles.checkboxBoxActive]}>
-                {rememberMe && <Check size={11} color="#ffffff" strokeWidth={3} />}
+            {/* Password Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Password</Text>
+
+              <View style={[
+                styles.glassInputContainer,
+                passwordFocused && styles.glassInputFocused,
+                isPasswordInvalid && styles.glassInputInvalid,
+                isPasswordValid && passwordTouched && styles.glassInputValid
+              ]}>
+                <View style={styles.iconHolder}>
+                  <Lock
+                    size={19}
+                    color={isPasswordInvalid ? colors.danger : isPasswordValid && passwordTouched ? colors.primary : colors.primaryLight}
+                    strokeWidth={2}
+                  />
+                </View>
+                <TextInput
+                  style={[styles.textInput, { flex: 1 }]}
+                  placeholder="••••••••••••"
+                  placeholderTextColor={colors.textDim}
+                  value={password}
+                  onChangeText={(val) => {
+                    setPassword(val);
+                    if (!passwordTouched) setPasswordTouched(true);
+                  }}
+                  onFocus={() => setPasswordFocused(true)}
+                  onBlur={() => {
+                    setPasswordFocused(false);
+                    setPasswordTouched(true);
+                  }}
+                  secureTextEntry={!showPassword}
+                />
+                <View style={styles.rightActionsRow}>
+                  {passwordTouched && password.length > 0 && (
+                    <View style={styles.validationIconHolder}>
+                      {isPasswordValid ? (
+                        <CheckCircle2 size={18} color={colors.success} strokeWidth={2.4} />
+                      ) : (
+                        <AlertCircle size={18} color={colors.danger} strokeWidth={2.4} />
+                      )}
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    style={styles.eyeToggleBtn}
+                    onPress={() => setShowPassword(!showPassword)}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    {showPassword ? (
+                      <Eye size={19} color={colors.primary} strokeWidth={2} />
+                    ) : (
+                      <EyeOff size={19} color={colors.textDim} strokeWidth={2} />
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
-              <Text style={styles.rememberMeLabel}>Remember Me</Text>
-            </TouchableOpacity>
+              {isPasswordInvalid && (
+                <Text style={styles.helperErrorText}>
+                  Password must be at least 8 characters ({password.length}/8)
+                </Text>
+              )}
+            </View>
 
-            {onGoToForgotPassword && (
-              <TouchableOpacity 
-                onPress={onGoToForgotPassword} 
+            {/* Remember Me & Forgot Password Row */}
+            <View style={styles.optionsRow}>
+              <TouchableOpacity
+                style={styles.rememberMeContainer}
+                onPress={() => setRememberMe(!rememberMe)}
                 activeOpacity={0.7}
-                style={styles.forgotPasswordBtn}
               >
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                <View style={[styles.checkboxBox, rememberMe && styles.checkboxBoxActive]}>
+                  {rememberMe && <Check size={11} color="#ffffff" strokeWidth={3} />}
+                </View>
+                <Text style={styles.rememberMeLabel}>Remember me</Text>
               </TouchableOpacity>
-            )}
+
+              {onGoToForgotPassword && (
+                <TouchableOpacity
+                  onPress={onGoToForgotPassword}
+                  activeOpacity={0.7}
+                  style={styles.forgotPasswordBtn}
+                >
+                  <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Radiant Gradient Submit Button */}
+            <TouchableOpacity
+              style={[styles.submitButton, loading && styles.buttonDisabled]}
+              activeOpacity={0.88}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#ffffff" size="small" />
+              ) : (
+                <>
+                  <Text style={styles.submitButtonText}>Sign In</Text>
+                </>
+              )}
+            </TouchableOpacity>
           </View>
 
-          {/* Submit Button */}
-          <TouchableOpacity
-            style={[styles.submitButton, loading && styles.buttonDisabled]}
-            activeOpacity={0.88}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#ffffff" size="small" />
-            ) : (
-              <>
-                <Text style={styles.submitButtonText}>Sign In</Text>
-                <ArrowRight size={18} color="#ffffff" strokeWidth={2.2} />
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Footer Link */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have a SlotSync account yet?</Text>
-          <TouchableOpacity onPress={onGoToRegister} activeOpacity={0.7}>
-            <Text style={styles.registerLink}>Join SlotSync Now</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* iOS Home Indicator */}
-        <View style={styles.bottomHomeBar} />
-        <View style={{ height: 160 }} />
-      </ScrollView>
-    </View>
+          {/* Footer Link */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Don't have a SlotSync account yet?</Text>
+            <TouchableOpacity onPress={onGoToRegister} activeOpacity={0.7} style={styles.registerTouch}>
+              <Text style={styles.registerLink}>Create an Account</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -401,102 +440,76 @@ export default function LoginScreen({
 const styles = StyleSheet.create({
   outerWrapper: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.bgApp,
   },
   topNavigation: {
-    paddingTop: Platform.OS === 'ios' ? 52 : 16,
+    paddingTop: Platform.OS === 'ios' ? 52 : 20,
     paddingHorizontal: 20,
     paddingBottom: 4,
     zIndex: 20,
   },
   backButtonCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#ffffff',
+    width: 42,
+    height: 42,
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 3,
+    borderWidth: 1.2,
+    borderColor: 'rgba(99, 102, 241, 0.2)',
+    ...shadows.subtle,
   },
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: 8,
-    paddingBottom: 100,
+    paddingBottom: 40,
     gap: 18,
   },
-  animatedGlow: {
+  animatedGlowPrimary: {
     position: 'absolute',
-    top: -60,
-    left: '15%',
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
-    transform: [{ scaleX: 1.6 }],
+    top: -70,
+    left: '10%',
+    width: 290,
+    height: 290,
+    borderRadius: 145,
+    backgroundColor: 'rgba(79, 70, 229, 0.16)',
+  },
+  animatedGlowSecondary: {
+    position: 'absolute',
+    top: 180,
+    right: -50,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: 'rgba(124, 58, 237, 0.12)',
   },
   brandHeader: {
     alignItems: 'center',
     marginBottom: 6,
+    marginTop: 4,
   },
   logoContainer: {
-    marginBottom: 12,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.22,
-    shadowRadius: 14,
-    elevation: 6,
+    marginBottom: 14,
+    ...shadows.primaryGlow,
   },
   brandTitle: {
-    fontSize: 24,
+    fontSize: 27,
     fontWeight: '900',
-    color: colors.primary,
-    letterSpacing: 1.2,
+    color: colors.textHeading,
+    letterSpacing: -0.5,
   },
   brandSubtitle: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: colors.textDim,
-    letterSpacing: 1.8,
-    marginTop: 2,
-    marginBottom: 10,
-  },
-  welcomeBlock: {
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  welcomeSubtitle: {
     fontSize: 13.5,
     fontWeight: '500',
-    color: colors.textMuted,
+    color: colors.textDim,
     textAlign: 'center',
-    lineHeight: 19,
-  },
-  errorBox: {
-    backgroundColor: '#fef2f2',
-    borderWidth: 1,
-    borderColor: '#fca5a5',
-    borderRadius: radii.md,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  errorText: {
-    color: '#dc2626',
-    fontSize: 13,
-    fontWeight: '600',
-    flex: 1,
-  },
-  formContainer: {
-    gap: 16,
     marginTop: 4,
+    paddingHorizontal: 20,
+  },
+  seamlessForm: {
+    gap: 16,
+    marginTop: 6,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -513,39 +526,42 @@ const styles = StyleSheet.create({
   sectionHeaderTitle: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#475569',
-    letterSpacing: 0.8,
+    color: colors.primary,
+    letterSpacing: 1.2,
   },
   inputGroup: {
     gap: 6,
   },
   inputLabel: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#334155',
+    color: colors.textMain,
+    letterSpacing: -0.1,
   },
-  inputWithIcon: {
+  glassInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
     borderWidth: 1.5,
-    borderColor: '#cbd5e1',
-    borderRadius: 16,
+    borderColor: 'rgba(203, 213, 225, 0.9)',
+    borderRadius: radii.md,
     paddingHorizontal: 14,
     height: 52,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
+    ...shadows.subtle,
   },
-  inputValidBorder: {
-    borderColor: '#818cf8',
-    backgroundColor: '#ffffff',
+  glassInputFocused: {
+    borderColor: colors.primary,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    ...shadows.card,
   },
-  inputInvalidBorder: {
-    borderColor: '#ef4444',
-    backgroundColor: '#fef2f2',
+  glassInputValid: {
+    borderColor: '#818CF8',
+    backgroundColor: '#FFFFFF',
+  },
+  glassInputInvalid: {
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerBg,
   },
   iconHolder: {
     marginRight: 10,
@@ -564,7 +580,7 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    fontSize: 14.5,
+    fontSize: 15,
     fontWeight: '500',
     color: colors.textMain,
   },
@@ -574,9 +590,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   helperErrorText: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '600',
-    color: '#ef4444',
+    color: colors.danger,
     marginTop: 2,
     marginLeft: 2,
   },
@@ -584,9 +600,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 2,
-    marginBottom: 4,
     paddingHorizontal: 2,
+    marginTop: 2,
   },
   rememberMeContainer: {
     flexDirection: 'row',
@@ -599,7 +614,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 6,
     borderWidth: 1.8,
-    borderColor: '#94a3b8',
+    borderColor: colors.borderDark,
     backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
@@ -611,7 +626,7 @@ const styles = StyleSheet.create({
   rememberMeLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: colors.textMuted,
   },
   forgotPasswordBtn: {
     paddingVertical: 4,
@@ -622,51 +637,43 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   submitButton: {
-    height: 54,
-    borderRadius: 16,
+    height: 52,
+    borderRadius: radii.md,
     backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginTop: 10,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 6,
+    marginTop: 8,
+    ...shadows.primaryGlow,
   },
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.65,
   },
   submitButtonText: {
     color: '#ffffff',
     fontSize: 15.5,
     fontWeight: '800',
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
   footer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
-    gap: 4,
+    justifyContent: 'center',
+    marginTop: 10,
+    gap: 6,
   },
   footerText: {
-    fontSize: 12.5,
+    fontSize: 13,
     color: colors.textMuted,
     fontWeight: '500',
   },
+  registerTouch: {
+    paddingVertical: 4,
+  },
   registerLink: {
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: '800',
     color: colors.primary,
-  },
-  bottomHomeBar: {
-    width: 120,
-    height: 4,
-    backgroundColor: '#cbd5e1',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginTop: 18,
-    opacity: 0.6,
   },
 });

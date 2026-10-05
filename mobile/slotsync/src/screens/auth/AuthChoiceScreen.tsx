@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
@@ -7,12 +7,12 @@ import {
   ScrollView, 
   StatusBar, 
   Platform,
-  Animated,
-  Easing
 } from 'react-native';
-import { colors, radii } from '../../theme/colors';
+import { colors, radii, shadows } from '../../theme/colors';
 import SlotSyncLogo from '../../components/SlotSyncLogo';
 import { ClientCardIcon, CreatorCardIcon } from '../../components/RoleCardIcons';
+import { ArrowRight, Check, Sparkles } from '../../components/LucideIcons';
+import AppBackground from '../../components/AppBackground';
 
 interface Props {
   onSelectRole: (role: 'CLIENT' | 'CREATOR') => void;
@@ -22,80 +22,36 @@ interface Props {
 export default function AuthChoiceScreen({ onSelectRole, onGoToLogin }: Props) {
   const [selectedRole, setSelectedRole] = useState<'CLIENT' | 'CREATOR'>('CREATOR');
 
-  // Floating Ambient Glow Animation
-  const glowAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowAnim, {
-          toValue: 1,
-          duration: 3800,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(glowAnim, {
-          toValue: 0,
-          duration: 3800,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [glowAnim]);
-
-  const glowTranslateX = glowAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-35, 35],
-  });
-
-  const glowScale = glowAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [1.0, 1.15, 1.0],
-  });
 
   return (
     <View style={styles.outerWrapper}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.bgApp} />
+      <AppBackground variant="default" />
       
       <ScrollView 
         contentContainerStyle={styles.scrollContainer} 
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        {/* Animated Background Ambient Top Glow */}
-        <Animated.View 
-          style={[
-            styles.animatedGlow, 
-            { 
-              transform: [
-                { translateX: glowTranslateX },
-                { scale: glowScale }
-              ] 
-            }
-          ]} 
-        />
+
 
         {/* Header Section */}
         <View style={styles.header}>
-          {/* App Logo Badge */}
           <View style={styles.logoContainer}>
-            <SlotSyncLogo size={72} />
+            <SlotSyncLogo size={76} />
           </View>
 
-          {/* Branding Titles */}
-          <Text style={styles.brandTitle}>SLOTSYNC</Text>
-          <Text style={styles.brandSubtitle}>APPOINTMENT & SLOT ENGINE</Text>
+          <Text style={styles.brandTitle}>SlotSync</Text>
+          <Text style={styles.brandSubtitle}></Text>
 
-          {/* Subtitle Heading */}
           <View style={styles.welcomeBlock}>
-            <Text style={styles.welcomeSubtitle}>Select how you will be using SlotSync</Text>
+            <Text style={styles.welcomeHeading}>Choose your journey</Text>
+            <Text style={styles.welcomeSubtitle}>Select how you will be using SlotSync to get started</Text>
           </View>
         </View>
 
-        {/* Role Selection Options */}
+        {/* Role Selection Cards */}
         <View style={styles.cardsContainer}>
           {/* Role Option 1: Client */}
           <TouchableOpacity 
@@ -103,7 +59,7 @@ export default function AuthChoiceScreen({ onSelectRole, onGoToLogin }: Props) {
               styles.choiceCard,
               selectedRole === 'CLIENT' && styles.choiceCardActive
             ]} 
-            activeOpacity={0.85}
+            activeOpacity={0.88}
             onPress={() => {
               setSelectedRole('CLIENT');
               onSelectRole('CLIENT');
@@ -113,26 +69,29 @@ export default function AuthChoiceScreen({ onSelectRole, onGoToLogin }: Props) {
               <View style={[styles.iconBadge, styles.clientIconBadge]}>
                 <ClientCardIcon size={24} color={colors.primary} />
               </View>
-              {/* Radio Indicator */}
               <View style={[
                 styles.radioIndicator,
                 selectedRole === 'CLIENT' && styles.radioIndicatorActive
               ]}>
-                {selectedRole === 'CLIENT' && <Text style={styles.radioCheck}>✓</Text>}
+                {selectedRole === 'CLIENT' && <Check size={13} color="#ffffff" strokeWidth={3} />}
               </View>
             </View>
 
             <View style={styles.cardBody}>
-              <Text style={styles.cardTitle}>Book Appointments</Text>
+              <View style={styles.titleRow}>
+                <Text style={styles.cardTitle}>Book Appointments</Text>
+                <View style={styles.clientPill}>
+                  <Text style={styles.clientPillText}>CLIENT</Text>
+                </View>
+              </View>
               <Text style={styles.cardDescription}>
-                I want to discover creators, view available calendar slots, and book consultations.
+                Discover top doctors, lawyers, barbers, and consultants. Book confirmed calendar slots in seconds.
               </Text>
             </View>
 
             <View style={styles.cardFooter}>
-              <View style={styles.clientPill}>
-                <Text style={styles.clientPillText}>CLIENT</Text>
-              </View>
+              <Text style={styles.actionPromptText}>Continue as Client</Text>
+              <ArrowRight size={16} color={colors.primary} strokeWidth={2.4} />
             </View>
           </TouchableOpacity>
 
@@ -142,7 +101,7 @@ export default function AuthChoiceScreen({ onSelectRole, onGoToLogin }: Props) {
               styles.choiceCard,
               selectedRole === 'CREATOR' && styles.choiceCardActive
             ]} 
-            activeOpacity={0.85}
+            activeOpacity={0.88}
             onPress={() => {
               setSelectedRole('CREATOR');
               onSelectRole('CREATOR');
@@ -150,43 +109,43 @@ export default function AuthChoiceScreen({ onSelectRole, onGoToLogin }: Props) {
           >
             <View style={styles.cardHeader}>
               <View style={[styles.iconBadge, styles.creatorIconBadge]}>
-                <CreatorCardIcon size={24} color="#0891b2" />
+                <CreatorCardIcon size={24} color={colors.accentViolet} />
               </View>
-              {/* Radio Indicator */}
               <View style={[
                 styles.radioIndicator,
-                selectedRole === 'CREATOR' && styles.radioIndicatorActive
+                selectedRole === 'CREATOR' && styles.radioIndicatorActiveViolet
               ]}>
-                {selectedRole === 'CREATOR' && <Text style={styles.radioCheck}>✓</Text>}
+                {selectedRole === 'CREATOR' && <Check size={13} color="#ffffff" strokeWidth={3} />}
               </View>
             </View>
 
             <View style={styles.cardBody}>
-              <Text style={styles.cardTitle}>Offer Consultations & Slots</Text>
+              <View style={styles.titleRow}>
+                <Text style={styles.cardTitle}>Offer Consultations</Text>
+                <View style={styles.creatorPill}>
+                  <Text style={styles.creatorPillText}>CREATOR</Text>
+                </View>
+              </View>
               <Text style={styles.cardDescription}>
-                I am a Doctor, Lawyer, Barber, Trainer, or Consultant managing my weekly schedule.
+                Manage your weekly calendar rules, accept incoming booking requests, and get paid seamlessly.
               </Text>
             </View>
 
             <View style={styles.cardFooter}>
-              <View style={styles.creatorPill}>
-                <Text style={styles.creatorPillText}>CREATOR</Text>
-              </View>
+              <Text style={[styles.actionPromptText, { color: colors.accentViolet }]}>Continue as Creator</Text>
+              <ArrowRight size={16} color={colors.accentViolet} strokeWidth={2.4} />
             </View>
           </TouchableOpacity>
         </View>
 
-        {/* Bottom Actions */}
+        {/* Bottom Sign-In Section */}
         <View style={styles.footerSection}>
-          <View style={styles.signInRow}>
+          <View style={styles.signInCard}>
             <Text style={styles.signInQuestion}>Already have a SlotSync account?</Text>
-            <TouchableOpacity onPress={onGoToLogin} activeOpacity={0.7}>
+            <TouchableOpacity onPress={onGoToLogin} activeOpacity={0.7} style={styles.signInTouch}>
               <Text style={styles.signInLink}>Sign In to Account</Text>
             </TouchableOpacity>
           </View>
-
-          {/* iOS Home Indicator Bar */}
-          <View style={styles.homeIndicator} />
         </View>
       </ScrollView>
     </View>
@@ -196,151 +155,154 @@ export default function AuthChoiceScreen({ onSelectRole, onGoToLogin }: Props) {
 const styles = StyleSheet.create({
   outerWrapper: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.bgApp,
   },
   scrollContainer: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: Platform.OS === 'ios' ? 44 : 20,
-    paddingBottom: 24,
+    paddingHorizontal: 22,
+    paddingTop: Platform.OS === 'ios' ? 44 : 24,
+    paddingBottom: 28,
     justifyContent: 'space-between',
   },
   animatedGlow: {
     position: 'absolute',
-    top: -80,
-    left: '15%',
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
-    transform: [{ scaleX: 1.6 }],
+    top: -70,
+    left: '12%',
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: 'rgba(99, 102, 241, 0.12)',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 20,
-    marginTop: 12,
+    marginBottom: 16,
+    marginTop: 8,
   },
   logoContainer: {
     marginBottom: 14,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 8,
+    ...shadows.primaryGlow,
   },
   brandTitle: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: '900',
-    color: colors.primary,
-    letterSpacing: 1.2,
+    color: colors.textMain,
+    letterSpacing: -0.5,
   },
   brandSubtitle: {
-    fontSize: 10.5,
+    fontSize: 10,
     fontWeight: '800',
-    color: colors.textDim,
+    color: colors.primary,
     letterSpacing: 2,
-    marginTop: 2,
-    marginBottom: 24,
+    marginTop: 3,
+    marginBottom: 16,
   },
   welcomeBlock: {
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
+  },
+  welcomeHeading: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: colors.textMain,
+    letterSpacing: -0.3,
   },
   welcomeSubtitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#334155',
+    fontSize: 13.5,
+    fontWeight: '500',
+    color: colors.textDim,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 19,
+    marginTop: 4,
   },
   cardsContainer: {
     gap: 16,
-    marginVertical: 16,
+    marginVertical: 12,
   },
   choiceCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
+    backgroundColor: colors.bgCard,
+    borderRadius: radii.xl,
     padding: 20,
     borderWidth: 1.5,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    elevation: 2,
+    borderColor: colors.borderColor,
+    ...shadows.card,
   },
   choiceCardActive: {
     borderColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 6,
-    backgroundColor: '#ffffff',
+    ...shadows.cardHover,
+    backgroundColor: '#FFFFFF',
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   iconBadge: {
-    width: 48,
-    height: 48,
+    width: 46,
+    height: 46,
     borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
   },
   clientIconBadge: {
-    backgroundColor: '#eef2ff',
-    borderColor: '#e0e7ff',
+    backgroundColor: colors.primaryWash,
   },
   creatorIconBadge: {
-    backgroundColor: '#faf5ff',
-    borderColor: '#f3e8ff',
+    backgroundColor: colors.accentPurpleWash,
   },
   radioIndicator: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#cbd5e1',
+    borderColor: colors.borderDark,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
   },
   radioIndicatorActive: {
     borderColor: colors.primary,
     backgroundColor: colors.primary,
   },
-  radioCheck: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '900',
-    marginTop: Platform.OS === 'ios' ? -1 : -2,
+  radioIndicatorActiveViolet: {
+    borderColor: colors.accentViolet,
+    backgroundColor: colors.accentViolet,
   },
   cardBody: {
     marginBottom: 14,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
   cardTitle: {
-    fontSize: 17,
+    fontSize: 16.5,
     fontWeight: '800',
     color: colors.textMain,
-    marginBottom: 4,
+    letterSpacing: -0.2,
   },
   cardDescription: {
-    fontSize: 12.5,
+    fontSize: 13,
     color: colors.textMuted,
-    lineHeight: 18,
+    lineHeight: 18.5,
   },
   cardFooter: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+  },
+  actionPromptText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
   },
   clientPill: {
-    backgroundColor: '#eef2ff',
-    borderWidth: 1,
-    borderColor: '#c7d2fe',
+    backgroundColor: colors.primaryWash,
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: radii.pill,
@@ -349,12 +311,10 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     fontWeight: '800',
     color: colors.primary,
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
   },
   creatorPill: {
-    backgroundColor: '#ecfeff',
-    borderWidth: 1,
-    borderColor: '#a5f3fc',
+    backgroundColor: colors.accentPurpleWash,
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: radii.pill,
@@ -362,34 +322,31 @@ const styles = StyleSheet.create({
   creatorPillText: {
     fontSize: 10.5,
     fontWeight: '800',
-    color: '#0891b2',
-    letterSpacing: 0.8,
+    color: colors.accentViolet,
+    letterSpacing: 0.5,
   },
   footerSection: {
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 8,
   },
-  signInRow: {
+  signInCard: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
-    gap: 4,
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 6,
   },
   signInQuestion: {
-    fontSize: 12.5,
+    fontSize: 13,
     color: colors.textMuted,
     fontWeight: '500',
   },
+  signInTouch: {
+    paddingVertical: 4,
+  },
   signInLink: {
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: '800',
     color: colors.primary,
-  },
-  homeIndicator: {
-    width: 120,
-    height: 4,
-    backgroundColor: '#cbd5e1',
-    borderRadius: 2,
-    marginTop: 20,
-    opacity: 0.6,
   },
 });

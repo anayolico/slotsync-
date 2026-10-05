@@ -1,34 +1,36 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
-  ScrollView, 
-  ActivityIndicator, 
-  StatusBar, 
-  Platform, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  StatusBar,
+  Platform,
   PanResponder,
   Animated,
   Easing,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  Modal
 } from 'react-native';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  CheckCircle2, 
-  AlertCircle, 
-  ChevronLeft, 
-  ArrowRight, 
-  Check, 
-  ShieldCheck, 
-  RotateCcw, 
-  MapPin, 
+
+import {
+  User,
+  Mail,
+  Phone,
+  Lock,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  AlertCircle,
+  ChevronLeft,
+  ArrowRight,
+  Check,
+  ShieldCheck,
+  RotateCcw,
+  MapPin,
   Sparkles,
   Plus,
   X,
@@ -37,12 +39,13 @@ import {
   Calendar,
   Heart
 } from '../../components/LucideIcons';
-import { colors, radii } from '../../theme/colors';
+import { colors, radii, shadows } from '../../theme/colors';
 import { registerUser, loginUser, sendEmailOtp, verifyEmailOtp } from '../../services/api';
 import SlotSyncLogo from '../../components/SlotSyncLogo';
 import OtpInput from '../../components/OtpInput';
 import DatePickerModal from '../../components/DatePickerModal';
 import { useToast } from '../../context/ToastContext';
+import AppBackground from '../../components/AppBackground';
 
 interface Props {
   onRegisterSuccess: () => void;
@@ -71,7 +74,7 @@ const DEFAULT_TITLE_SUGGESTIONS = [
 const CONSULTATION_MODES = [
   { id: 'VIRTUAL', label: 'Virtual (Online)' },
   { id: 'IN_PERSON', label: 'In-Person (Office)' },
-  { id: 'BOTH', label: 'Both Virtual & Office' }
+  { id: 'BOTH', label: 'Both Virtual / Office' }
 ];
 const SLOT_DURATIONS = [15, 30, 45, 60];
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -81,7 +84,7 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
   const { showError, showWarning, showSuccess } = useToast();
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
 
-  // Step 1 State: Credentials & Avatar
+  // Step 1 State: Credentials
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -90,18 +93,54 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [maritalStatus, setMaritalStatus] = useState<'Single' | 'Married' | 'Divorced' | 'Widowed'>('Single');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isGoogleVerified, setIsGoogleVerified] = useState(false);
+
 
   // Touched states
   const [fullNameTouched, setFullNameTouched] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
   const [phoneTouched, setPhoneTouched] = useState(false);
   const [dobTouched, setDobTouched] = useState(false);
-  const [genderTouched, setGenderTouched] = useState(false);
-  const [maritalStatusTouched, setMaritalStatusTouched] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
+  const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false);
   const [showDobPicker, setShowDobPicker] = useState(false);
+
+  // Marital Status Dropdown
+  const [maritalDropdownOpen, setMaritalDropdownOpen] = useState(false);
+  const maritalDropdownAnim = useRef(new Animated.Value(0)).current;
+
+  // Focus states
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  const MARITAL_OPTIONS = ['Single', 'Married', 'Divorced', 'Widowed'] as const;
+
+  const openMaritalDropdown = () => {
+    setMaritalDropdownOpen(true);
+    Animated.spring(maritalDropdownAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 70,
+      friction: 10,
+    }).start();
+  };
+
+  const closeMaritalDropdown = () => {
+    Animated.timing(maritalDropdownAnim, {
+      toValue: 0,
+      duration: 180,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start(() => setMaritalDropdownOpen(false));
+  };
+
+  const selectMaritalStatus = (value: typeof maritalStatus) => {
+    setMaritalStatus(value);
+    closeMaritalDropdown();
+  };
+
 
   // Step 2 State: Service Details & Consultation Setup
   const [category, setCategory] = useState('Doctor');
@@ -122,11 +161,7 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
   const [canResend, setCanResend] = useState(false);
 
   const [loading, setLoading] = useState(false);
-
   const scrollViewRef = useRef<ScrollView>(null);
-
-  // Floating Ambient Glow Animation
-  const glowAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (currentStep === 3) {
@@ -136,49 +171,33 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
     }
   }, [currentStep]);
 
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowAnim, {
-          toValue: 1,
-          duration: 3800,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(glowAnim, {
-          toValue: 0,
-          duration: 3800,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [glowAnim]);
-
-  const glowTranslateX = glowAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-35, 35],
-  });
-
-  const glowScale = glowAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [1.0, 1.15, 1.0],
-  });
-
   // Validation Calculations
+  const phoneDigits = phone.replace(/\D/g, '');
   const isFullNameValid = fullName.trim().length >= 2;
   const isEmailValid = EMAIL_REGEX.test(email.trim());
-  const isPhoneValid = phone.trim().length >= 7 && PHONE_REGEX.test(phone.trim());
+  const isPhoneValid =
+    phoneDigits.length === 11 ||
+    (phoneDigits.startsWith('234') && (phoneDigits.length === 13 || phoneDigits.length === 14));
   const isDobValid = /^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth.trim());
-  const isPasswordValid = password.length >= 8;
+
+  // Strong Password Criteria:
+  // Requires at least 8 characters, uppercase, lowercase, number, and special character
+  const hasMinLength = password.length >= 8;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
+  const isPasswordValid = hasMinLength && hasUpper && hasLower && hasNumber && hasSpecial;
+  const isConfirmPasswordValid = confirmPassword.length > 0 && confirmPassword === password && isPasswordValid;
 
   const isFullNameInvalid = fullNameTouched && !isFullNameValid;
   const isEmailInvalid = emailTouched && !isEmailValid;
   const isPhoneInvalid = phoneTouched && !isPhoneValid;
   const isDobInvalid = dobTouched && !isDobValid;
   const isPasswordInvalid = passwordTouched && !isPasswordValid;
+  const isConfirmPasswordInvalid = confirmPasswordTouched && !isConfirmPasswordValid;
+
 
   // Custom category handlers
   const handleAddCustomCategory = () => {
@@ -239,12 +258,27 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
     setEmailTouched(true);
     setPhoneTouched(true);
     setDobTouched(true);
-    setGenderTouched(true);
-    setMaritalStatusTouched(true);
     setPasswordTouched(true);
+    setConfirmPasswordTouched(true);
 
     if (!isFullNameValid || !isEmailValid || !isPhoneValid || (!isGoogleVerified && !isPasswordValid)) {
-      showWarning('Please enter all required fields including a valid business phone number.', 'Incomplete Details');
+      if (!isFullNameValid) {
+        showWarning('Please enter your full name.', 'Required Field');
+        return;
+      }
+      if (!isEmailValid) {
+        showWarning('Please enter a valid email address.', 'Invalid Email');
+        return;
+      }
+      if (!isPhoneValid) {
+        showWarning('Please enter a valid 11-digit phone number (e.g. 08012345678).', 'Invalid Phone Number');
+        return;
+      }
+      if (!isGoogleVerified && !isPasswordValid) {
+        showWarning('Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character.', 'Weak Password');
+        return;
+      }
+      showWarning('Please enter all required fields.', 'Incomplete Details');
       return;
     }
 
@@ -253,11 +287,16 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
       return;
     }
 
+    if (!isGoogleVerified && !isConfirmPasswordValid) {
+      showWarning('Passwords do not match. Please re-enter your confirm password.', 'Password Mismatch');
+      return;
+    }
+
     setCurrentStep(2);
   };
 
+
   const handleStep2Submit = async () => {
-    // Validate all compulsory fields for Creator
     if (!category.trim()) {
       showWarning('Please select or add a professional category.', 'Required Field');
       return;
@@ -398,875 +437,1017 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={{ flex: 1 }} 
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       <View style={styles.outerWrapper} {...panResponder.panHandlers}>
-        <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
-        
+        <StatusBar barStyle="dark-content" backgroundColor={colors.bgApp} />
+        <AppBackground variant="violet" />
+
         {/* Floating Minimalist Back Button */}
         <View style={styles.topNavigation}>
-          <TouchableOpacity 
-            style={styles.backButtonCircle} 
-            onPress={handleBackNavigation} 
+          <TouchableOpacity
+            style={styles.backButtonCircle}
+            onPress={handleBackNavigation}
             activeOpacity={0.7}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <ChevronLeft size={20} color={colors.primary} strokeWidth={2.5} />
+            <ChevronLeft size={20} color={colors.accentViolet} strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
 
-        <ScrollView 
+        <ScrollView
           ref={scrollViewRef}
           contentContainerStyle={styles.scrollContainer}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          automaticallyAdjustKeyboardInsets={true}
           showsVerticalScrollIndicator={false}
         >
-        {/* Animated Ambient Top Glow Effect */}
-        <Animated.View 
-          style={[
-            styles.animatedGlow, 
-            { 
-              transform: [
-                { translateX: glowTranslateX },
-                { scale: glowScale }
-              ] 
-            }
-          ]} 
-        />
 
-        {/* Heading Section */}
-        <View style={styles.headingSection}>
-          <View style={styles.logoBadgeContainer}>
-            <SlotSyncLogo size={56} />
+
+          {/* Heading Section */}
+          <View style={styles.headingSection}>
+            <View style={styles.logoBadgeContainer}>
+              <SlotSyncLogo size={58} />
+            </View>
+            <Text style={styles.pageTitle}>Creator Onboarding</Text>
+            <Text style={styles.pageSubtitle}>
+              Configure your professional services and availability to start receiving bookings.
+            </Text>
           </View>
-          <Text style={styles.pageTitle}>Creator Profile Onboarding</Text>
-          <Text style={styles.pageSubtitle}>
-            Set up your service catalog & availability schedule to start receiving bookings.
-          </Text>
-        </View>
 
-        {/* Step Indicator Progress Bar */}
-        <View style={styles.stepProgressBarRow}>
-          <TouchableOpacity 
-            style={[styles.stepTab, currentStep === 1 && styles.stepTabActive]} 
-            onPress={() => setCurrentStep(1)}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.stepBadgeNum, currentStep === 1 && styles.stepBadgeNumActive]}>
-              <Text style={[styles.stepBadgeText, currentStep === 1 && styles.stepBadgeTextActive]}>1</Text>
-            </View>
-            <Text style={[styles.stepTabLabel, currentStep === 1 && styles.stepTabLabelActive]}>Account</Text>
-          </TouchableOpacity>
-
-          <View style={styles.stepLineSeparator} />
-
-          <TouchableOpacity 
-            style={[styles.stepTab, currentStep === 2 && styles.stepTabActive]} 
-            onPress={handleStep1ToStep2}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.stepBadgeNum, currentStep === 2 && styles.stepBadgeNumActive]}>
-              <Text style={[styles.stepBadgeText, currentStep === 2 && styles.stepBadgeTextActive]}>2</Text>
-            </View>
-            <Text style={[styles.stepTabLabel, currentStep === 2 && styles.stepTabLabelActive]}>Services</Text>
-          </TouchableOpacity>
-
-          {!isGoogleVerified && (
-            <>
-              <View style={styles.stepLineSeparator} />
-              <View style={[styles.stepTab, currentStep === 3 && styles.stepTabActive]}>
-                <View style={[styles.stepBadgeNum, currentStep === 3 && styles.stepBadgeNumActive]}>
-                  <Text style={[styles.stepBadgeText, currentStep === 3 && styles.stepBadgeTextActive]}>3</Text>
-                </View>
-                <Text style={[styles.stepTabLabel, currentStep === 3 && styles.stepTabLabelActive]}>Verify</Text>
+          {/* Step Indicator Progress Bar */}
+          <View style={styles.stepProgressBarRow}>
+            <TouchableOpacity
+              style={[styles.stepTab, currentStep === 1 && styles.stepTabActive]}
+              onPress={() => setCurrentStep(1)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.stepBadgeNum, currentStep === 1 && styles.stepBadgeNumActive]}>
+                <Text style={[styles.stepBadgeText, currentStep === 1 && styles.stepBadgeTextActive]}>1</Text>
               </View>
-            </>
-          )}
-        </View>
+              <Text style={[styles.stepTabLabel, currentStep === 1 && styles.stepTabLabelActive]}>Account</Text>
+            </TouchableOpacity>
 
-        {/* STEP 1: ACCOUNT CREDENTIALS */}
-        {currentStep === 1 && (
-          <View style={styles.formContainer}>
-            <View style={styles.sectionHeaderRow}>
-              <View style={styles.headerIconDot} />
-              <Text style={styles.sectionHeaderTitle}>ACCOUNT CREDENTIALS</Text>
-            </View>
+            <View style={styles.stepLineSeparator} />
 
-            {/* Full Name Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Full Name</Text>
+            <TouchableOpacity
+              style={[styles.stepTab, currentStep === 2 && styles.stepTabActive]}
+              onPress={handleStep1ToStep2}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.stepBadgeNum, currentStep === 2 && styles.stepBadgeNumActive]}>
+                <Text style={[styles.stepBadgeText, currentStep === 2 && styles.stepBadgeTextActive]}>2</Text>
+              </View>
+              <Text style={[styles.stepTabLabel, currentStep === 2 && styles.stepTabLabelActive]}>Services</Text>
+            </TouchableOpacity>
 
-              <View style={[
-                styles.inputWithIcon,
-                isFullNameInvalid && styles.inputInvalidBorder,
-                isFullNameValid && fullNameTouched && styles.inputValidBorder
-              ]}>
-                <View style={styles.iconHolder}>
-                  <User 
-                    size={19} 
-                    color={isFullNameInvalid ? '#ef4444' : isFullNameValid && fullNameTouched ? colors.primary : '#64748b'} 
-                    strokeWidth={2}
-                  />
-                </View>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter full legal name"
-                  placeholderTextColor={colors.textDim}
-                  value={fullName}
-                  onChangeText={(val) => {
-                    setFullName(val);
-                    if (!fullNameTouched) setFullNameTouched(true);
-                  }}
-                  onBlur={() => setFullNameTouched(true)}
-                  autoCapitalize="words"
-                />
-                {fullNameTouched && (
-                  <View style={styles.validationIconHolder}>
-                    {isFullNameValid ? (
-                      <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
-                    ) : (
-                      <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
-                    )}
+            {!isGoogleVerified && (
+              <>
+                <View style={styles.stepLineSeparator} />
+                <View style={[styles.stepTab, currentStep === 3 && styles.stepTabActive]}>
+                  <View style={[styles.stepBadgeNum, currentStep === 3 && styles.stepBadgeNumActive]}>
+                    <Text style={[styles.stepBadgeText, currentStep === 3 && styles.stepBadgeTextActive]}>3</Text>
                   </View>
-                )}
-              </View>
-              {isFullNameInvalid && (
-                <Text style={styles.helperErrorText}>
-                  Please enter your full legal name (at least 2 characters)
-                </Text>
-              )}
-            </View>
-
-            {/* Email Address Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Email Address</Text>
-
-              <View style={[
-                styles.inputWithIcon,
-                isEmailInvalid && styles.inputInvalidBorder,
-                isEmailValid && emailTouched && styles.inputValidBorder
-              ]}>
-                <View style={styles.iconHolder}>
-                  <Mail 
-                    size={19} 
-                    color={isEmailInvalid ? '#ef4444' : isEmailValid && emailTouched ? colors.primary : '#64748b'} 
-                    strokeWidth={2}
-                  />
+                  <Text style={[styles.stepTabLabel, currentStep === 3 && styles.stepTabLabelActive]}>Verify</Text>
                 </View>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="name@example.com"
-                  placeholderTextColor={colors.textDim}
-                  value={email}
-                  onChangeText={(val) => {
-                    setEmail(val);
-                    if (!emailTouched) setEmailTouched(true);
-                  }}
-                  onBlur={() => setEmailTouched(true)}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-                {emailTouched && (
-                  <View style={styles.validationIconHolder}>
-                    {isEmailValid ? (
-                      <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
-                    ) : (
-                      <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
-                    )}
-                  </View>
-                )}
-              </View>
-              {isEmailInvalid && (
-                <Text style={styles.helperErrorText}>
-                  Please enter a valid email address (e.g. name@example.com)
-                </Text>
-              )}
-            </View>
-
-            {/* Phone Number Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Business Phone Number</Text>
-
-              <View style={[
-                styles.inputWithIcon,
-                isPhoneInvalid && styles.inputInvalidBorder,
-                isPhoneValid && phoneTouched && styles.inputValidBorder
-              ]}>
-                <View style={styles.iconHolder}>
-                  <Phone 
-                    size={19} 
-                    color={isPhoneInvalid ? '#ef4444' : isPhoneValid && phoneTouched ? colors.primary : '#64748b'} 
-                    strokeWidth={2}
-                  />
-                </View>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="+1 (555) 000-0000"
-                  placeholderTextColor={colors.textDim}
-                  value={phone}
-                  onChangeText={(val) => {
-                    setPhone(val);
-                    if (!phoneTouched) setPhoneTouched(true);
-                  }}
-                  onBlur={() => setPhoneTouched(true)}
-                  keyboardType="phone-pad"
-                />
-                {phoneTouched && (
-                  <View style={styles.validationIconHolder}>
-                    {isPhoneValid ? (
-                      <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
-                    ) : (
-                      <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
-                    )}
-                  </View>
-                )}
-              </View>
-              {isPhoneInvalid && (
-                <Text style={styles.helperErrorText}>
-                  Please enter a valid phone number (7-15 digits)
-                </Text>
-              )}
-            </View>
-
-            {/* Gender Selection */}
-            <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Gender</Text>
-                <Text style={styles.subHint}>Select your gender</Text>
-              </View>
-              <View style={styles.pillSelectorRow}>
-                {(['Male', 'Female'] as const).map((g) => {
-                  const isSelected = gender === g;
-                  return (
-                    <TouchableOpacity
-                      key={g}
-                      style={[styles.pillOption, isSelected && styles.pillOptionActive]}
-                      onPress={() => {
-                        setGender(g);
-                        setGenderTouched(true);
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[styles.pillOptionText, isSelected && styles.pillOptionTextActive]}>
-                        {g}
-                      </Text>
-                      {isSelected && <Check size={16} color="#ffffff" strokeWidth={2.5} />}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* Date of Birth Input */}
-            <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Date of Birth</Text>
-                <Text style={styles.subHint}>YYYY-MM-DD</Text>
-              </View>
-
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => setShowDobPicker(true)}
-                style={[
-                  styles.inputWithIcon,
-                  isDobInvalid && styles.inputInvalidBorder,
-                  isDobValid && dobTouched && styles.inputValidBorder
-                ]}
-              >
-                <View style={styles.iconHolder}>
-                  <Calendar 
-                    size={19} 
-                    color={isDobInvalid ? '#ef4444' : isDobValid && dobTouched ? colors.primary : '#64748b'} 
-                    strokeWidth={2}
-                  />
-                </View>
-                <TextInput
-                  style={[styles.textInput, { flex: 1 }]}
-                  placeholder="YYYY-MM-DD (e.g. 1995-08-24)"
-                  placeholderTextColor={colors.textDim}
-                  value={dateOfBirth}
-                  editable={false}
-                  pointerEvents="none"
-                />
-                <TouchableOpacity 
-                  style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#e0e7ff', borderRadius: 8, marginRight: 8 }}
-                  onPress={() => setShowDobPicker(true)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary }}>Choose</Text>
-                </TouchableOpacity>
-                {dobTouched && (
-                  <View style={styles.validationIconHolder}>
-                    {isDobValid ? (
-                      <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
-                    ) : (
-                      <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
-                    )}
-                  </View>
-                )}
-              </TouchableOpacity>
-              {isDobInvalid && (
-                <Text style={styles.helperErrorText}>
-                  Please enter a valid Date of Birth (YYYY-MM-DD, e.g. 1995-08-24)
-                </Text>
-              )}
-            </View>
-
-            {/* DatePickerModal Component */}
-            <DatePickerModal
-              visible={showDobPicker}
-              value={dateOfBirth}
-              onSelect={(d) => {
-                setDateOfBirth(d);
-                setDobTouched(true);
-              }}
-              onClose={() => setShowDobPicker(false)}
-              title="Select Date of Birth"
-            />
-
-            {/* Marital Status Selection */}
-            <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Marital Status</Text>
-                <Text style={styles.subHint}>Select status</Text>
-              </View>
-              <View style={styles.pillSelectorRow}>
-                {(['Single', 'Married', 'Divorced', 'Widowed'] as const).map((ms) => {
-                  const isSelected = maritalStatus === ms;
-                  return (
-                    <TouchableOpacity
-                      key={ms}
-                      style={[styles.pillOption, isSelected && styles.pillOptionActive]}
-                      onPress={() => {
-                        setMaritalStatus(ms);
-                        setMaritalStatusTouched(true);
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[styles.pillOptionText, isSelected && styles.pillOptionTextActive]}>
-                        {ms}
-                      </Text>
-                      {isSelected && <Check size={14} color="#ffffff" strokeWidth={2.5} />}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* Password Input with Visibility Toggle */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Password</Text>
-
-              <View style={[
-                styles.inputWithIcon,
-                isPasswordInvalid && styles.inputInvalidBorder,
-                isPasswordValid && passwordTouched && styles.inputValidBorder
-              ]}>
-                <View style={styles.iconHolder}>
-                  <Lock 
-                    size={19} 
-                    color={isPasswordInvalid ? '#ef4444' : isPasswordValid && passwordTouched ? colors.primary : '#64748b'} 
-                    strokeWidth={2}
-                  />
-                </View>
-                <TextInput
-                  style={[styles.textInput, { flex: 1 }]}
-                  placeholder="••••••••••••"
-                  placeholderTextColor={colors.textDim}
-                  value={password}
-                  onChangeText={(val) => {
-                    setPassword(val);
-                    if (!passwordTouched) setPasswordTouched(true);
-                  }}
-                  onBlur={() => setPasswordTouched(true)}
-                  secureTextEntry={!showPassword}
-                />
-                <View style={styles.rightActionsRow}>
-                  {passwordTouched && (
-                    <View style={styles.validationIconHolder}>
-                      {isPasswordValid ? (
-                        <CheckCircle2 size={18} color={colors.primary} strokeWidth={2.2} />
-                      ) : (
-                        <AlertCircle size={18} color="#ef4444" strokeWidth={2.2} />
-                      )}
-                    </View>
-                  )}
-                  <TouchableOpacity 
-                    style={styles.eyeToggleBtn}
-                    onPress={() => setShowPassword(!showPassword)}
-                    activeOpacity={0.7}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    {showPassword ? (
-                      <Eye size={20} color={colors.primary} strokeWidth={2} />
-                    ) : (
-                      <EyeOff size={20} color="#94a3b8" strokeWidth={2} />
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-              {isPasswordInvalid && (
-                <Text style={styles.helperErrorText}>
-                  Password must be at least 8 characters ({password.length}/8)
-                </Text>
-              )}
-            </View>
+              </>
+            )}
           </View>
-        )}
 
-        {/* STEP 2: CREATOR PROFILE DETAILS */}
-        {currentStep === 2 && (
-          <View style={styles.formContainer}>
-            <View style={styles.sectionHeaderRow}>
-              <View style={styles.headerIconDot} />
-              <Text style={styles.sectionHeaderTitle}>CREATOR SERVICE DETAILS</Text>
-            </View>
-
-            {/* Professional Category */}
-            <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Professional Category</Text>
-                <Text style={styles.subHint}>Tap to select</Text>
+          {/* STEP 1: ACCOUNT CREDENTIALS */}
+          {currentStep === 1 && (
+            <View style={styles.seamlessForm}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={[styles.sectionHeaderTitle, { color: colors.accentViolet }]}>ACCOUNT CREDENTIALS</Text>
               </View>
 
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false} 
-                style={styles.horizontalScrollWrapper}
-                contentContainerStyle={styles.categoryPillsRow}
-              >
-                {CATEGORIES.map((cat) => {
-                  const isActive = category === cat;
-                  return (
-                    <TouchableOpacity
-                      key={cat}
-                      style={[
-                        styles.catPill,
-                        isActive && styles.catPillActive
-                      ]}
-                      activeOpacity={0.75}
-                      onPress={() => setCategory(cat)}
-                    >
-                      {isActive && <Check size={13} color="#ffffff" strokeWidth={2.8} style={{ marginRight: 6 }} />}
-                      <Text style={[
-                        styles.catPillText,
-                        isActive && styles.catPillTextActive
-                      ]}>
-                        {cat}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-
-                {/* Custom User-Added Categories */}
-                {customCategories.map((cat) => {
-                  const isActive = category === cat;
-                  return (
-                    <View
-                      key={cat}
-                      style={[
-                        styles.catPill,
-                        isActive && styles.catPillActive,
-                        styles.customCatWrapper
-                      ]}
-                    >
-                      <TouchableOpacity
-                        style={{ flexDirection: 'row', alignItems: 'center' }}
-                        onPress={() => setCategory(cat)}
-                        activeOpacity={0.75}
-                      >
-                        {isActive && <Check size={13} color="#ffffff" strokeWidth={2.8} style={{ marginRight: 6 }} />}
-                        <Text style={[
-                          styles.catPillText,
-                          isActive && styles.catPillTextActive
-                        ]}>
-                          {cat}
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        onPress={() => handleRemoveCustomCategory(cat)}
-                        style={styles.removeCatBtn}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <X size={13} color={isActive ? '#ffffff' : '#64748b'} strokeWidth={2.5} />
-                      </TouchableOpacity>
-                    </View>
-                  );
-                })}
-              </ScrollView>
-
-              {/* Add Custom Category Input Row */}
-              <View style={styles.addCategoryInputRow}>
-                <TextInput
-                  style={styles.addCategoryInput}
-                  placeholder="Type custom category (e.g. Software Engineer)..."
-                  placeholderTextColor={colors.textDim}
-                  value={newCategoryInput}
-                  onChangeText={setNewCategoryInput}
-                  onSubmitEditing={handleAddCustomCategory}
-                  returnKeyType="done"
-                />
-                <TouchableOpacity
-                  style={[styles.addCategoryButton, !newCategoryInput.trim() && styles.addCategoryButtonDisabled]}
-                  onPress={handleAddCustomCategory}
-                  disabled={!newCategoryInput.trim()}
-                  activeOpacity={0.8}
-                >
-                  <Plus size={14} color="#ffffff" strokeWidth={2.5} />
-                  <Text style={styles.addCategoryButtonText}>Add</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Consultation Mode Selector */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Consultation Delivery Mode</Text>
-              <View style={styles.modeCardsRow}>
-                {CONSULTATION_MODES.map((mode) => {
-                  const isActive = consultationMode === mode.id;
-                  return (
-                    <TouchableOpacity
-                      key={mode.id}
-                      style={[styles.modeCard, isActive && styles.modeCardActive]}
-                      onPress={() => setConsultationMode(mode.id)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[styles.modeLabel, isActive && styles.modeLabelActive]}>
-                        {mode.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* Office Address (Mandatory for In-Person & Both) */}
-            {consultationMode !== 'VIRTUAL' && (
+              {/* Full Name Input */}
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Clinic / Office Physical Address</Text>
-                <View style={styles.inputWithIcon}>
+                <Text style={styles.inputLabel}>Full Name</Text>
+                <View style={[
+                  styles.glassInputContainer,
+                  focusedField === 'name' && styles.glassInputFocused,
+                  isFullNameInvalid && styles.glassInputInvalid,
+                  isFullNameValid && fullNameTouched && styles.glassInputValid
+                ]}>
                   <View style={styles.iconHolder}>
-                    <MapPin size={18} color={colors.primary} strokeWidth={2} />
+                    <User
+                      size={19}
+                      color={isFullNameInvalid ? colors.danger : isFullNameValid && fullNameTouched ? colors.accentViolet : colors.primaryLight}
+                      strokeWidth={2}
+                    />
                   </View>
                   <TextInput
                     style={styles.textInput}
-                    placeholder="Suite, Street Address, City"
+                    placeholder="Enter full legal name"
                     placeholderTextColor={colors.textDim}
-                    value={officeAddress}
-                    onChangeText={setOfficeAddress}
+                    value={fullName}
+                    onChangeText={(val) => {
+                      setFullName(val);
+                      if (!fullNameTouched) setFullNameTouched(true);
+                    }}
+                    onFocus={() => setFocusedField('name')}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      setFullNameTouched(true);
+                    }}
+                    autoCapitalize="words"
                   />
-                </View>
-              </View>
-            )}
-
-            {/* Professional Title Input with Modern Dropdown */}
-            <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Professional Title</Text>
-              </View>
-
-              <View style={styles.titleInputContainer}>
-                <TextInput
-                  style={styles.textInputFull}
-                  placeholder="e.g. Senior Consultant / Master Barber"
-                  placeholderTextColor={colors.textDim}
-                  value={title}
-                  onChangeText={setTitle}
-                />
-                <TouchableOpacity
-                  style={styles.titleDropdownChevron}
-                  onPress={() => setShowTitleDropdown(!showTitleDropdown)}
-                  activeOpacity={0.7}
-                >
-                  {showTitleDropdown ? (
-                    <ChevronUp size={18} color={colors.primary} strokeWidth={2.2} />
-                  ) : (
-                    <ChevronDown size={18} color="#64748b" strokeWidth={2.2} />
+                  {fullNameTouched && (
+                    <View style={styles.validationIconHolder}>
+                      {isFullNameValid ? (
+                        <CheckCircle2 size={18} color={colors.success} strokeWidth={2.4} />
+                      ) : (
+                        <AlertCircle size={18} color={colors.danger} strokeWidth={2.4} />
+                      )}
+                    </View>
                   )}
-                </TouchableOpacity>
+                </View>
+                {isFullNameInvalid && (
+                  <Text style={styles.helperErrorText}>Please enter your full legal name</Text>
+                )}
               </View>
 
-              {/* Modern Expandable Dropdown Menu */}
-              {showTitleDropdown && (
-                <View style={styles.modernDropdownCard}>
-                  <View style={styles.dropdownHeader}>
-                    <Sparkles size={13} color={colors.primary} strokeWidth={2.2} />
-                    <Text style={styles.dropdownHeaderTitle}>Suggested Titles for {category}</Text>
+              {/* Email Address Input */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Email Address</Text>
+                <View style={[
+                  styles.glassInputContainer,
+                  focusedField === 'email' && styles.glassInputFocused,
+                  isEmailInvalid && styles.glassInputInvalid,
+                  isEmailValid && emailTouched && styles.glassInputValid
+                ]}>
+                  <View style={styles.iconHolder}>
+                    <Mail
+                      size={19}
+                      color={isEmailInvalid ? colors.danger : isEmailValid && emailTouched ? colors.accentViolet : colors.primaryLight}
+                      strokeWidth={2}
+                    />
                   </View>
-                  {currentTitleSuggestions.map((item) => {
-                    const isSelected = title.trim().toLowerCase() === item.toLowerCase();
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="creator@example.com"
+                    placeholderTextColor={colors.textDim}
+                    value={email}
+                    onChangeText={(val) => {
+                      setEmail(val);
+                      if (!emailTouched) setEmailTouched(true);
+                    }}
+                    onFocus={() => setFocusedField('email')}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      setEmailTouched(true);
+                    }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                  {emailTouched && (
+                    <View style={styles.validationIconHolder}>
+                      {isEmailValid ? (
+                        <CheckCircle2 size={18} color={colors.success} strokeWidth={2.4} />
+                      ) : (
+                        <AlertCircle size={18} color={colors.danger} strokeWidth={2.4} />
+                      )}
+                    </View>
+                  )}
+                </View>
+                {isEmailInvalid && (
+                  <Text style={styles.helperErrorText}>Please enter a valid email address</Text>
+                )}
+              </View>
+
+              {/* Phone Number Input */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Business Phone Number</Text>
+                <View style={[
+                  styles.glassInputContainer,
+                  focusedField === 'phone' && styles.glassInputFocused,
+                  isPhoneInvalid && styles.glassInputInvalid,
+                  isPhoneValid && phoneTouched && styles.glassInputValid
+                ]}>
+                  <View style={styles.iconHolder}>
+                    <Phone
+                      size={19}
+                      color={isPhoneInvalid ? colors.danger : isPhoneValid && phoneTouched ? colors.accentViolet : colors.primaryLight}
+                      strokeWidth={2}
+                    />
+                  </View>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="+234 0800 000 0000"
+                    placeholderTextColor={colors.textDim}
+                    value={phone}
+                    onChangeText={(val) => {
+                      setPhone(val);
+                      if (!phoneTouched) setPhoneTouched(true);
+                    }}
+                    onFocus={() => setFocusedField('phone')}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      setPhoneTouched(true);
+                    }}
+                    keyboardType="phone-pad"
+                  />
+                  {phoneTouched && (
+                    <View style={styles.validationIconHolder}>
+                      {isPhoneValid ? (
+                        <CheckCircle2 size={18} color={colors.success} strokeWidth={2.4} />
+                      ) : (
+                        <AlertCircle size={18} color={colors.danger} strokeWidth={2.4} />
+                      )}
+                    </View>
+                  )}
+                </View>
+                {isPhoneInvalid && (
+                  <Text style={styles.helperErrorText}>
+                    {phoneDigits.length === 0
+                      ? 'Please enter your business phone number'
+                      : `Phone number must be 11 digits (${phoneDigits.length > 11 && !phoneDigits.startsWith('234') ? `${phoneDigits.length}/11 - too long` : `${phoneDigits.length}/11`})`}
+                  </Text>
+                )}
+              </View>
+
+              {/* Gender Selection */}
+              <View style={styles.inputGroup}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.inputLabel}>Gender</Text>
+                  <Text style={styles.subHint}>Select gender</Text>
+                </View>
+                <View style={styles.pillSelectorRow}>
+                  {(['Male', 'Female'] as const).map((g) => {
+                    const isSelected = gender === g;
                     return (
                       <TouchableOpacity
-                        key={item}
-                        style={[
-                          styles.dropdownItem,
-                          isSelected && styles.dropdownItemActive
-                        ]}
-                        activeOpacity={0.75}
-                        onPress={() => {
-                          setTitle(item);
-                          setShowTitleDropdown(false);
-                        }}
+                        key={g}
+                        style={[styles.pillOption, isSelected && styles.pillOptionActiveViolet]}
+                        onPress={() => setGender(g)}
+                        activeOpacity={0.8}
                       >
-                        <Text style={[
-                          styles.dropdownItemText,
-                          isSelected && styles.dropdownItemTextActive
-                        ]}>
-                          {item}
-                        </Text>
-                        {isSelected && (
-                          <Check size={15} color={colors.primary} strokeWidth={2.5} />
-                        )}
+                        <Text style={[styles.pillOptionText, isSelected && styles.pillOptionTextActive]}>{g}</Text>
+                        {isSelected && <Check size={14} color="#ffffff" strokeWidth={2.6} />}
                       </TouchableOpacity>
                     );
                   })}
                 </View>
-              )}
-
-            
-            </View>
-
-            {/* Hourly Consultation Rate */}
-            <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Hourly Consultation Rate</Text>
-                <Text style={styles.subHint}>Currency: NGN (₦)</Text>
               </View>
-              <View style={styles.rateInputRow}>
-                <Text style={styles.currencyPrefix}>₦</Text>
-                <TextInput
-                  style={styles.rateTextInput}
-                  placeholder="5000"
-                  placeholderTextColor={colors.textDim}
-                  value={hourlyRate}
-                  onChangeText={setHourlyRate}
-                  keyboardType="numeric"
-                />
-                <Text style={styles.rateSuffix}>/ hr</Text>
-              </View>
-            </View>
 
-            {/* Default Slot Duration Segmented Buttons */}
-            <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Default Slot Duration</Text>
-                <View style={styles.recBadge}>
-                  <Text style={styles.recBadgeText}>Recommended: 30m</Text>
+              {/* Date of Birth Input */}
+              <View style={styles.inputGroup}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.inputLabel}>Date of Birth</Text>
+                  <Text style={styles.subHint}>YYYY-MM-DD</Text>
                 </View>
-              </View>
-
-              <View style={styles.segmentedContainer}>
-                {SLOT_DURATIONS.map((dur) => {
-                  const isActive = slotDuration === dur;
-                  return (
-                    <TouchableOpacity
-                      key={dur}
-                      style={[
-                        styles.segmentBtn,
-                        isActive && styles.segmentBtnActive
-                      ]}
-                      activeOpacity={0.8}
-                      onPress={() => setSlotDuration(dur)}
-                    >
-                      <Text style={[
-                        styles.segmentText,
-                        isActive && styles.segmentTextActive
-                      ]}>
-                        {dur} mins
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* Profile Bio Textarea (Compulsory) */}
-            <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Profile Bio / Introduction</Text>
-                <Text style={styles.charCountText}>{bio.length}/300</Text>
-              </View>
-              <View style={styles.textAreaContainer}>
-                <TextInput
-                  style={styles.textAreaInput}
-                  placeholder="Write a brief introduction about your services, experience, and consultation topics..."
-                  placeholderTextColor={colors.textDim}
-                  value={bio}
-                  onChangeText={setBio}
-                  maxLength={300}
-                  multiline
-                  numberOfLines={4}
-                />
-                {bio.length > 0 && (
-                  <TouchableOpacity 
-                    style={styles.clearNotesBtn} 
-                    onPress={() => setBio('')}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setShowDobPicker(true)}
+                  style={[
+                    styles.glassInputContainer,
+                    isDobInvalid && styles.glassInputInvalid,
+                    isDobValid && dobTouched && styles.glassInputValid
+                  ]}
+                >
+                  <View style={styles.iconHolder}>
+                    <Calendar
+                      size={19}
+                      color={isDobInvalid ? colors.danger : isDobValid && dobTouched ? colors.accentViolet : colors.primaryLight}
+                      strokeWidth={2}
+                    />
+                  </View>
+                  <TextInput
+                    style={[styles.textInput, { flex: 1 }]}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={colors.textDim}
+                    value={dateOfBirth}
+                    editable={false}
+                    pointerEvents="none"
+                  />
+                  <TouchableOpacity
+                    style={[styles.chooseDobBtn, { backgroundColor: colors.accentPurpleWash }]}
+                    onPress={() => setShowDobPicker(true)}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.clearNotesText}>Clear</Text>
+                    <Text style={[styles.chooseDobBtnText, { color: colors.accentViolet }]}>Select</Text>
                   </TouchableOpacity>
+                </TouchableOpacity>
+                {isDobInvalid && (
+                  <Text style={styles.helperErrorText}>Please enter a valid Date of Birth</Text>
+                )}
+              </View>
+
+              {/* DatePickerModal Component */}
+              <DatePickerModal
+                visible={showDobPicker}
+                value={dateOfBirth}
+                onSelect={(d) => {
+                  setDateOfBirth(d);
+                  setDobTouched(true);
+                }}
+                onClose={() => setShowDobPicker(false)}
+                title="Select Date of Birth"
+              />
+
+              {/* Marital Status Dropdown */}
+              <View style={styles.inputGroup}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.inputLabel}>Marital Status</Text>
+                  <Text style={styles.subHint}>Tap to select</Text>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.glassInputContainer, maritalDropdownOpen && styles.glassInputFocused]}
+                  onPress={openMaritalDropdown}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.iconHolder}>
+                    <Heart
+                      size={19}
+                      color={maritalDropdownOpen ? colors.accentViolet : colors.primaryLight}
+                      strokeWidth={2}
+                    />
+                  </View>
+                  <Text style={[styles.textInput, { color: colors.textMain, fontWeight: '600' }]}>
+                    {maritalStatus}
+                  </Text>
+                  <View style={styles.dropdownChevron}>
+                    {maritalDropdownOpen
+                      ? <ChevronUp size={17} color={colors.accentViolet} strokeWidth={2.4} />
+                      : <ChevronDown size={17} color={colors.textDim} strokeWidth={2.4} />}
+                  </View>
+                </TouchableOpacity>
+
+                {/* Marital Status Modal */}
+                <Modal
+                  visible={maritalDropdownOpen}
+                  transparent
+                  animationType="none"
+                  onRequestClose={closeMaritalDropdown}
+                  statusBarTranslucent
+                >
+                  <TouchableOpacity
+                    style={styles.dropdownOverlay}
+                    activeOpacity={1}
+                    onPress={closeMaritalDropdown}
+                  >
+                    <Animated.View
+                      style={[
+                        styles.dropdownPanel,
+                        {
+                          opacity: maritalDropdownAnim,
+                          transform: [{
+                            translateY: maritalDropdownAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [-10, 0],
+                            })
+                          }]
+                        }
+                      ]}
+                    >
+                      <View style={styles.dropdownPanelHeader}>
+                        <View style={[styles.dropdownPanelDot, { backgroundColor: colors.accentViolet }]} />
+                        <Text style={[styles.dropdownPanelTitle, { color: colors.accentViolet }]}>SELECT MARITAL STATUS</Text>
+                      </View>
+
+                      {MARITAL_OPTIONS.map((option, index) => {
+                        const isSelected = maritalStatus === option;
+                        const isLast = index === MARITAL_OPTIONS.length - 1;
+                        return (
+                          <TouchableOpacity
+                            key={option}
+                            style={[
+                              styles.dropdownOptionRow,
+                              isSelected && styles.dropdownOptionRowActiveViolet,
+                              !isLast && styles.dropdownOptionRowBorder,
+                            ]}
+                            onPress={() => selectMaritalStatus(option)}
+                            activeOpacity={0.8}
+                          >
+                            <Text style={[
+                              styles.dropdownOptionText,
+                              isSelected && styles.dropdownOptionTextActiveViolet,
+                            ]}>
+                              {option}
+                            </Text>
+                            {isSelected && (
+                              <View style={[styles.dropdownCheckBadge, { backgroundColor: colors.accentViolet }]}>
+                                <Check size={12} color="#ffffff" strokeWidth={3} />
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </Animated.View>
+                  </TouchableOpacity>
+                </Modal>
+              </View>
+
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Password</Text>
+                <View style={[
+                  styles.glassInputContainer,
+                  focusedField === 'password' && styles.glassInputFocused,
+                  isPasswordInvalid && styles.glassInputInvalid,
+                  isPasswordValid && passwordTouched && styles.glassInputValid
+                ]}>
+                  <View style={styles.iconHolder}>
+                    <Lock
+                      size={19}
+                      color={isPasswordInvalid ? colors.danger : isPasswordValid && passwordTouched ? colors.accentViolet : colors.primaryLight}
+                      strokeWidth={2}
+                    />
+                  </View>
+                  <TextInput
+                    style={[styles.textInput, { flex: 1 }]}
+                    placeholder="••••••••••••"
+                    placeholderTextColor={colors.textDim}
+                    value={password}
+                    onChangeText={(val) => {
+                      setPassword(val);
+                      if (!passwordTouched) setPasswordTouched(true);
+                    }}
+                    onFocus={() => setFocusedField('password')}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      setPasswordTouched(true);
+                    }}
+                    secureTextEntry={!showPassword}
+                  />
+                  <View style={styles.rightActionsRow}>
+                    {passwordTouched && (
+                      <View style={styles.validationIconHolder}>
+                        {isPasswordValid ? (
+                          <CheckCircle2 size={18} color={colors.success} strokeWidth={2.4} />
+                        ) : (
+                          <AlertCircle size={18} color={colors.danger} strokeWidth={2.4} />
+                        )}
+                      </View>
+                    )}
+                    <TouchableOpacity
+                      style={styles.eyeToggleBtn}
+                      onPress={() => setShowPassword(!showPassword)}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      {showPassword ? (
+                        <Eye size={19} color={colors.accentViolet} strokeWidth={2} />
+                      ) : (
+                        <EyeOff size={19} color={colors.textDim} strokeWidth={2} />
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Single-Line Password Security Requirements */}
+                {(focusedField === 'password' || password.length > 0 || passwordTouched) && (
+                  <View style={styles.pwdRequirementsRow}>
+                    <View style={styles.pwdRequirementItem}>
+                      <Check
+                        size={12}
+                        color={hasMinLength ? colors.success : '#CBD5E1'}
+                        strokeWidth={hasMinLength ? 2.8 : 2}
+                      />
+                      <Text style={[styles.pwdRequirementText, hasMinLength && styles.pwdRequirementTextActive]}>
+                        8+ chars
+                      </Text>
+                    </View>
+                    <View style={styles.pwdRequirementItem}>
+                      <Check
+                        size={12}
+                        color={hasUpper ? colors.success : '#CBD5E1'}
+                        strokeWidth={hasUpper ? 2.8 : 2}
+                      />
+                      <Text style={[styles.pwdRequirementText, hasUpper && styles.pwdRequirementTextActive]}>
+                        Upper
+                      </Text>
+                    </View>
+                    <View style={styles.pwdRequirementItem}>
+                      <Check
+                        size={12}
+                        color={hasLower ? colors.success : '#CBD5E1'}
+                        strokeWidth={hasLower ? 2.8 : 2}
+                      />
+                      <Text style={[styles.pwdRequirementText, hasLower && styles.pwdRequirementTextActive]}>
+                        Lower
+                      </Text>
+                    </View>
+                    <View style={styles.pwdRequirementItem}>
+                      <Check
+                        size={12}
+                        color={hasNumber ? colors.success : '#CBD5E1'}
+                        strokeWidth={hasNumber ? 2.8 : 2}
+                      />
+                      <Text style={[styles.pwdRequirementText, hasNumber && styles.pwdRequirementTextActive]}>
+                        Number
+                      </Text>
+                    </View>
+                    <View style={styles.pwdRequirementItem}>
+                      <Check
+                        size={12}
+                        color={hasSpecial ? colors.success : '#CBD5E1'}
+                        strokeWidth={hasSpecial ? 2.8 : 2}
+                      />
+                      <Text style={[styles.pwdRequirementText, hasSpecial && styles.pwdRequirementTextActive]}>
+                        Symbol
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {isPasswordInvalid && (
+                  <Text style={styles.helperErrorText}>Password must meet all requirements above</Text>
+                )}
+              </View>
+
+              {/* Confirm Password Input */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Confirm Password</Text>
+                <View style={[
+                  styles.glassInputContainer,
+                  focusedField === 'confirmPassword' && styles.glassInputFocused,
+                  isConfirmPasswordInvalid && styles.glassInputInvalid,
+                  isConfirmPasswordValid && confirmPasswordTouched && styles.glassInputValid
+                ]}>
+                  <View style={styles.iconHolder}>
+                    <Lock
+                      size={19}
+                      color={isConfirmPasswordInvalid ? colors.danger : isConfirmPasswordValid && confirmPasswordTouched ? colors.accentViolet : colors.primaryLight}
+                      strokeWidth={2}
+                    />
+                  </View>
+                  <TextInput
+                    style={[styles.textInput, { flex: 1 }]}
+                    placeholder="Re-enter password"
+                    placeholderTextColor={colors.textDim}
+                    value={confirmPassword}
+                    onChangeText={(val) => {
+                      setConfirmPassword(val);
+                      if (!confirmPasswordTouched) setConfirmPasswordTouched(true);
+                    }}
+                    onFocus={() => setFocusedField('confirmPassword')}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      setConfirmPasswordTouched(true);
+                    }}
+                    secureTextEntry={!showConfirmPassword}
+                  />
+                  <View style={styles.rightActionsRow}>
+                    {confirmPasswordTouched && (
+                      <View style={styles.validationIconHolder}>
+                        {isConfirmPasswordValid ? (
+                          <CheckCircle2 size={18} color={colors.success} strokeWidth={2.4} />
+                        ) : (
+                          <AlertCircle size={18} color={colors.danger} strokeWidth={2.4} />
+                        )}
+                      </View>
+                    )}
+                    <TouchableOpacity
+                      style={styles.eyeToggleBtn}
+                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      {showConfirmPassword ? (
+                        <Eye size={19} color={colors.accentViolet} strokeWidth={2} />
+                      ) : (
+                        <EyeOff size={19} color={colors.textDim} strokeWidth={2} />
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                {confirmPasswordTouched && isConfirmPasswordInvalid && (
+                  <Text style={styles.helperErrorText}>
+                    {confirmPassword.length === 0
+                      ? 'Please confirm your password'
+                      : !isPasswordValid
+                      ? 'Ensure password meets all security rules first'
+                      : 'Passwords do not match'}
+                  </Text>
+                )}
+                {confirmPasswordTouched && isConfirmPasswordValid && (
+                  <Text style={styles.helperSuccessText}>✓ Passwords match</Text>
                 )}
               </View>
             </View>
-          </View>
-        )}
+          )}
 
-        {/* STEP 3: OTP EMAIL VERIFICATION (Auto-verify + All Red Boxes on Error, No Top Error Alert) */}
-        {currentStep === 3 && (
-          <View style={styles.formContainer}>
-            <View style={styles.sectionHeaderRow}>
-              <ShieldCheck size={18} color={colors.primary} strokeWidth={2.2} />
-              <Text style={styles.sectionHeaderTitle}>CREATOR VERIFICATION</Text>
-            </View>
 
-            <View style={styles.otpInfoBox}>
-              <Text style={styles.otpInfoText}>
-                We sent a 6-digit security code to your email:
-              </Text>
-              <Text style={styles.otpTargetEmail}>{email}</Text>
-            </View>
+          {/* STEP 2: CREATOR PROFILE DETAILS */}
+          {currentStep === 2 && (
+            <View style={styles.seamlessForm}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={[styles.sectionHeaderTitle, { color: colors.accentViolet }]}>CREATOR SERVICE DETAILS</Text>
+              </View>
 
-            {/* Dedicated 6-Cell OTP Component */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Enter 6-Digit Code</Text>
+              {/* Professional Category */}
+              <View style={styles.inputGroup}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.inputLabel}>Professional Category</Text>
+                  <Text style={styles.subHint}>Tap to choose</Text>
+                </View>
 
-              <OtpInput
-                code={otpCode}
-                onChangeCode={(val) => {
-                  setOtpCode(val);
-                  if (otpError) setOtpError(null);
-                }}
-                onComplete={(completedCode) => {
-                  handleVerifyAndRegister(completedCode);
-                }}
-                isInvalid={!!otpError}
-              />
-
-              {/* Inline Error Text (Below Boxes) */}
-              {otpError && (
-                <Text style={styles.inlineOtpErrorText}>
-                  {otpError}
-                </Text>
-              )}
-            </View>
-
-            {/* Resend Timer & Button */}
-            <View style={styles.resendRow}>
-              {canResend ? (
-                <TouchableOpacity 
-                  style={styles.resendBtn} 
-                  onPress={handleResendOtp}
-                  activeOpacity={0.7}
-                  disabled={loading}
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.horizontalScrollWrapper}
+                  contentContainerStyle={styles.horizontalChipsScroll}
                 >
-                  <RotateCcw size={14} color={colors.primary} />
-                  <Text style={styles.resendBtnText}>Resend Verification Code</Text>
-                </TouchableOpacity>
-              ) : (
-                <Text style={styles.resendTimerText}>
-                  Resend code in <Text style={styles.countdownBold}>{countdown}s</Text>
-                </Text>
+                  {CATEGORIES.map((cat) => {
+                    const isActive = category === cat;
+                    return (
+                      <TouchableOpacity
+                        key={cat}
+                        style={[
+                          styles.modernCategoryChip,
+                          isActive && styles.modernCategoryChipActiveViolet
+                        ]}
+                        activeOpacity={0.75}
+                        onPress={() => setCategory(cat)}
+                      >
+                        {isActive && <Check size={13} color="#ffffff" strokeWidth={2.8} style={{ marginRight: 6 }} />}
+                        <Text style={[
+                          styles.modernCategoryChipText,
+                          isActive && styles.modernCategoryChipTextActive
+                        ]}>
+                          {cat}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+
+                  {/* Custom User-Added Categories */}
+                  {customCategories.map((cat) => {
+                    const isActive = category === cat;
+                    return (
+                      <View
+                        key={cat}
+                        style={[
+                          styles.modernCategoryChip,
+                          isActive && styles.modernCategoryChipActiveViolet,
+                          styles.customTagWrapper
+                        ]}
+                      >
+                        <TouchableOpacity
+                          style={{ flexDirection: 'row', alignItems: 'center' }}
+                          onPress={() => setCategory(cat)}
+                          activeOpacity={0.75}
+                        >
+                          {isActive && <Check size={13} color="#ffffff" strokeWidth={2.8} style={{ marginRight: 6 }} />}
+                          <Text style={[
+                            styles.modernCategoryChipText,
+                            isActive && styles.modernCategoryChipTextActive
+                          ]}>
+                            {cat}
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => handleRemoveCustomCategory(cat)}
+                          style={styles.removeTagBtn}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <X size={13} color={isActive ? '#ffffff' : colors.textDim} strokeWidth={2.5} />
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+
+                {/* Add Custom Category Input Row */}
+                <View style={styles.addTagInputRow}>
+                  <TextInput
+                    style={styles.addTagInput}
+                    placeholder="Type custom category..."
+                    placeholderTextColor={colors.textDim}
+                    value={newCategoryInput}
+                    onChangeText={setNewCategoryInput}
+                    onSubmitEditing={handleAddCustomCategory}
+                    returnKeyType="done"
+                  />
+                  <TouchableOpacity
+                    style={[styles.addTagButtonViolet, !newCategoryInput.trim() && styles.addTagButtonDisabled]}
+                    onPress={handleAddCustomCategory}
+                    disabled={!newCategoryInput.trim()}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.addTagButtonText}>Add</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Consultation Mode Selector */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Consultation Delivery Mode</Text>
+                <View style={styles.modeCardsRow}>
+                  {CONSULTATION_MODES.map((mode) => {
+                    const isActive = consultationMode === mode.id;
+                    return (
+                      <TouchableOpacity
+                        key={mode.id}
+                        style={[styles.modeCard, isActive && styles.modeCardActiveViolet]}
+                        onPress={() => setConsultationMode(mode.id)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[styles.modeLabel, isActive && styles.modeLabelActive]}>
+                          {mode.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Office Address (for In-Person & Both) */}
+              {consultationMode !== 'VIRTUAL' && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Clinic / Office Address</Text>
+                  <View style={styles.glassInputContainer}>
+                    <View style={styles.iconHolder}>
+                      <MapPin size={18} color={colors.accentViolet} strokeWidth={2} />
+                    </View>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Suite, Street Address, City"
+                      placeholderTextColor={colors.textDim}
+                      value={officeAddress}
+                      onChangeText={setOfficeAddress}
+                    />
+                  </View>
+                </View>
               )}
+
+              {/* Professional Title Input with Modern Dropdown */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Professional Title</Text>
+                <View style={styles.titleInputContainer}>
+                  <TextInput
+                    style={styles.textInputFull}
+                    placeholder="e.g. Senior Consultant / Master Barber"
+                    placeholderTextColor={colors.textDim}
+                    value={title}
+                    onChangeText={setTitle}
+                  />
+                  <TouchableOpacity
+                    style={styles.titleDropdownChevron}
+                    onPress={() => setShowTitleDropdown(!showTitleDropdown)}
+                    activeOpacity={0.7}
+                  >
+                    {showTitleDropdown ? (
+                      <ChevronUp size={18} color={colors.accentViolet} strokeWidth={2.2} />
+                    ) : (
+                      <ChevronDown size={18} color={colors.textDim} strokeWidth={2.2} />
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                {/* Expandable Dropdown Menu */}
+                {showTitleDropdown && (
+                  <View style={styles.modernDropdownCard}>
+                    <View style={styles.dropdownHeader}>
+                      <Text style={styles.dropdownHeaderTitle}>Suggested Titles for {category}</Text>
+                    </View>
+                    {currentTitleSuggestions.map((item) => {
+                      const isSelected = title.trim().toLowerCase() === item.toLowerCase();
+                      return (
+                        <TouchableOpacity
+                          key={item}
+                          style={[styles.dropdownItem, isSelected && styles.dropdownItemActiveViolet]}
+                          activeOpacity={0.75}
+                          onPress={() => {
+                            setTitle(item);
+                            setShowTitleDropdown(false);
+                          }}
+                        >
+                          <Text style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextActive]}>
+                            {item}
+                          </Text>
+                          {isSelected && (
+                            <Check size={15} color={colors.accentViolet} strokeWidth={2.5} />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+
+              {/* Hourly Consultation Rate */}
+              <View style={styles.inputGroup}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.inputLabel}>Hourly Consultation Rate</Text>
+                  <Text style={styles.subHint}>Currency: NGN (₦)</Text>
+                </View>
+                <View style={styles.rateInputRow}>
+                  <Text style={styles.currencyPrefix}>₦</Text>
+                  <TextInput
+                    style={styles.rateTextInput}
+                    placeholder="5000"
+                    placeholderTextColor={colors.textDim}
+                    value={hourlyRate}
+                    onChangeText={setHourlyRate}
+                    keyboardType="numeric"
+                  />
+                  <Text style={styles.rateSuffix}>/ hr</Text>
+                </View>
+              </View>
+
+              {/* Default Slot Duration Segmented Buttons */}
+              <View style={styles.inputGroup}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.inputLabel}>Default Slot Duration</Text>
+                  <View style={styles.recBadge}>
+                    <Text style={styles.recBadgeText}>Recommended: 30m</Text>
+                  </View>
+                </View>
+
+                <View style={styles.segmentedContainer}>
+                  {SLOT_DURATIONS.map((dur) => {
+                    const isActive = slotDuration === dur;
+                    return (
+                      <TouchableOpacity
+                        key={dur}
+                        style={[styles.segmentBtn, isActive && styles.segmentBtnActiveViolet]}
+                        activeOpacity={0.8}
+                        onPress={() => setSlotDuration(dur)}
+                      >
+                        <Text style={[styles.segmentText, isActive && styles.segmentTextActive]}>
+                          {dur} mins
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Profile Bio */}
+              <View style={styles.inputGroup}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.inputLabel}>Profile Bio / Introduction</Text>
+                  <Text style={styles.charCountText}>{bio.length}/300</Text>
+                </View>
+                <View style={styles.textAreaContainer}>
+                  <TextInput
+                    style={styles.textAreaInput}
+                    placeholder="Write a brief introduction about your services, experience, and consultation topics..."
+                    placeholderTextColor={colors.textDim}
+                    value={bio}
+                    onChangeText={setBio}
+                    maxLength={300}
+                    multiline
+                    numberOfLines={4}
+                  />
+                  {bio.length > 0 && (
+                    <TouchableOpacity
+                      style={styles.clearNotesBtn}
+                      onPress={() => setBio('')}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.clearNotesText}>Clear</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
             </View>
-          </View>
-        )}
+          )}
 
-        <View style={{ height: 130 }} />
-      </ScrollView>
+          {/* STEP 3: OTP EMAIL VERIFICATION */}
+          {currentStep === 3 && (
+            <View style={styles.seamlessForm}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={[styles.sectionHeaderTitle, { color: colors.accentViolet }]}>CREATOR VERIFICATION</Text>
+              </View>
 
-      {/* Floating Bottom Action Bar */}
-      <View style={styles.floatingBottomBar}>
-        {currentStep === 1 && (
-          <TouchableOpacity
-            style={styles.primaryActionButton}
-            activeOpacity={0.88}
-            onPress={handleStep1ToStep2}
-          >
-            <Text style={styles.actionButtonText}>Next: Service Profile</Text>
-            <ArrowRight size={18} color="#ffffff" strokeWidth={2.2} />
-          </TouchableOpacity>
-        )}
+              <View style={styles.otpGlassInfoBox}>
+                <Text style={styles.otpInfoText}>We sent a 6-digit security code to your email:</Text>
+                <Text style={[styles.otpTargetEmail, { color: colors.accentViolet }]}>{email}</Text>
+              </View>
 
-        {currentStep === 2 && (
-          <View style={styles.actionButtonRow}>
-            <TouchableOpacity
-              style={styles.secondaryBtn}
-              activeOpacity={0.8}
-              onPress={() => setCurrentStep(1)}
-            >
-              <ChevronLeft size={16} color="#475569" strokeWidth={2} />
-              <Text style={styles.secondaryBtnText}>Back</Text>
-            </TouchableOpacity>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Enter 6-Digit Code</Text>
+                <OtpInput
+                  code={otpCode}
+                  onChangeCode={(val) => {
+                    setOtpCode(val);
+                    if (otpError) setOtpError(null);
+                  }}
+                  onComplete={(completedCode) => {
+                    handleVerifyAndRegister(completedCode);
+                  }}
+                  isInvalid={!!otpError}
+                />
 
-            <TouchableOpacity
-              style={[styles.primaryActionButton, { flex: 1.4 }, loading && styles.buttonDisabled]}
-              activeOpacity={0.88}
-              onPress={handleStep2Submit}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#ffffff" size="small" />
-              ) : (
-                <>
-                  <Text style={styles.actionButtonText}>
-                    {isGoogleVerified ? 'Create Profile' : 'Send Code'}
+                {otpError && (
+                  <Text style={styles.inlineOtpErrorText}>{otpError}</Text>
+                )}
+              </View>
+
+              {/* Resend Timer & Button */}
+              <View style={styles.resendRow}>
+                {canResend ? (
+                  <TouchableOpacity
+                    style={styles.resendBtn}
+                    onPress={handleResendOtp}
+                    activeOpacity={0.7}
+                    disabled={loading}
+                  >
+                    <RotateCcw size={14} color={colors.accentViolet} />
+                    <Text style={[styles.resendBtnText, { color: colors.accentViolet }]}>Resend Verification Code</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={styles.resendTimerText}>
+                    Resend code in <Text style={[styles.countdownBold, { color: colors.accentViolet }]}>{countdown}s</Text>
                   </Text>
-                  <ArrowRight size={18} color="#ffffff" strokeWidth={2.2} />
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
-        )}
+                )}
+              </View>
+            </View>
+          )}
 
-        {currentStep === 3 && (
-          <View style={styles.actionButtonRow}>
-            <TouchableOpacity
-              style={styles.secondaryBtn}
-              activeOpacity={0.8}
-              onPress={() => {
-                setOtpError(null);
-                setCurrentStep(2);
-              }}
-            >
-              <ChevronLeft size={16} color="#475569" strokeWidth={2} />
-              <Text style={styles.secondaryBtnText}>Edit Info</Text>
-            </TouchableOpacity>
+          <View style={{ height: 130 }} />
+        </ScrollView>
 
+        {/* Floating Bottom Action Bar */}
+        <View style={styles.floatingBottomBar}>
+          {currentStep === 1 && (
             <TouchableOpacity
-              style={[styles.primaryActionButton, { flex: 1.4 }, loading && styles.buttonDisabled]}
+              style={styles.primaryActionButtonViolet}
               activeOpacity={0.88}
-              onPress={() => handleVerifyAndRegister()}
-              disabled={loading}
+              onPress={handleStep1ToStep2}
             >
-              {loading ? (
-                <ActivityIndicator color="#ffffff" size="small" />
-              ) : (
-                <Text style={styles.actionButtonText}>Verify & Create Profile</Text>
-              )}
+              <Text style={styles.actionButtonText}>Next: Service Profile</Text>
+              <ArrowRight size={18} color="#ffffff" strokeWidth={2.4} />
             </TouchableOpacity>
+          )}
+
+          {currentStep === 2 && (
+            <View style={styles.actionButtonRow}>
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                activeOpacity={0.8}
+                onPress={() => setCurrentStep(1)}
+              >
+                <Text style={styles.secondaryBtnText}>Back</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.primaryActionButtonViolet, { flex: 1.4 }, loading && styles.buttonDisabled]}
+                activeOpacity={0.88}
+                onPress={handleStep2Submit}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#ffffff" size="small" />
+                ) : (
+                  <>
+                    <Text style={styles.actionButtonText}>
+                      {isGoogleVerified ? 'Create Profile' : 'Send Code'}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {currentStep === 3 && (
+            <View style={styles.actionButtonRow}>
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                activeOpacity={0.8}
+                onPress={() => {
+                  setOtpError(null);
+                  setCurrentStep(2);
+                }}
+              >
+                <ChevronLeft size={16} color={colors.textMuted} strokeWidth={2} />
+                <Text style={styles.secondaryBtnText}>Edit Info</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.primaryActionButtonViolet, { flex: 1.4 }, loading && styles.buttonDisabled]}
+                activeOpacity={0.88}
+                onPress={() => handleVerifyAndRegister()}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#ffffff" size="small" />
+                ) : (
+                  <Text style={styles.actionButtonText}>Verify & Create Profile</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Progress Info Subtext */}
+          <View style={styles.progressInfoRow}>
+            <Text style={styles.progressText}>
+              {isGoogleVerified ? `Step ${currentStep} of 2 (Google Linked)` : `Step ${currentStep} of 3`}
+            </Text>
+            <Text style={styles.dotSeparator}>•</Text>
+            <Text style={styles.progressText}>
+              {currentStep === 1 ? 'Credentials' : currentStep === 2 ? 'Service Details' : 'Verify Email'}
+            </Text>
           </View>
-        )}
-
-        {/* Progress Info Subtext */}
-        <View style={styles.progressInfoRow}>
-          <Text style={styles.progressText}>
-            {isGoogleVerified ? `Step ${currentStep} of 2 (Google Linked)` : `Step ${currentStep} of 3`}
-          </Text>
-          <Text style={styles.dotSeparator}>•</Text>
-          <Text style={styles.progressText}>
-            {currentStep === 1 ? 'Credentials' : currentStep === 2 ? 'Service Details' : 'Verify Email'}
-          </Text>
         </View>
-
-        {/* iOS Home Indicator Bar */}
-        <View style={styles.bottomHomeBar} />
       </View>
-    </View>
     </KeyboardAvoidingView>
   );
 }
@@ -1274,28 +1455,24 @@ export default function RegisterCreatorScreen({ onRegisterSuccess, onBackToChoic
 const styles = StyleSheet.create({
   outerWrapper: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.bgApp,
   },
   topNavigation: {
-    paddingTop: Platform.OS === 'ios' ? 52 : 16,
+    paddingTop: Platform.OS === 'ios' ? 52 : 20,
     paddingHorizontal: 20,
     paddingBottom: 4,
     zIndex: 20,
   },
   backButtonCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#ffffff',
+    width: 42,
+    height: 42,
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 3,
+    borderWidth: 1.2,
+    borderColor: 'rgba(124, 58, 237, 0.2)',
+    ...shadows.subtle,
   },
   scrollContainer: {
     paddingHorizontal: 24,
@@ -1303,15 +1480,23 @@ const styles = StyleSheet.create({
     paddingBottom: 160,
     gap: 16,
   },
-  animatedGlow: {
+  animatedGlowPrimary: {
     position: 'absolute',
-    top: -60,
-    left: '15%',
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
-    transform: [{ scaleX: 1.6 }],
+    top: -70,
+    left: '10%',
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: 'rgba(124, 58, 237, 0.15)',
+  },
+  animatedGlowSecondary: {
+    position: 'absolute',
+    top: 240,
+    right: -40,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(79, 70, 229, 0.1)',
   },
   headingSection: {
     alignItems: 'center',
@@ -1319,32 +1504,28 @@ const styles = StyleSheet.create({
   },
   logoBadgeContainer: {
     marginBottom: 10,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.22,
-    shadowRadius: 12,
-    elevation: 5,
+    ...shadows.violetGlow,
   },
   pageTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '900',
-    color: colors.primary,
-    letterSpacing: -0.3,
+    color: colors.textHeading,
+    letterSpacing: -0.4,
     textAlign: 'center',
   },
   pageSubtitle: {
     fontSize: 13,
-    color: colors.textMuted,
-    lineHeight: 18,
+    color: colors.textDim,
     textAlign: 'center',
     marginTop: 4,
-    paddingHorizontal: 12,
+    lineHeight: 18,
+    paddingHorizontal: 16,
   },
   stepProgressBarRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 6,
+    marginVertical: 4,
     gap: 8,
   },
   stepTab: {
@@ -1354,24 +1535,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: radii.pill,
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: colors.borderColor,
+    ...shadows.subtle,
   },
   stepTabActive: {
-    borderColor: colors.primary,
-    backgroundColor: '#eef2ff',
+    borderColor: colors.accentViolet,
+    backgroundColor: colors.accentPurpleWash,
   },
   stepBadgeNum: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepBadgeNumActive: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accentViolet,
   },
   stepBadgeText: {
     fontSize: 11,
@@ -1387,31 +1569,15 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   stepTabLabelActive: {
-    color: colors.primary,
+    color: colors.accentViolet,
     fontWeight: '800',
   },
   stepLineSeparator: {
     width: 14,
     height: 1.5,
-    backgroundColor: '#cbd5e1',
+    backgroundColor: '#CBD5E1',
   },
-  errorBox: {
-    backgroundColor: '#fef2f2',
-    borderWidth: 1,
-    borderColor: '#fca5a5',
-    borderRadius: radii.md,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  errorText: {
-    color: '#dc2626',
-    fontSize: 13,
-    fontWeight: '600',
-    flex: 1,
-  },
-  formContainer: {
+  seamlessForm: {
     gap: 16,
     marginTop: 4,
   },
@@ -1425,13 +1591,13 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accentViolet,
   },
   sectionHeaderTitle: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#475569',
-    letterSpacing: 0.8,
+    color: colors.accentViolet,
+    letterSpacing: 1.2,
   },
   inputGroup: {
     gap: 6,
@@ -1442,50 +1608,40 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   inputLabel: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#334155',
+    color: colors.textMain,
+    letterSpacing: -0.1,
   },
   subHint: {
-    fontSize: 11,
+    fontSize: 11.5,
     color: colors.textDim,
+    fontWeight: '500',
   },
-  inputWithIcon: {
+  glassInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
     borderWidth: 1.5,
-    borderColor: '#cbd5e1',
-    borderRadius: 16,
+    borderColor: 'rgba(203, 213, 225, 0.9)',
+    borderRadius: radii.md,
     paddingHorizontal: 14,
     height: 52,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
+    ...shadows.subtle,
   },
-  inputValidBorder: {
-    borderColor: '#818cf8',
-    backgroundColor: '#ffffff',
+  glassInputFocused: {
+    borderColor: colors.accentViolet,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    ...shadows.card,
   },
-  inputInvalidBorder: {
-    borderColor: '#ef4444',
-    backgroundColor: '#fef2f2',
+  glassInputValid: {
+    borderColor: '#C084FC',
+    backgroundColor: '#FFFFFF',
   },
-  inputWithoutIcon: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1.5,
-    borderColor: '#cbd5e1',
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    height: 52,
-    justifyContent: 'center',
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
+  glassInputInvalid: {
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerBg,
   },
   iconHolder: {
     marginRight: 10,
@@ -1513,230 +1669,139 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     fontWeight: '500',
     color: colors.textMain,
+    height: 52,
+    paddingHorizontal: 14,
   },
   eyeToggleBtn: {
     padding: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  chooseDobBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radii.sm,
+    marginRight: 4,
+  },
+  chooseDobBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
   helperErrorText: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '600',
-    color: '#ef4444',
+    color: colors.danger,
     marginTop: 2,
     marginLeft: 2,
+  },
+  helperSuccessText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: colors.success,
+    marginTop: 3,
+    marginLeft: 2,
+  },
+  pwdRequirementsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    paddingVertical: 5,
+    marginTop: 5,
+  },
+  pwdRequirementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  pwdRequirementText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textDim,
+  },
+  pwdRequirementTextActive: {
+    color: colors.success,
+    fontWeight: '700',
   },
   horizontalScrollWrapper: {
     marginHorizontal: -24,
     marginVertical: 4,
   },
-  categoryPillsRow: {
+  horizontalChipsScroll: {
     paddingHorizontal: 24,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingVertical: 3,
   },
-  catPill: {
+  modernCategoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 15,
     paddingVertical: 8.5,
-    borderRadius: 22,
-    backgroundColor: '#ffffff',
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
     borderWidth: 1.5,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
+    borderColor: 'rgba(226, 232, 240, 0.95)',
+    ...shadows.subtle,
   },
-  catPillActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.28,
-    shadowRadius: 6,
-    elevation: 3,
+  modernCategoryChipActiveViolet: {
+    backgroundColor: colors.accentViolet,
+    borderColor: colors.accentViolet,
+    ...shadows.violetGlow,
   },
-  catPillText: {
+  modernCategoryChipText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#334155',
+    color: colors.textMuted,
   },
-  catPillTextActive: {
+  modernCategoryChipTextActive: {
     color: '#ffffff',
   },
-  customCatWrapper: {
+  customTagWrapper: {
     paddingRight: 8,
     gap: 6,
   },
-  removeCatBtn: {
+  removeTagBtn: {
     padding: 2,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 2,
   },
-  addCategoryInputRow: {
+  addTagInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     marginTop: 6,
   },
-  addCategoryInput: {
+  addTagInput: {
     flex: 1,
     height: 44,
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
     borderWidth: 1.5,
-    borderColor: '#cbd5e1',
-    borderRadius: 14,
+    borderColor: colors.borderColor,
+    borderRadius: radii.md,
     paddingHorizontal: 14,
     fontSize: 13,
     color: colors.textMain,
   },
-  addCategoryButton: {
+  addTagButtonViolet: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     height: 44,
     paddingHorizontal: 15,
-    backgroundColor: colors.primary,
-    borderRadius: 14,
+    backgroundColor: colors.accentViolet,
+    borderRadius: radii.md,
     justifyContent: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
+    ...shadows.subtle,
   },
-  addCategoryButtonDisabled: {
+  addTagButtonDisabled: {
     opacity: 0.5,
-    shadowOpacity: 0,
-    elevation: 0,
   },
-  addCategoryButtonText: {
+  addTagButtonText: {
     color: '#ffffff',
     fontSize: 12.5,
-    fontWeight: '800',
-  },
-  dropdownToggleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 2,
-  },
-  dropdownToggleText: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  titleInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderWidth: 1.5,
-    borderColor: '#cbd5e1',
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    height: 52,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  titleDropdownChevron: {
-    padding: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modernDropdownCard: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1.5,
-    borderColor: '#e2e8f0',
-    borderRadius: 16,
-    padding: 8,
-    marginTop: 6,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 4,
-    gap: 4,
-  },
-  dropdownHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-    marginBottom: 2,
-  },
-  dropdownHeaderTitle: {
-    fontSize: 11.5,
-    fontWeight: '800',
-    color: colors.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  dropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#f8fafc',
-  },
-  dropdownItemActive: {
-    backgroundColor: '#eef2ff',
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  dropdownItemText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#334155',
-    flex: 1,
-  },
-  dropdownItemTextActive: {
-    color: colors.primary,
-    fontWeight: '800',
-  },
-  horizontalPromptsScroll: {
-    paddingHorizontal: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 3,
-  },
-  promptChip: {
-    paddingHorizontal: 13,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#ffffff',
-    borderWidth: 1.5,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  promptChipActive: {
-    backgroundColor: '#eef2ff',
-    borderColor: colors.primary,
-  },
-  promptChipText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#64748b',
-  },
-  promptChipTextActive: {
-    color: colors.primary,
     fontWeight: '800',
   },
   modeCardsRow: {
@@ -1745,54 +1810,102 @@ const styles = StyleSheet.create({
   },
   modeCard: {
     flex: 1,
-    backgroundColor: '#ffffff',
-    borderWidth: 1.5,
-    borderColor: '#e2e8f0',
-    borderRadius: 14,
     paddingVertical: 12,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
+    borderRadius: radii.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderWidth: 1.5,
+    borderColor: colors.borderColor,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
+    ...shadows.subtle,
   },
-  modeCardActive: {
-    backgroundColor: '#eef2ff',
-    borderColor: colors.primary,
+  modeCardActiveViolet: {
+    borderColor: colors.accentViolet,
+    backgroundColor: colors.accentPurpleWash,
   },
   modeLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#475569',
+    color: colors.textMuted,
     textAlign: 'center',
   },
   modeLabelActive: {
-    color: colors.primary,
+    color: colors.accentViolet,
+    fontWeight: '800',
+  },
+  titleInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(203, 213, 225, 0.9)',
+    borderRadius: radii.md,
+    ...shadows.subtle,
+  },
+  titleDropdownChevron: {
+    padding: 14,
+  },
+  modernDropdownCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(124, 58, 237, 0.2)',
+    padding: 10,
+    marginTop: 4,
+    ...shadows.card,
+    gap: 4,
+  },
+  dropdownHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  dropdownHeaderTitle: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: colors.accentViolet,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRadius: radii.sm,
+  },
+  dropdownItemActiveViolet: {
+    backgroundColor: colors.accentPurpleWash,
+  },
+  dropdownItemText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textMain,
+  },
+  dropdownItemTextActive: {
+    color: colors.accentViolet,
     fontWeight: '800',
   },
   rateInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
     borderWidth: 1.5,
-    borderColor: '#cbd5e1',
-    borderRadius: 16,
+    borderColor: 'rgba(203, 213, 225, 0.9)',
+    borderRadius: radii.md,
     paddingHorizontal: 14,
     height: 52,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
+    ...shadows.subtle,
   },
   currencyPrefix: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.primary,
-    marginRight: 6,
+    fontSize: 17,
+    fontWeight: '900',
+    color: colors.accentViolet,
+    marginRight: 8,
   },
   rateTextInput: {
     flex: 1,
@@ -1801,58 +1914,47 @@ const styles = StyleSheet.create({
     color: colors.textMain,
   },
   rateSuffix: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontWeight: '700',
     color: colors.textDim,
   },
   recBadge: {
-    backgroundColor: '#eef2ff',
+    backgroundColor: colors.accentPurpleWash,
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingVertical: 2,
+    borderRadius: radii.pill,
   },
   recBadgeText: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '800',
-    color: colors.primary,
+    color: colors.accentViolet,
   },
   segmentedContainer: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    padding: 4,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: '#e2e8f0',
+    backgroundColor: 'rgba(241, 245, 249, 0.9)',
+    borderRadius: radii.md,
+    padding: 3,
     gap: 4,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
   },
   segmentBtn: {
     flex: 1,
     paddingVertical: 10,
-    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: radii.sm,
   },
-  segmentBtnActive: {
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 2,
+  segmentBtnActiveViolet: {
+    backgroundColor: '#FFFFFF',
+    ...shadows.subtle,
   },
   segmentText: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '700',
-    color: '#475569',
+    color: colors.textMuted,
   },
   segmentTextActive: {
-    color: '#ffffff',
-    fontWeight: '800',
+    color: colors.accentViolet,
+    fontWeight: '900',
   },
   charCountText: {
     fontSize: 11,
@@ -1860,16 +1962,13 @@ const styles = StyleSheet.create({
     color: colors.textDim,
   },
   textAreaContainer: {
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
     borderWidth: 1.5,
-    borderColor: '#cbd5e1',
-    borderRadius: 16,
+    borderColor: 'rgba(203, 213, 225, 0.9)',
+    borderRadius: radii.md,
     padding: 12,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
+    marginTop: 6,
+    ...shadows.subtle,
     position: 'relative',
   },
   textAreaInput: {
@@ -1887,14 +1986,14 @@ const styles = StyleSheet.create({
   clearNotesText: {
     fontSize: 11.5,
     fontWeight: '700',
-    color: '#ef4444',
+    color: colors.danger,
   },
-  otpInfoBox: {
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
+  otpGlassInfoBox: {
+    backgroundColor: 'rgba(245, 243, 255, 0.85)',
+    borderRadius: radii.md,
     padding: 14,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderWidth: 1.5,
+    borderColor: 'rgba(124, 58, 237, 0.25)',
     alignItems: 'center',
     marginBottom: 4,
   },
@@ -1905,11 +2004,10 @@ const styles = StyleSheet.create({
   otpTargetEmail: {
     fontSize: 14,
     fontWeight: '800',
-    color: colors.primary,
     marginTop: 2,
   },
   inlineOtpErrorText: {
-    color: '#dc2626',
+    color: colors.danger,
     fontSize: 12.5,
     fontWeight: '700',
     textAlign: 'center',
@@ -1928,7 +2026,6 @@ const styles = StyleSheet.create({
   resendBtnText: {
     fontSize: 13,
     fontWeight: '800',
-    color: colors.primary,
   },
   resendTimerText: {
     fontSize: 12.5,
@@ -1936,43 +2033,33 @@ const styles = StyleSheet.create({
   },
   countdownBold: {
     fontWeight: '800',
-    color: colors.primary,
   },
   floatingBottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
     borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
+    borderTopColor: 'rgba(226, 232, 240, 0.9)',
     paddingHorizontal: 24,
     paddingTop: 14,
     paddingBottom: Platform.OS === 'ios' ? 24 : 16,
     gap: 10,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 10,
-    zIndex: 30,
+    ...shadows.cardHover,
   },
-  primaryActionButton: {
+  primaryActionButtonViolet: {
     height: 52,
-    borderRadius: 16,
-    backgroundColor: colors.primary,
+    borderRadius: radii.md,
+    backgroundColor: colors.accentViolet,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 4,
+    ...shadows.violetGlow,
   },
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.65,
   },
   actionButtonText: {
     color: '#ffffff',
@@ -1988,17 +2075,17 @@ const styles = StyleSheet.create({
   secondaryBtn: {
     flex: 0.6,
     height: 52,
-    borderRadius: 16,
-    backgroundColor: '#f1f5f9',
+    borderRadius: radii.md,
+    backgroundColor: 'rgba(241, 245, 249, 0.9)',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: colors.borderColor,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
   },
   secondaryBtnText: {
-    color: '#475569',
+    color: colors.textMuted,
     fontSize: 14.5,
     fontWeight: '700',
   },
@@ -2017,15 +2104,6 @@ const styles = StyleSheet.create({
     color: colors.textDim,
     fontSize: 10,
   },
-  bottomHomeBar: {
-    width: 120,
-    height: 4,
-    backgroundColor: '#cbd5e1',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginTop: 2,
-    opacity: 0.6,
-  },
   pillSelectorRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -2037,30 +2115,94 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 24,
-    backgroundColor: '#f8fafc',
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
     borderWidth: 1.5,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    elevation: 1,
+    borderColor: colors.borderColor,
+    ...shadows.subtle,
   },
-  pillOptionActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3,
+  pillOptionActiveViolet: {
+    backgroundColor: colors.accentViolet,
+    borderColor: colors.accentViolet,
+    ...shadows.violetGlow,
   },
   pillOptionText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#64748b',
+    color: colors.textMuted,
   },
   pillOptionTextActive: {
     color: '#ffffff',
+  },
+  // Marital Status Dropdown
+  dropdownChevron: {
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dropdownOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  dropdownPanel: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: radii.xl,
+    borderWidth: 1.5,
+    borderColor: 'rgba(124, 58, 237, 0.18)',
+    overflow: 'hidden',
+    ...shadows.modal,
+  },
+  dropdownPanelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(226, 232, 240, 0.9)',
+    backgroundColor: 'rgba(245, 243, 255, 0.6)',
+  },
+  dropdownPanelDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  dropdownPanelTitle: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 1.1,
+  },
+  dropdownOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingVertical: 15,
+  },
+  dropdownOptionRowActiveViolet: {
+    backgroundColor: colors.accentPurpleWash,
+  },
+  dropdownOptionRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(226, 232, 240, 0.7)',
+  },
+  dropdownOptionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textMain,
+  },
+  dropdownOptionTextActiveViolet: {
+    color: colors.accentViolet,
+    fontWeight: '800',
+  },
+  dropdownCheckBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.subtle,
   },
 });

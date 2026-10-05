@@ -9,8 +9,8 @@ import {
   ActivityIndicator,
   TouchableWithoutFeedback,
 } from 'react-native';
-import { colors, radii } from '../theme/colors';
-import { Bell, X, Check, Calendar, Clock, AlertCircle } from './LucideIcons';
+import { colors, radii, chromatic, glass, shadows } from '../theme/colors';
+import { Bell, X, Check, Calendar, Clock, AlertCircle, Sparkles, CheckCircle2, Inbox } from './LucideIcons';
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../services/api';
 
 interface NotificationsModalProps {
@@ -90,17 +90,23 @@ export default function NotificationsModal({
               {/* Header */}
               <View style={styles.headerRow}>
                 <View style={styles.titleWrap}>
-                  <Bell size={20} color={colors.primary} />
-                  <Text style={styles.titleText}>Notifications</Text>
+                  <View style={styles.bellIconCircle}>
+                    <Bell size={18} color={chromatic.indigo.primary} />
+                  </View>
+                  <View>
+                    <Text style={styles.titleText}>Notifications</Text>
+                    <Text style={styles.subtitleText}>Real-time booking and appointment alerts</Text>
+                  </View>
                 </View>
                 <View style={styles.headerActions}>
                   {notifications.some((n) => !n.is_read) && (
-                    <TouchableOpacity onPress={handleMarkAllRead} style={styles.markAllBtn}>
-                      <Text style={styles.markAllBtnText}>Mark all read</Text>
+                    <TouchableOpacity onPress={handleMarkAllRead} style={styles.markAllBtn} activeOpacity={0.75}>
+                      <CheckCircle2 size={13} color={chromatic.indigo.primary} />
+                      <Text style={styles.markAllBtnText}>Mark all</Text>
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7}>
-                    <X size={18} color="#64748b" />
+                    <X size={18} color="#64748B" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -108,17 +114,14 @@ export default function NotificationsModal({
               {/* Content */}
               {loading ? (
                 <View style={styles.centerContainer}>
-                  <ActivityIndicator size="small" color={colors.primary} />
-                  <Text style={styles.loadingText}>Loading updates...</Text>
+                  <ActivityIndicator size="small" color={chromatic.indigo.primary} />
+                  <Text style={styles.loadingText}>Syncing updates...</Text>
                 </View>
               ) : notifications.length === 0 ? (
                 <View style={styles.emptyContainer}>
-                  <View style={styles.emptyIconCircle}>
-                    <Bell size={26} color="#94a3b8" />
-                  </View>
-                  <Text style={styles.emptyTitle}>No notifications yet</Text>
+                  <Text style={styles.emptyTitle}>All Caught Up!</Text>
                   <Text style={styles.emptySubtitle}>
-                    When you receive booking requests or schedule updates, they will appear here.
+                    When you receive booking requests or schedule updates, they will appear here in real-time.
                   </Text>
                 </View>
               ) : (
@@ -172,28 +175,28 @@ export default function NotificationsModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'flex-end',
   },
   sheetContainer: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    paddingHorizontal: 20,
+    paddingHorizontal: 22,
     paddingTop: 12,
-    paddingBottom: 32,
-    maxHeight: '80%',
+    paddingBottom: 36,
+    maxHeight: '82%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.15,
-    shadowRadius: 16,
+    shadowRadius: 20,
     elevation: 20,
   },
   dragBar: {
     width: 44,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: 'rgba(203, 213, 225, 0.9)',
     alignSelf: 'center',
     marginBottom: 14,
   },
@@ -203,39 +206,64 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: 'rgba(241, 245, 249, 0.9)',
   },
   titleWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+    flex: 1,
+  },
+  bellIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: chromatic.indigo.bg,
+    borderColor: chromatic.indigo.border,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   titleText: {
     fontSize: 18,
-    fontWeight: '800',
-    color: '#0f172a',
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  subtitleText: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 1,
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
   },
   markAllBtn: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: chromatic.indigo.bg,
+    borderColor: chromatic.indigo.border,
+    borderWidth: 1,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: radii.pill,
+    gap: 4,
   },
   markAllBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.primary,
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: chromatic.indigo.primary,
   },
   closeBtn: {
-    padding: 6,
-    borderRadius: 12,
-    backgroundColor: '#f8fafc',
+    padding: 7,
+    borderRadius: 14,
+    backgroundColor: 'rgba(241, 245, 249, 0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.8)',
   },
   scrollView: {
-    marginTop: 8,
+    marginTop: 10,
   },
   centerContainer: {
     paddingVertical: 50,
@@ -244,46 +272,53 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 13,
-    color: '#64748b',
+    color: colors.textMuted,
     fontWeight: '600',
   },
   emptyContainer: {
-    paddingVertical: 40,
+    paddingVertical: 44,
     alignItems: 'center',
   },
   emptyIconCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#f1f5f9',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: chromatic.indigo.bg,
+    borderColor: chromatic.indigo.border,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
   emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1e293b',
-    marginBottom: 6,
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginBottom: 4,
   },
   emptySubtitle: {
     fontSize: 13,
-    color: '#64748b',
+    color: colors.textMuted,
     textAlign: 'center',
     maxWidth: 280,
     lineHeight: 18,
   },
   itemCard: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 16,
+    backgroundColor: 'rgba(248, 250, 252, 0.95)',
+    borderRadius: 18,
     padding: 14,
-    marginVertical: 6,
+    marginVertical: 5,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(226, 232, 240, 0.85)',
   },
   itemCardUnread: {
-    backgroundColor: '#eff6ff',
-    borderColor: '#bfdbfe',
+    backgroundColor: 'rgba(238, 242, 255, 0.85)',
+    borderColor: 'rgba(199, 210, 254, 0.9)',
+    shadowColor: chromatic.indigo.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
   itemHeader: {
     flexDirection: 'row',
@@ -301,21 +336,21 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.primary,
+    backgroundColor: chromatic.indigo.primary,
   },
   itemTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#334155',
   },
   itemTitleUnread: {
-    fontWeight: '800',
-    color: '#0f172a',
+    fontWeight: '900',
+    color: '#0F172A',
   },
   itemTime: {
     fontSize: 11,
-    color: '#94a3b8',
-    fontWeight: '500',
+    color: colors.textDim,
+    fontWeight: '600',
   },
   itemMessage: {
     fontSize: 13,
@@ -327,8 +362,9 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   tapToViewText: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '800',
+    color: chromatic.indigo.primary,
   },
 });
+

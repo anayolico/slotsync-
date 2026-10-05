@@ -8,8 +8,8 @@ import {
   ScrollView,
   TouchableWithoutFeedback,
 } from 'react-native';
-import { colors, radii } from '../theme/colors';
-import { ChevronLeft, ChevronRight, X, Calendar as CalendarIcon, Check } from './LucideIcons';
+import { colors, radii, chromatic, glass, shadows } from '../theme/colors';
+import { ChevronLeft, ChevronRight, X, Calendar as CalendarIcon, Check, Sparkles } from './LucideIcons';
 
 interface DatePickerModalProps {
   visible: boolean;
@@ -35,7 +35,6 @@ export default function DatePickerModal({
   title = 'Select Date of Birth',
   maxDate = new Date(),
 }: DatePickerModalProps) {
-  // Parse existing date or default to 20 years ago (good UX for Date of Birth)
   const defaultYear = new Date().getFullYear() - 22;
   const [viewMode, setViewMode] = useState<'CALENDAR' | 'YEAR_SELECT'>('CALENDAR');
 
@@ -115,11 +114,13 @@ export default function DatePickerModal({
               {/* Header */}
               <View style={styles.headerRow}>
                 <View style={styles.headerTitleWrap}>
-                  <CalendarIcon size={20} color={colors.primary} />
+                  <View style={styles.calIconBox}>
+                    <CalendarIcon size={18} color={chromatic.indigo.primary} />
+                  </View>
                   <Text style={styles.headerTitleText}>{title}</Text>
                 </View>
                 <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7}>
-                  <X size={18} color="#64748b" />
+                  <X size={18} color="#64748B" />
                 </TouchableOpacity>
               </View>
 
@@ -130,7 +131,7 @@ export default function DatePickerModal({
                   style={styles.navArrowBtn}
                   activeOpacity={0.7}
                 >
-                  <ChevronLeft size={20} color="#1e293b" />
+                  <ChevronLeft size={18} color="#0F172A" />
                 </TouchableOpacity>
 
                 <View style={styles.monthYearSelector}>
@@ -166,8 +167,8 @@ export default function DatePickerModal({
                   disabled={selectedYear === maxYear && selectedMonth >= maxDate.getMonth()}
                 >
                   <ChevronRight
-                    size={20}
-                    color={selectedYear === maxYear && selectedMonth >= maxDate.getMonth() ? '#cbd5e1' : '#1e293b'}
+                    size={18}
+                    color={selectedYear === maxYear && selectedMonth >= maxDate.getMonth() ? '#CBD5E1' : '#0F172A'}
                   />
                 </TouchableOpacity>
               </View>
@@ -175,7 +176,7 @@ export default function DatePickerModal({
               {/* View Mode 1: Year Selector Grid */}
               {viewMode === 'YEAR_SELECT' ? (
                 <View style={styles.yearGridContainer}>
-                  <Text style={styles.yearGridPrompt}>Tap a year to select</Text>
+                  <Text style={styles.yearGridPrompt}>Select a year to jump to</Text>
                   <ScrollView
                     style={styles.yearScrollView}
                     contentContainerStyle={styles.yearScrollContent}
@@ -228,13 +229,8 @@ export default function DatePickerModal({
                     {/* Day numbers */}
                     {Array.from({ length: daysInCurrentMonth }).map((_, idx) => {
                       const dayNumber = idx + 1;
-                      const isSelected =
-                        selectedDay === dayNumber &&
-                        selectedMonth === selectedMonth &&
-                        selectedYear === selectedYear;
-
-                      const isFuture =
-                        new Date(selectedYear, selectedMonth, dayNumber) > maxDate;
+                      const isSelected = selectedDay === dayNumber;
+                      const isFuture = new Date(selectedYear, selectedMonth, dayNumber) > maxDate;
 
                       return (
                         <TouchableOpacity
@@ -246,7 +242,7 @@ export default function DatePickerModal({
                           ]}
                           onPress={() => handleSelectDay(dayNumber)}
                           disabled={isFuture}
-                          activeOpacity={0.7}
+                          activeOpacity={0.75}
                         >
                           <Text
                             style={[
@@ -285,9 +281,9 @@ export default function DatePickerModal({
                   <TouchableOpacity
                     style={styles.confirmBtn}
                     onPress={handleConfirm}
-                    activeOpacity={0.8}
+                    activeOpacity={0.85}
                   >
-                    <Check size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                    <Check size={15} color="#FFFFFF" style={{ marginRight: 4 }} />
                     <Text style={styles.confirmBtnText}>Set Date</Text>
                   </TouchableOpacity>
                 </View>
@@ -311,12 +307,12 @@ const styles = StyleSheet.create({
   cardContainer: {
     width: '100%',
     maxWidth: 380,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 22,
-    shadowColor: '#0f172a',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.2,
     shadowRadius: 28,
     elevation: 16,
   },
@@ -326,40 +322,54 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: 'rgba(241, 245, 249, 0.9)',
   },
   headerTitleWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+  },
+  calIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: chromatic.indigo.bg,
+    borderColor: chromatic.indigo.border,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitleText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#0f172a',
+    fontWeight: '800',
+    color: '#0F172A',
   },
   closeBtn: {
     padding: 6,
     borderRadius: 12,
-    backgroundColor: '#f8fafc',
+    backgroundColor: 'rgba(241, 245, 249, 0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.8)',
   },
   monthNavRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 16,
-    marginBottom: 12,
+    marginTop: 14,
+    marginBottom: 10,
   },
   navArrowBtn: {
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: 'rgba(241, 245, 249, 0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.8)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   disabledNavArrow: {
-    opacity: 0.4,
+    opacity: 0.35,
   },
   monthYearSelector: {
     flexDirection: 'row',
@@ -369,24 +379,27 @@ const styles = StyleSheet.create({
   monthText: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#1e293b',
+    color: '#0F172A',
   },
   yearPill: {
-    backgroundColor: '#e0e7ff',
-    paddingVertical: 5,
+    backgroundColor: chromatic.indigo.bg,
+    borderColor: chromatic.indigo.border,
+    borderWidth: 1,
+    paddingVertical: 4,
     paddingHorizontal: 10,
-    borderRadius: 10,
+    borderRadius: radii.pill,
   },
   yearPillActive: {
-    backgroundColor: colors.primary,
+    backgroundColor: chromatic.indigo.primary,
+    borderColor: chromatic.indigo.primary,
   },
   yearText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.primary,
+    fontSize: 13,
+    fontWeight: '800',
+    color: chromatic.indigo.primary,
   },
   yearTextActive: {
-    color: '#ffffff',
+    color: '#FFFFFF',
   },
   calendarContainer: {
     marginTop: 4,
@@ -396,20 +409,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f8fafc',
+    borderBottomColor: 'rgba(241, 245, 249, 0.8)',
   },
   weekdayHeaderText: {
     width: 36,
     textAlign: 'center',
     fontSize: 12,
-    fontWeight: '700',
-    color: '#94a3b8',
+    fontWeight: '800',
+    color: '#64748B',
     textTransform: 'uppercase',
   },
   daysGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 8,
+    marginTop: 6,
   },
   dayCellEmpty: {
     width: '14.28%',
@@ -423,22 +436,27 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   dayCellSelected: {
-    backgroundColor: colors.primary,
+    backgroundColor: chromatic.indigo.primary,
+    shadowColor: chromatic.indigo.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
   },
   dayCellDisabled: {
     opacity: 0.25,
   },
   dayNumberText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#1e293b',
+    fontWeight: '700',
+    color: '#1E293B',
   },
   dayNumberTextSelected: {
-    color: '#ffffff',
-    fontWeight: '800',
+    color: '#FFFFFF',
+    fontWeight: '900',
   },
   dayNumberTextDisabled: {
-    color: '#cbd5e1',
+    color: '#CBD5E1',
   },
   yearGridContainer: {
     height: 240,
@@ -446,8 +464,8 @@ const styles = StyleSheet.create({
   },
   yearGridPrompt: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#64748b',
+    fontWeight: '700',
+    color: colors.textMuted,
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -465,29 +483,29 @@ const styles = StyleSheet.create({
     width: '22%',
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: '#f8fafc',
+    backgroundColor: 'rgba(241, 245, 249, 0.8)',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(226, 232, 240, 0.8)',
   },
   yearItemBtnActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: chromatic.indigo.primary,
+    borderColor: chromatic.indigo.primary,
   },
   yearItemText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#334155',
   },
   yearItemTextActive: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontWeight: '800',
   },
   footerRow: {
-    marginTop: 18,
+    marginTop: 16,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    borderTopColor: 'rgba(241, 245, 249, 0.9)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -496,15 +514,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   datePreviewLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#94a3b8',
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   datePreviewValue: {
     fontSize: 14,
     fontWeight: '800',
-    color: colors.primary,
+    color: chromatic.indigo.primary,
     marginTop: 2,
   },
   actionBtnsRow: {
@@ -515,14 +534,16 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 12,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: 'rgba(241, 245, 249, 0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(203, 213, 225, 0.8)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#64748b',
+    color: '#475569',
   },
   confirmBtn: {
     flexDirection: 'row',
@@ -530,16 +551,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary,
+    backgroundColor: chromatic.indigo.primary,
+    shadowColor: chromatic.indigo.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 3,
   },
   confirmBtnText: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#ffffff',
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });
+

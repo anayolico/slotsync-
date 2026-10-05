@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Modal, Alert, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera, User, Sparkles, ImageIcon, X } from './LucideIcons';
-import { colors } from '../theme/colors';
+import { colors, radii, chromatic, glass, shadows } from '../theme/colors';
 import { uploadAvatarImage } from '../services/api';
 
 interface AvatarUploadProps {
@@ -97,7 +97,7 @@ export default function AvatarUpload({
           <Image source={{ uri: avatarUrl }} style={[styles.avatarImage, { width: size, height: size, borderRadius: size / 2 }]} />
         ) : (
           <View style={[styles.avatarPlaceholder, { width: size, height: size, borderRadius: size / 2 }]}>
-            <User size={size * 0.45} color="#94a3b8" strokeWidth={1.8} />
+            <User size={size * 0.44} color={chromatic.indigo.primary} strokeWidth={2} />
           </View>
         )}
 
@@ -105,17 +105,18 @@ export default function AvatarUpload({
         <View style={styles.badgeHolder}>
           <View style={styles.cameraBadge}>
             {uploading ? (
-              <ActivityIndicator size="small" color="#ffffff" />
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Camera size={11} color="#ffffff" strokeWidth={2.5} />
+              <Camera size={13} color="#FFFFFF" strokeWidth={2.5} />
             )}
           </View>
         </View>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => setModalVisible(true)} activeOpacity={0.7} style={styles.actionRow}>
+      <TouchableOpacity onPress={() => setModalVisible(true)} activeOpacity={0.75} style={styles.actionRow}>
+        <Sparkles size={12} color={chromatic.indigo.primary} />
         <Text style={styles.actionText}>
-          {avatarUrl ? 'Change Profile Photo' : 'Add Profile Photo'}
+          {avatarUrl ? 'Change Profile Photo' : 'Upload Photo'}
         </Text>
       </TouchableOpacity>
 
@@ -131,12 +132,12 @@ export default function AvatarUpload({
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Upload Profile Photo</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeBtn}>
-                <X size={20} color="#64748b" />
+                <X size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
 
             <Text style={styles.modalSubtitle}>
-              Take a selfie or choose an image from your device gallery.
+              Take a selfie with camera or choose an image from your photo library.
             </Text>
 
             <View style={styles.optionsContainer}>
@@ -145,12 +146,12 @@ export default function AvatarUpload({
                 activeOpacity={0.8}
                 onPress={handleTakePhoto}
               >
-                <View style={[styles.iconBox, { backgroundColor: '#eef2ff' }]}>
-                  <Camera size={22} color={colors.primary} />
+                <View style={[styles.iconBox, { backgroundColor: chromatic.indigo.bg }]}>
+                  <Camera size={22} color={chromatic.indigo.primary} />
                 </View>
                 <View style={styles.optionTextBox}>
                   <Text style={styles.optionTitle}>Take Photo</Text>
-                  <Text style={styles.optionDesc}>Use your camera to take a selfie</Text>
+                  <Text style={styles.optionDesc}>Use your device camera</Text>
                 </View>
               </TouchableOpacity>
 
@@ -159,12 +160,12 @@ export default function AvatarUpload({
                 activeOpacity={0.8}
                 onPress={handlePickFromGallery}
               >
-                <View style={[styles.iconBox, { backgroundColor: '#ecfdf5' }]}>
-                  <ImageIcon size={22} color="#10b981" />
+                <View style={[styles.iconBox, { backgroundColor: chromatic.emerald.bg }]}>
+                  <ImageIcon size={22} color={chromatic.emerald.primary} />
                 </View>
                 <View style={styles.optionTextBox}>
                   <Text style={styles.optionTitle}>Choose from Gallery</Text>
-                  <Text style={styles.optionDesc}>Select a photo from your photo library</Text>
+                  <Text style={styles.optionDesc}>Select from device photos</Text>
                 </View>
               </TouchableOpacity>
             </View>
@@ -181,69 +182,73 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   avatarCircle: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderWidth: 2.5,
-    borderColor: '#e2e8f0',
+    borderColor: chromatic.indigo.primary,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowColor: chromatic.indigo.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 4,
   },
   avatarImage: {
     resizeMode: 'cover',
   },
   avatarPlaceholder: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: chromatic.indigo.bg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   badgeHolder: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
+    bottom: -2,
+    right: -2,
   },
   cameraBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.primary,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: chromatic.indigo.primary,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#ffffff',
-  },
-  googleBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#10b981',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#ffffff',
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
   },
   actionRow: {
-    marginTop: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 8,
+    backgroundColor: chromatic.indigo.bg,
+    borderColor: chromatic.indigo.border,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: radii.pill,
   },
   actionText: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '800',
+    color: chromatic.indigo.primary,
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalCard: {
     width: '100%',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 22,
     gap: 14,
@@ -260,29 +265,29 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '800',
-    color: '#0f172a',
+    fontWeight: '900',
+    color: '#0F172A',
   },
   closeBtn: {
     padding: 4,
   },
   modalSubtitle: {
     fontSize: 13,
-    color: '#64748b',
+    color: colors.textMuted,
     lineHeight: 18,
   },
   optionsContainer: {
-    gap: 12,
+    gap: 10,
     marginTop: 6,
   },
   optionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: 'rgba(241, 245, 249, 0.8)',
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(226, 232, 240, 0.8)',
     gap: 14,
   },
   iconBox: {
@@ -297,12 +302,13 @@ const styles = StyleSheet.create({
   },
   optionTitle: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#0f172a',
+    fontWeight: '800',
+    color: '#0F172A',
   },
   optionDesc: {
     fontSize: 12,
-    color: '#64748b',
+    color: colors.textMuted,
     marginTop: 2,
   },
 });
+

@@ -119,7 +119,7 @@ export default function DashboardOverview({
 
       {/* Recent Appointments Table */}
       <div className="card-panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+        <div className="recent-appointments-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <h2 className="chart-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Calendar size={18} style={{ color: '#4f46e5' }} />
             Recent Appointments
@@ -138,14 +138,14 @@ export default function DashboardOverview({
             </p>
           </div>
         ) : (
-          <div className="responsive-table-wrapper">
+          <div className="responsive-table-wrapper recent-appointments-table-wrapper">
             <table className="consult-table mobile-card-table">
               <thead>
                 <tr>
                   <th>Booking</th>
-                  <th>Client</th>
+                  <th className="col-hide-sm">Client</th>
                   <th>Creator Profile</th>
-                  <th>Start Time</th>
+                  <th className="col-hide-md">Start Time</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -170,14 +170,11 @@ export default function DashboardOverview({
                             {appt.id ? `${appt.id.substring(0, 8)}…` : 'N/A'}
                           </code>
                         </div>
-                        <span className={`badge badge-${(appt.status || 'pending').toLowerCase()}`}>
-                          {appt.status || 'PENDING'}
-                        </span>
                       </div>
                     </td>
-                    <td data-label="Client">{appt.client ? appt.client.full_name : appt.client_id ? `Client (${appt.client_id.substring(0,6)})` : 'Client User'}</td>
+                    <td className="col-hide-sm" data-label="Client">{appt.client ? appt.client.full_name : appt.client_id ? `Client (${appt.client_id.substring(0,6)})` : 'Client User'}</td>
                     <td data-label="Creator">{appt.creator ? appt.creator.title : appt.creator_id ? `Creator (${appt.creator_id.substring(0,6)})` : 'Creator Service'}</td>
-                    <td data-label="Start Time" style={{ color: 'var(--text-muted)' }}>
+                    <td className="col-hide-md" data-label="Start Time" style={{ color: 'var(--text-muted)' }}>
                       {appt.start_time_utc
                         ? new Date(appt.start_time_utc).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) +
                           ' · ' + new Date(appt.start_time_utc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })

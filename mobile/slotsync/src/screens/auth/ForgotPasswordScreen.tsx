@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,6 @@ import {
   ActivityIndicator,
   StatusBar,
   Platform,
-  Animated,
-  Easing,
   KeyboardAvoidingView,
 } from 'react-native';
 import {
@@ -28,7 +26,7 @@ import {
   User as UserIcon,
   Check,
 } from '../../components/LucideIcons';
-import { colors, radii } from '../../theme/colors';
+import { colors, radii, shadows } from '../../theme/colors';
 import {
   sendForgotPasswordOtp,
   verifyForgotPasswordOtp,
@@ -37,6 +35,7 @@ import {
 import SlotSyncLogo from '../../components/SlotSyncLogo';
 import OtpInput from '../../components/OtpInput';
 import { useToast } from '../../context/ToastContext';
+import AppBackground from '../../components/AppBackground';
 
 interface Props {
   onBackToLogin: () => void;
@@ -56,6 +55,7 @@ export default function ForgotPasswordScreen({
   // Step 1: Identifier
   const [identifier, setIdentifier] = useState('');
   const [identifierTouched, setIdentifierTouched] = useState(false);
+  const [identifierFocused, setIdentifierFocused] = useState(false);
 
   // Step 2: Account info from backend
   const [accountEmail, setAccountEmail] = useState('');
@@ -77,40 +77,10 @@ export default function ForgotPasswordScreen({
   const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [newPassFocused, setNewPassFocused] = useState(false);
+  const [confirmPassFocused, setConfirmPassFocused] = useState(false);
 
-  // Floating Ambient Glow Animation
-  const glowAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowAnim, {
-          toValue: 1,
-          duration: 3500,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(glowAnim, {
-          toValue: 0,
-          duration: 3500,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [glowAnim]);
-
-  const glowTranslateX = glowAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-35, 35],
-  });
-
-  const glowScale = glowAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [1.0, 1.15, 1.0],
-  });
 
   // Countdown timer for OTP
   useEffect(() => {
@@ -129,9 +99,15 @@ export default function ForgotPasswordScreen({
 
   // Validations
   const isIdentifierValid = identifier.trim().length >= 3;
-  const isNewPasswordValid = newPassword.length >= 8;
+  const hasMinLength = newPassword.length >= 8;
+  const hasUpper = /[A-Z]/.test(newPassword);
+  const hasLower = /[a-z]/.test(newPassword);
+  const hasNumber = /[0-9]/.test(newPassword);
+  const hasSpecial = /[^A-Za-z0-9]/.test(newPassword);
+
+  const isNewPasswordValid = hasMinLength && hasUpper && hasLower && hasNumber && hasSpecial;
   const isConfirmPasswordValid =
-    confirmPassword.length >= 8 && confirmPassword === newPassword;
+    confirmPassword.length > 0 && confirmPassword === newPassword && isNewPasswordValid;
 
   // ── Step 1: Send OTP ──
   const handleSendOtp = async () => {
@@ -210,7 +186,7 @@ export default function ForgotPasswordScreen({
     setConfirmPasswordTouched(true);
 
     if (!isNewPasswordValid) {
-      showWarning('Password must be at least 8 characters long.', 'Password Too Short');
+      showWarning('Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character.', 'Weak Password');
       return;
     }
 
@@ -237,7 +213,8 @@ export default function ForgotPasswordScreen({
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.outerWrapper}>
-        <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
+        <StatusBar barStyle="dark-content" backgroundColor={colors.bgApp} />
+        <AppBackground variant="indigo" />
 
         {/* Top Header Navigation */}
         <View style={styles.topNavigation}>
@@ -281,69 +258,63 @@ export default function ForgotPasswordScreen({
           contentContainerStyle={styles.scrollContainer}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          automaticallyAdjustKeyboardInsets={true}
           showsVerticalScrollIndicator={false}
         >
-          {/* Animated Ambient Glow */}
-          <Animated.View
-            style={[
-              styles.animatedGlow,
-              {
-                transform: [
-                  { translateX: glowTranslateX },
-                  { scale: glowScale },
-                ],
-              },
-            ]}
-          />
+
 
           {/* Logo & Header */}
           <View style={styles.brandHeader}>
             <View style={styles.logoContainer}>
-              <SlotSyncLogo size={62} />
+              <SlotSyncLogo size={66} />
             </View>
-            <Text style={styles.brandTitle}>SLOTSYNC</Text>
-            <Text style={styles.brandSubtitle}>SECURITY & RECOVERY</Text>
+            <Text style={styles.brandTitle}>Reset Password</Text>
+            <Text style={styles.brandSubtitle}>Secure account recovery verification</Text>
           </View>
 
           {/* ════════════ STEP 1: IDENTIFIER (EMAIL / PHONE) ════════════ */}
           {currentStep === 1 && (
-            <View style={styles.formContainer}>
+            <View style={styles.seamlessForm}>
               <View style={styles.sectionHeaderRow}>
                 <View style={styles.headerIconDot} />
                 <Text style={styles.sectionHeaderTitle}>FIND YOUR ACCOUNT</Text>
               </View>
 
               <Text style={styles.stepInstructions}>
-                Enter the email address or phone number associated with your SlotSync account. We'll send a secure 6-digit verification code.
+                Enter the email address associated with your SlotSync account. We'll send a secure 6-digit verification code.
               </Text>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Email or Phone Number</Text>
+                <Text style={styles.inputLabel}>Email Address</Text>
                 <View
                   style={[
-                    styles.inputWithIcon,
+                    styles.glassInputContainer,
+                    identifierFocused && styles.glassInputFocused,
                     identifierTouched &&
                       !isIdentifierValid &&
-                      styles.inputInvalidBorder,
+                      styles.glassInputInvalid,
                     identifierTouched &&
                       isIdentifierValid &&
-                      styles.inputValidBorder,
+                      styles.glassInputValid,
                   ]}
                 >
                   <View style={styles.iconHolder}>
-                    <Mail size={19} color={colors.primary} strokeWidth={2} />
+                    <Mail size={19} color={identifierTouched && isIdentifierValid ? colors.primary : colors.primaryLight} strokeWidth={2} />
                   </View>
                   <TextInput
                     style={styles.textInput}
-                    placeholder="name@example.com or +1 (555)..."
+                    placeholder="name@domain.com"
                     placeholderTextColor={colors.textDim}
                     value={identifier}
                     onChangeText={(val) => {
                       setIdentifier(val);
                       if (!identifierTouched) setIdentifierTouched(true);
                     }}
-                    onBlur={() => setIdentifierTouched(true)}
+                    onFocus={() => setIdentifierFocused(true)}
+                    onBlur={() => {
+                      setIdentifierFocused(false);
+                      setIdentifierTouched(true);
+                    }}
+                    keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
                   />
@@ -352,14 +323,14 @@ export default function ForgotPasswordScreen({
                       {isIdentifierValid ? (
                         <CheckCircle2
                           size={18}
-                          color={colors.primary}
-                          strokeWidth={2.2}
+                          color={colors.success}
+                          strokeWidth={2.4}
                         />
                       ) : (
                         <AlertCircle
                           size={18}
-                          color="#ef4444"
-                          strokeWidth={2.2}
+                          color={colors.danger}
+                          strokeWidth={2.4}
                         />
                       )}
                     </View>
@@ -383,7 +354,6 @@ export default function ForgotPasswordScreen({
                     <Text style={styles.actionButtonText}>
                       Send Verification Code
                     </Text>
-                    <ArrowRight size={18} color="#ffffff" strokeWidth={2.2} />
                   </>
                 )}
               </TouchableOpacity>
@@ -400,16 +370,16 @@ export default function ForgotPasswordScreen({
 
           {/* ════════════ STEP 2: OTP VERIFICATION & PROFILE CONFIRMATION ════════════ */}
           {currentStep === 2 && (
-            <View style={styles.formContainer}>
+            <View style={styles.seamlessForm}>
               <View style={styles.sectionHeaderRow}>
                 <ShieldCheck size={19} color={colors.primary} strokeWidth={2.2} />
                 <Text style={styles.sectionHeaderTitle}>
-                  ACCOUNT VERIFICATION
+                  SECURITY VERIFICATION
                 </Text>
               </View>
 
-              {/* Account Match Preview Card */}
-              <View style={styles.accountCard}>
+              {/* Account Match Preview Glass Card */}
+              <View style={styles.accountGlassBanner}>
                 <View style={styles.accountAvatar}>
                   <UserIcon size={20} color={colors.primary} strokeWidth={2.2} />
                 </View>
@@ -432,7 +402,7 @@ export default function ForgotPasswordScreen({
                             : styles.clientRoleText,
                         ]}
                       >
-                        {accountRole === 'CREATOR' ? 'Creator Account' : 'Client Account'}
+                        {accountRole === 'CREATOR' ? 'CREATOR' : 'CLIENT'}
                       </Text>
                     </View>
                   </View>
@@ -441,7 +411,7 @@ export default function ForgotPasswordScreen({
               </View>
 
               <Text style={styles.otpHelperText}>
-                We sent a 6-digit security code to your registered email. Enter it below to proceed:
+                We sent a 6-digit security code to your registered email. Enter it below:
               </Text>
 
               {/* Dedicated 6-Cell Otp Input */}
@@ -494,7 +464,7 @@ export default function ForgotPasswordScreen({
 
           {/* ════════════ STEP 3: CREATE NEW PASSWORD ════════════ */}
           {currentStep === 3 && (
-            <View style={styles.formContainer}>
+            <View style={styles.seamlessForm}>
               <View style={styles.sectionHeaderRow}>
                 <KeyRound size={19} color={colors.primary} strokeWidth={2.2} />
                 <Text style={styles.sectionHeaderTitle}>
@@ -503,7 +473,7 @@ export default function ForgotPasswordScreen({
               </View>
 
               <Text style={styles.stepInstructions}>
-                Choose a strong password with at least 8 characters for your {accountName} profile.
+                Choose a strong password with at least 8 characters for your profile.
               </Text>
 
               {/* New Password */}
@@ -511,17 +481,18 @@ export default function ForgotPasswordScreen({
                 <Text style={styles.inputLabel}>New Password</Text>
                 <View
                   style={[
-                    styles.inputWithIcon,
+                    styles.glassInputContainer,
+                    newPassFocused && styles.glassInputFocused,
                     newPasswordTouched &&
                       !isNewPasswordValid &&
-                      styles.inputInvalidBorder,
+                      styles.glassInputInvalid,
                     newPasswordTouched &&
                       isNewPasswordValid &&
-                      styles.inputValidBorder,
+                      styles.glassInputValid,
                   ]}
                 >
                   <View style={styles.iconHolder}>
-                    <Lock size={19} color={colors.primary} strokeWidth={2} />
+                    <Lock size={19} color={newPasswordTouched && isNewPasswordValid ? colors.primary : colors.primaryLight} strokeWidth={2} />
                   </View>
                   <TextInput
                     style={[styles.textInput, { flex: 1 }]}
@@ -532,7 +503,11 @@ export default function ForgotPasswordScreen({
                       setNewPassword(val);
                       if (!newPasswordTouched) setNewPasswordTouched(true);
                     }}
-                    onBlur={() => setNewPasswordTouched(true)}
+                    onFocus={() => setNewPassFocused(true)}
+                    onBlur={() => {
+                      setNewPassFocused(false);
+                      setNewPasswordTouched(true);
+                    }}
                     secureTextEntry={!showNewPassword}
                   />
                   <TouchableOpacity
@@ -542,15 +517,72 @@ export default function ForgotPasswordScreen({
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
                     {showNewPassword ? (
-                      <Eye size={20} color={colors.primary} strokeWidth={2} />
+                      <Eye size={19} color={colors.primary} strokeWidth={2} />
                     ) : (
-                      <EyeOff size={20} color="#94a3b8" strokeWidth={2} />
+                      <EyeOff size={19} color={colors.textDim} strokeWidth={2} />
                     )}
                   </TouchableOpacity>
                 </View>
+
+                {/* Single-Line Password Security Requirements */}
+                {(newPassFocused || newPassword.length > 0 || newPasswordTouched) && (
+                  <View style={styles.pwdRequirementsRow}>
+                    <View style={styles.pwdRequirementItem}>
+                      <Check
+                        size={12}
+                        color={hasMinLength ? colors.success : '#CBD5E1'}
+                        strokeWidth={hasMinLength ? 2.8 : 2}
+                      />
+                      <Text style={[styles.pwdRequirementText, hasMinLength && styles.pwdRequirementTextActive]}>
+                        8+ chars
+                      </Text>
+                    </View>
+                    <View style={styles.pwdRequirementItem}>
+                      <Check
+                        size={12}
+                        color={hasUpper ? colors.success : '#CBD5E1'}
+                        strokeWidth={hasUpper ? 2.8 : 2}
+                      />
+                      <Text style={[styles.pwdRequirementText, hasUpper && styles.pwdRequirementTextActive]}>
+                        Upper
+                      </Text>
+                    </View>
+                    <View style={styles.pwdRequirementItem}>
+                      <Check
+                        size={12}
+                        color={hasLower ? colors.success : '#CBD5E1'}
+                        strokeWidth={hasLower ? 2.8 : 2}
+                      />
+                      <Text style={[styles.pwdRequirementText, hasLower && styles.pwdRequirementTextActive]}>
+                        Lower
+                      </Text>
+                    </View>
+                    <View style={styles.pwdRequirementItem}>
+                      <Check
+                        size={12}
+                        color={hasNumber ? colors.success : '#CBD5E1'}
+                        strokeWidth={hasNumber ? 2.8 : 2}
+                      />
+                      <Text style={[styles.pwdRequirementText, hasNumber && styles.pwdRequirementTextActive]}>
+                        Number
+                      </Text>
+                    </View>
+                    <View style={styles.pwdRequirementItem}>
+                      <Check
+                        size={12}
+                        color={hasSpecial ? colors.success : '#CBD5E1'}
+                        strokeWidth={hasSpecial ? 2.8 : 2}
+                      />
+                      <Text style={[styles.pwdRequirementText, hasSpecial && styles.pwdRequirementTextActive]}>
+                        Symbol
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
                 {newPasswordTouched && !isNewPasswordValid && (
                   <Text style={styles.helperErrorText}>
-                    Password must be at least 8 characters ({newPassword.length}/8)
+                    Password must meet all requirements above
                   </Text>
                 )}
               </View>
@@ -560,17 +592,18 @@ export default function ForgotPasswordScreen({
                 <Text style={styles.inputLabel}>Confirm New Password</Text>
                 <View
                   style={[
-                    styles.inputWithIcon,
+                    styles.glassInputContainer,
+                    confirmPassFocused && styles.glassInputFocused,
                     confirmPasswordTouched &&
                       !isConfirmPasswordValid &&
-                      styles.inputInvalidBorder,
+                      styles.glassInputInvalid,
                     confirmPasswordTouched &&
                       isConfirmPasswordValid &&
-                      styles.inputValidBorder,
+                      styles.glassInputValid,
                   ]}
                 >
                   <View style={styles.iconHolder}>
-                    <Lock size={19} color={colors.primary} strokeWidth={2} />
+                    <Lock size={19} color={confirmPasswordTouched && isConfirmPasswordValid ? colors.primary : colors.primaryLight} strokeWidth={2} />
                   </View>
                   <TextInput
                     style={[styles.textInput, { flex: 1 }]}
@@ -581,7 +614,11 @@ export default function ForgotPasswordScreen({
                       setConfirmPassword(val);
                       if (!confirmPasswordTouched) setConfirmPasswordTouched(true);
                     }}
-                    onBlur={() => setConfirmPasswordTouched(true)}
+                    onFocus={() => setConfirmPassFocused(true)}
+                    onBlur={() => {
+                      setConfirmPassFocused(false);
+                      setConfirmPasswordTouched(true);
+                    }}
                     secureTextEntry={!showConfirmPassword}
                   />
                   <TouchableOpacity
@@ -591,16 +628,23 @@ export default function ForgotPasswordScreen({
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
                     {showConfirmPassword ? (
-                      <Eye size={20} color={colors.primary} strokeWidth={2} />
+                      <Eye size={19} color={colors.primary} strokeWidth={2} />
                     ) : (
-                      <EyeOff size={20} color="#94a3b8" strokeWidth={2} />
+                      <EyeOff size={19} color={colors.textDim} strokeWidth={2} />
                     )}
                   </TouchableOpacity>
                 </View>
                 {confirmPasswordTouched && !isConfirmPasswordValid && (
                   <Text style={styles.helperErrorText}>
-                    Passwords do not match
+                    {confirmPassword.length === 0
+                      ? 'Please confirm your password'
+                      : !isNewPasswordValid
+                      ? 'Ensure new password meets all security rules first'
+                      : 'Passwords do not match'}
                   </Text>
+                )}
+                {confirmPasswordTouched && isConfirmPasswordValid && (
+                  <Text style={styles.helperSuccessText}>✓ Passwords match</Text>
                 )}
               </View>
 
@@ -620,7 +664,6 @@ export default function ForgotPasswordScreen({
                     <Text style={styles.actionButtonText}>
                       Update & Save Password
                     </Text>
-                    <Check size={18} color="#ffffff" strokeWidth={2.5} />
                   </>
                 )}
               </TouchableOpacity>
@@ -629,9 +672,9 @@ export default function ForgotPasswordScreen({
 
           {/* ════════════ STEP 4: SUCCESS CONFIRMATION ════════════ */}
           {currentStep === 4 && (
-            <View style={styles.successContainer}>
+            <View style={styles.seamlessForm}>
               <View style={styles.successIconCircle}>
-                <CheckCircle2 size={54} color={colors.primary} strokeWidth={2.4} />
+                <CheckCircle2 size={48} color={colors.success} strokeWidth={2.4} />
               </View>
 
               <Text style={styles.successTitle}>Password Updated!</Text>
@@ -645,12 +688,10 @@ export default function ForgotPasswordScreen({
                 onPress={() => onPasswordResetSuccess(accountEmail)}
               >
                 <Text style={styles.actionButtonText}>Sign In Now</Text>
-                <ArrowRight size={18} color="#ffffff" strokeWidth={2.2} />
+                <ArrowRight size={18} color="#ffffff" strokeWidth={2.4} />
               </TouchableOpacity>
             </View>
           )}
-
-          <View style={{ height: 160 }} />
         </ScrollView>
       </View>
     </KeyboardAvoidingView>
@@ -660,37 +701,34 @@ export default function ForgotPasswordScreen({
 const styles = StyleSheet.create({
   outerWrapper: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.bgApp,
   },
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: Platform.OS === 'ios' ? 10 : 20,
-    paddingBottom: 100,
+    paddingTop: 8,
+    paddingBottom: 40,
+    gap: 18,
   },
   topNavigation: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 44 : 20,
-    paddingBottom: 10,
+    paddingTop: Platform.OS === 'ios' ? 52 : 20,
+    paddingBottom: 4,
     zIndex: 10,
   },
   backButtonCircle: {
     width: 42,
     height: 42,
-    borderRadius: 21,
-    backgroundColor: '#ffffff',
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
     borderWidth: 1.2,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(99, 102, 241, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    ...shadows.subtle,
   },
   stepperDotsRow: {
     flexDirection: 'row',
@@ -701,58 +739,63 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#cbd5e1',
+    backgroundColor: 'rgba(203, 213, 225, 0.8)',
   },
   stepDotActive: {
     width: 22,
     backgroundColor: colors.primary,
   },
   stepDotCompleted: {
-    backgroundColor: '#818cf8',
+    backgroundColor: colors.primaryLight,
   },
-  animatedGlow: {
+  animatedGlowPrimary: {
     position: 'absolute',
-    top: -50,
+    top: -60,
     alignSelf: 'center',
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    backgroundColor: 'rgba(99, 102, 241, 0.12)',
-    opacity: 0.8,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: 'rgba(79, 70, 229, 0.15)',
+  },
+  animatedGlowSecondary: {
+    position: 'absolute',
+    top: 200,
+    left: -40,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(124, 58, 237, 0.1)',
   },
   brandHeader: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 6,
+    marginTop: 4,
   },
   logoContainer: {
-    marginBottom: 10,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 14,
-    elevation: 6,
+    marginBottom: 12,
+    ...shadows.primaryGlow,
   },
   brandTitle: {
-    fontSize: 24,
+    fontSize: 27,
     fontWeight: '900',
-    color: '#1e1b4b',
-    letterSpacing: 1.5,
+    color: colors.textHeading,
+    letterSpacing: -0.5,
   },
   brandSubtitle: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#6366f1',
-    letterSpacing: 2,
-    marginTop: 3,
+    fontSize: 13.5,
+    fontWeight: '500',
+    color: colors.textDim,
+    textAlign: 'center',
+    marginTop: 4,
   },
-  formContainer: {
-    width: '100%',
+  seamlessForm: {
+    gap: 16,
+    marginTop: 6,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 10,
   },
   headerIconDot: {
     width: 8,
@@ -765,44 +808,45 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 1.2,
     color: colors.primary,
-    textTransform: 'uppercase',
   },
   stepInstructions: {
-    fontSize: 14,
-    color: '#475569',
-    lineHeight: 20,
-    marginBottom: 20,
+    fontSize: 13.5,
+    color: colors.textMuted,
+    lineHeight: 19,
   },
   inputGroup: {
-    marginBottom: 18,
+    gap: 6,
   },
   inputLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1e293b',
-    marginBottom: 6,
+    color: colors.textMain,
+    letterSpacing: -0.1,
   },
-  inputWithIcon: {
+  glassInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
     borderWidth: 1.5,
-    borderColor: '#e2e8f0',
-    borderRadius: radii.lg,
+    borderColor: 'rgba(203, 213, 225, 0.9)',
+    borderRadius: radii.md,
     paddingHorizontal: 14,
     height: 52,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    ...shadows.subtle,
   },
-  inputValidBorder: {
-    borderColor: '#10b981',
+  glassInputFocused: {
+    borderColor: colors.primary,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    ...shadows.card,
   },
-  inputInvalidBorder: {
-    borderColor: '#ef4444',
-    backgroundColor: '#fef2f2',
+  glassInputValid: {
+    borderColor: '#818CF8',
+    backgroundColor: '#FFFFFF',
+  },
+  glassInputInvalid: {
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerBg,
   },
   iconHolder: {
     marginRight: 10,
@@ -811,7 +855,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     fontSize: 15,
-    color: '#0f172a',
+    color: colors.textMain,
     fontWeight: '500',
   },
   validationIconHolder: {
@@ -821,68 +865,89 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   helperErrorText: {
-    fontSize: 12,
-    color: '#ef4444',
-    marginTop: 4,
-    marginLeft: 4,
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: colors.danger,
+    marginTop: 2,
+    marginLeft: 2,
+  },
+  helperSuccessText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: colors.success,
+    marginTop: 3,
+    marginLeft: 2,
+  },
+  pwdRequirementsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    paddingVertical: 5,
+    marginTop: 5,
+  },
+  pwdRequirementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  pwdRequirementText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textDim,
+  },
+  pwdRequirementTextActive: {
+    color: colors.success,
+    fontWeight: '700',
   },
   primaryActionButton: {
-    width: '100%',
+    height: 52,
+    borderRadius: radii.md,
+    backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary,
-    height: 52,
-    borderRadius: radii.lg,
-    marginTop: 10,
     gap: 8,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 4,
+    marginTop: 6,
+    ...shadows.primaryGlow,
   },
   buttonDisabled: {
-    opacity: 0.7,
+    opacity: 0.65,
   },
   actionButtonText: {
     color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15.5,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   cancelLinkButton: {
-    marginTop: 16,
     alignItems: 'center',
     paddingVertical: 8,
   },
   cancelLinkText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748b',
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: colors.textMuted,
   },
-  accountCard: {
+  accountGlassBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(238, 242, 255, 0.85)',
+    borderRadius: radii.lg,
     padding: 14,
-    borderRadius: 14,
-    borderWidth: 1.2,
-    borderColor: '#e2e8f0',
-    marginBottom: 16,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
     gap: 12,
+    borderWidth: 1.5,
+    borderColor: 'rgba(99, 102, 241, 0.25)',
+    ...shadows.subtle,
   },
   accountAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#eef2ff',
+    width: 42,
+    height: 42,
+    borderRadius: radii.pill,
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
+    ...shadows.subtle,
   },
   accountDetails: {
     flex: 1,
@@ -891,85 +956,78 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
+    marginBottom: 2,
   },
   accountFullName: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#0f172a',
+    fontWeight: '800',
+    color: colors.textMain,
   },
   roleBadge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 6,
-  },
-  roleBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
+    borderRadius: radii.pill,
   },
   creatorRoleBadge: {
-    backgroundColor: '#e0e7ff',
-  },
-  creatorRoleText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#4338ca',
+    backgroundColor: colors.accentPurpleWash,
   },
   clientRoleBadge: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#ffffff',
+  },
+  roleBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  creatorRoleText: {
+    color: colors.accentViolet,
   },
   clientRoleText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#475569',
+    color: colors.primary,
   },
   accountMaskedEmail: {
-    fontSize: 13,
-    color: '#64748b',
-    marginTop: 2,
+    fontSize: 12.5,
+    color: colors.textDim,
   },
   otpHelperText: {
     fontSize: 13,
-    color: '#475569',
-    marginBottom: 8,
+    color: colors.textMuted,
     lineHeight: 18,
   },
   inlineOtpErrorText: {
-    fontSize: 13,
-    color: '#ef4444',
+    fontSize: 12,
+    color: colors.danger,
     textAlign: 'center',
-    marginTop: 6,
     fontWeight: '600',
+    marginTop: 4,
   },
   resendRow: {
     alignItems: 'center',
-    marginTop: 10,
+    paddingVertical: 4,
   },
   resendBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
   resendBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 13.5,
+    fontWeight: '800',
     color: colors.primary,
   },
   resendTimerText: {
     fontSize: 13,
-    color: '#64748b',
+    color: colors.textDim,
   },
   countdownBold: {
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.primary,
   },
   loadingIndicatorWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 14,
     gap: 8,
   },
   verifyingText: {
@@ -977,42 +1035,33 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '600',
   },
-  successContainer: {
-    width: '100%',
-    alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 4,
-  },
   successIconCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: '#eef2ff',
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.successBg,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 4,
+    alignSelf: 'center',
+    marginTop: 10,
+    marginBottom: 6,
   },
   successTitle: {
     fontSize: 22,
-    fontWeight: '800',
-    color: '#0f172a',
-    marginBottom: 8,
+    fontWeight: '900',
+    color: colors.textMain,
+    letterSpacing: -0.3,
+    textAlign: 'center',
   },
   successSubtitle: {
     fontSize: 14,
-    color: '#475569',
+    color: colors.textMuted,
     textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: 16,
-    marginBottom: 28,
+    lineHeight: 20,
+    marginBottom: 8,
   },
   boldText: {
     fontWeight: '700',
-    color: '#1e293b',
+    color: colors.textMain,
   },
 });

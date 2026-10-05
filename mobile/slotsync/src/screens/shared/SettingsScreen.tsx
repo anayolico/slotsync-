@@ -13,9 +13,10 @@ import {
   Easing,
   Image,
   Platform,
+  StatusBar,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { colors, radii } from '../../theme/colors';
+import { colors, radii, chromatic, glass, shadows } from '../../theme/colors';
 import {
   User as UserIcon,
   Mail,
@@ -39,9 +40,14 @@ import {
   Check,
   ImageIcon,
   Calendar,
+  ShieldCheck,
+  Globe,
+  Bell,
+  SlidersHorizontal,
 } from '../../components/LucideIcons';
 import OtpInput from '../../components/OtpInput';
 import DatePickerModal from '../../components/DatePickerModal';
+import AppBackground from '../../components/AppBackground';
 import { useToast } from '../../context/ToastContext';
 import {
   updateUserProfile,
@@ -377,7 +383,6 @@ export default function SettingsScreen({
 
       setDeleteModalVisible(false);
       showSuccess('Your account and data have been permanently deleted.');
-      // Execute logout and take user back to Login / Auth Choice
       setTimeout(() => {
         onLogout();
       }, 800);
@@ -392,6 +397,9 @@ export default function SettingsScreen({
   if (currentView === 'ACCOUNT_DETAILS') {
     return (
       <View style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#F4F7FC" />
+        <AppBackground variant={isCreator ? 'violet' : 'indigo'} style={StyleSheet.absoluteFill} />
+
         {/* Top Header */}
         <View style={styles.headerRow}>
           <TouchableOpacity
@@ -399,9 +407,9 @@ export default function SettingsScreen({
             onPress={() => setCurrentView('MAIN')}
             activeOpacity={0.7}
           >
-            <ChevronLeft size={22} color={colors.textMain} />
+            <ChevronLeft size={22} color="#0F172A" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Creator Account</Text>
+          <Text style={styles.headerTitle}>{isCreator ? 'Creator Account' : 'Client Profile'}</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -418,7 +426,7 @@ export default function SettingsScreen({
                 <View
                   style={[
                     styles.avatarPlaceholder,
-                    isCreator && { backgroundColor: colors.primary },
+                    { backgroundColor: chromatic.indigo.primary },
                   ]}
                 >
                   <Text style={styles.avatarLetter}>
@@ -432,22 +440,25 @@ export default function SettingsScreen({
                 activeOpacity={0.85}
                 onPress={() => setShowAvatarPicker(true)}
               >
-                <Camera size={16} color="#ffffff" />
+                <Camera size={15} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
 
             <TouchableOpacity
               style={styles.changeAvatarBtn}
               onPress={() => setShowAvatarPicker(true)}
-              activeOpacity={0.7}
+              activeOpacity={0.75}
             >
-              <Text style={styles.changeAvatarBtnText}>Change Profile Picture</Text>
+              <Text style={styles.changeAvatarBtnText}>Change Profile Photo</Text>
             </TouchableOpacity>
           </View>
 
           {/* Personal Information Group */}
           <View style={styles.cardGroup}>
-            <Text style={styles.groupHeader}>PERSONAL INFORMATION</Text>
+            <View style={styles.groupHeaderRow}>
+              <UserIcon size={16} color={chromatic.indigo.primary} />
+              <Text style={styles.groupHeader}>PERSONAL INFORMATION</Text>
+            </View>
 
             {/* Full Name */}
             <View style={styles.inputItem}>
@@ -469,7 +480,7 @@ export default function SettingsScreen({
               <View style={styles.labelRow}>
                 <Text style={styles.inputLabel}>Email Address</Text>
                 <View style={styles.verifiedTag}>
-                  <CheckCircle2 size={12} color="#10b981" />
+                  <CheckCircle2 size={12} color={chromatic.emerald.primary} />
                   <Text style={styles.verifiedTagText}>Verified</Text>
                 </View>
               </View>
@@ -527,26 +538,21 @@ export default function SettingsScreen({
                 activeOpacity={0.8}
                 onPress={() => setShowDobPicker(true)}
               >
-                <Calendar size={18} color={colors.primary} />
+                <Calendar size={18} color={chromatic.indigo.primary} />
                 <TextInput
                   style={[styles.textInput, { flex: 1 }]}
                   value={dateOfBirth}
-                  placeholder="YYYY-MM-DD (e.g. 1995-08-24)"
+                  placeholder="YYYY-MM-DD"
                   placeholderTextColor={colors.textMuted}
                   editable={false}
                   pointerEvents="none"
                 />
                 <TouchableOpacity
-                  style={{
-                    backgroundColor: '#e0e7ff',
-                    paddingHorizontal: 12,
-                    paddingVertical: 5,
-                    borderRadius: 8,
-                  }}
+                  style={styles.chooseDobBtn}
                   onPress={() => setShowDobPicker(true)}
                   activeOpacity={0.7}
                 >
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary }}>Choose</Text>
+                  <Text style={styles.chooseDobBtnText}>Choose</Text>
                 </TouchableOpacity>
               </TouchableOpacity>
             </View>
@@ -586,7 +592,10 @@ export default function SettingsScreen({
           {/* Creator Configuration (Only for Creator) */}
           {isCreator && (
             <View style={styles.cardGroup}>
-              <Text style={styles.groupHeader}>CREATOR CONFIGURATION</Text>
+              <View style={styles.groupHeaderRow}>
+                <Briefcase size={16} color={chromatic.violet.primary} />
+                <Text style={styles.groupHeader}>CREATOR CONFIGURATION</Text>
+              </View>
 
               {/* Category */}
               <View style={styles.inputItem}>
@@ -709,17 +718,18 @@ export default function SettingsScreen({
             disabled={saving}
           >
             {saving ? (
-              <ActivityIndicator color="#ffffff" size="small" />
+              <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              <Text style={styles.saveButtonText}>Save Changes</Text>
+              <>
+                <Text style={styles.saveButtonText}>Save Changes</Text>
+              </>
             )}
           </TouchableOpacity>
 
           {/* Danger Zone: Close Account */}
           <View style={styles.dangerCard}>
             <View style={styles.dangerHeaderRow}>
-              <AlertTriangle size={20} color={colors.danger} />
-              <Text style={styles.dangerTitle}>Danger Zone</Text>
+              <Text style={styles.dangerTitle}>Account Deletion Zone</Text>
             </View>
             <Text style={styles.dangerSubtitle}>
               Closing your account will permanently wipe your profile, appointment records, and schedule availability.
@@ -729,7 +739,7 @@ export default function SettingsScreen({
               activeOpacity={0.85}
               onPress={handleOpenDeleteModal}
             >
-              <Trash2 size={16} color={colors.danger} />
+              <Trash2 size={16} color={chromatic.rose.primary} />
               <Text style={styles.closeAccountButtonText}>Close Account</Text>
             </TouchableOpacity>
           </View>
@@ -759,7 +769,7 @@ export default function SettingsScreen({
 
               {uploadingAvatar ? (
                 <View style={styles.uploadingBox}>
-                  <ActivityIndicator size="large" color={colors.primary} />
+                  <ActivityIndicator size="large" color={chromatic.indigo.primary} />
                   <Text style={styles.uploadingText}>Uploading profile photo...</Text>
                 </View>
               ) : (
@@ -771,8 +781,8 @@ export default function SettingsScreen({
                       activeOpacity={0.8}
                       onPress={handleTakePhoto}
                     >
-                      <View style={[styles.avatarActionIconBox, { backgroundColor: '#eef2ff' }]}>
-                        <Camera size={22} color={colors.primary} />
+                      <View style={[styles.avatarActionIconBox, { backgroundColor: chromatic.indigo.bg }]}>
+                        <Camera size={22} color={chromatic.indigo.primary} />
                       </View>
                       <View style={styles.avatarActionTextBox}>
                         <Text style={styles.avatarActionTitle}>Take Photo</Text>
@@ -785,8 +795,8 @@ export default function SettingsScreen({
                       activeOpacity={0.8}
                       onPress={handlePickFromGallery}
                     >
-                      <View style={[styles.avatarActionIconBox, { backgroundColor: '#ecfdf5' }]}>
-                        <ImageIcon size={22} color="#10b981" />
+                      <View style={[styles.avatarActionIconBox, { backgroundColor: chromatic.emerald.bg }]}>
+                        <ImageIcon size={22} color={chromatic.emerald.primary} />
                       </View>
                       <View style={styles.avatarActionTextBox}>
                         <Text style={styles.avatarActionTitle}>Choose from Gallery</Text>
@@ -827,7 +837,7 @@ export default function SettingsScreen({
                           <Image source={{ uri: url }} style={styles.presetImg} />
                           {isSelected && (
                             <View style={styles.presetCheckOverlay}>
-                              <Check size={16} color="#ffffff" strokeWidth={3} />
+                              <Check size={16} color="#FFFFFF" strokeWidth={3} />
                             </View>
                           )}
                         </TouchableOpacity>
@@ -882,11 +892,14 @@ export default function SettingsScreen({
   // ── Main Settings Screen View ──
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F4F7FC" />
+      <AppBackground variant={isCreator ? 'violet' : 'indigo'} style={StyleSheet.absoluteFill} />
+
       {/* Top Header */}
       <View style={styles.mainHeader}>
         <Text style={styles.screenMainTitle}>Settings</Text>
         <Text style={styles.screenMainSubtitle}>
-          Manage account, profile, security & preferences
+          Manage profile details, security protocols & preferences
         </Text>
       </View>
 
@@ -907,7 +920,7 @@ export default function SettingsScreen({
               <View
                 style={[
                   styles.summaryAvatarPlaceholder,
-                  isCreator && { backgroundColor: colors.primary },
+                  { backgroundColor: chromatic.indigo.primary },
                 ]}
               >
                 <Text style={styles.summaryAvatarLetter}>
@@ -934,23 +947,23 @@ export default function SettingsScreen({
           </View>
 
           <View style={styles.summaryChevronBox}>
-            <ChevronRight size={20} color={colors.textMuted} />
+            <ChevronRight size={18} color={chromatic.indigo.primary} />
           </View>
         </TouchableOpacity>
 
-        {/* App Information & Security */}
+        {/* General Preferences Group */}
         <View style={styles.menuGroup}>
-          <Text style={styles.groupHeader}>SECURITY & PREFERENCES</Text>
+          <Text style={styles.groupHeader}>SECURITY & PRIVACY</Text>
 
           <View style={styles.menuItemDisabled}>
-            <View style={[styles.menuIconBox, { backgroundColor: '#dcfce7' }]}>
-              <CheckCircle2 size={20} color="#10b981" />
-            </View>
             <View style={styles.menuItemContent}>
               <Text style={styles.menuItemTitle}>Email Verification</Text>
               <Text style={styles.menuItemSubtitle}>
                 Protected by 2-factor OTP authorization
               </Text>
+            </View>
+            <View style={styles.verifiedMiniBadge}>
+              <CheckCircle2 size={12} color={chromatic.emerald.primary} />
             </View>
           </View>
 
@@ -960,11 +973,8 @@ export default function SettingsScreen({
             activeOpacity={0.7}
             onPress={handleOpenDeleteModal}
           >
-            <View style={[styles.menuIconBox, { backgroundColor: '#fee2e2' }]}>
-              <Trash2 size={20} color={colors.danger} />
-            </View>
             <View style={styles.menuItemContent}>
-              <Text style={[styles.menuItemTitle, { color: colors.danger }]}>
+              <Text style={[styles.menuItemTitle, { color: chromatic.rose.primary }]}>
                 Close Account
               </Text>
               <Text style={styles.menuItemSubtitle}>
@@ -975,20 +985,14 @@ export default function SettingsScreen({
           </TouchableOpacity>
         </View>
 
-        {/* App Version Info */}
-        <View style={styles.versionCard}>
-          <Text style={styles.versionText}>SlotSync Mobile v1.0.0</Text>
-          <Text style={styles.versionSubtext}>Built with high performance & real-time sync</Text>
-        </View>
-
         {/* Logout Button at the Bottom */}
         <TouchableOpacity
           style={styles.logoutMainButton}
           activeOpacity={0.88}
           onPress={() => setLogoutModalVisible(true)}
         >
-          <LogOut size={18} color={colors.danger} />
-          <Text style={styles.logoutMainButtonText}>Log Out</Text>
+          <LogOut size={18} color={chromatic.rose.primary} />
+          <Text style={styles.logoutMainButtonText}>Sign Out of SlotSync</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -1002,7 +1006,7 @@ export default function SettingsScreen({
         <View style={styles.modalBackdrop}>
           <View style={styles.confirmModalCard}>
             <View style={styles.logoutIconCircle}>
-              <LogOut size={28} color={colors.danger} />
+              <LogOut size={26} color={chromatic.rose.primary} />
             </View>
 
             <Text style={styles.confirmModalTitle}>Sign Out?</Text>
@@ -1027,7 +1031,7 @@ export default function SettingsScreen({
                 }}
                 activeOpacity={0.85}
               >
-                <Text style={styles.modalLogoutBtnText}>Log Out</Text>
+                <Text style={styles.modalLogoutBtnText}>Sign Out</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1093,12 +1097,12 @@ export default function SettingsScreen({
             {deleteStep === 1 && (
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.deleteIconCenter}>
-                  <ShieldAlert size={36} color={colors.danger} />
+                  <ShieldAlert size={34} color={chromatic.rose.primary} />
                 </View>
 
                 <Text style={styles.deleteStepTitle}>Why are you closing your account?</Text>
                 <Text style={styles.deleteStepSubtitle}>
-                  Please let us know the reason to help us improve our service.
+                  Please let us know the reason to help us improve our platform.
                 </Text>
 
                 <View style={styles.reasonsList}>
@@ -1135,20 +1139,6 @@ export default function SettingsScreen({
                   })}
                 </View>
 
-                {/* Optional Feedback */}
-                <View style={styles.feedbackContainer}>
-                  <Text style={styles.feedbackLabel}>Additional Feedback (Optional)</Text>
-                  <TextInput
-                    style={styles.feedbackInput}
-                    placeholder="Tell us what we could have done better..."
-                    placeholderTextColor={colors.textMuted}
-                    value={feedbackNotes}
-                    onChangeText={setFeedbackNotes}
-                    multiline
-                    numberOfLines={2}
-                  />
-                </View>
-
                 <TouchableOpacity
                   style={[
                     styles.primaryDeleteActionBtn,
@@ -1159,7 +1149,7 @@ export default function SettingsScreen({
                   disabled={!selectedReason}
                 >
                   <Text style={styles.primaryDeleteActionText}>
-                    Continue to Verification →
+                    Continue to Warning 
                   </Text>
                 </TouchableOpacity>
               </ScrollView>
@@ -1168,8 +1158,8 @@ export default function SettingsScreen({
             {/* STEP 2: Danger Warning & Loss Confirmation */}
             {deleteStep === 2 && (
               <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={[styles.deleteIconCenter, { backgroundColor: '#fee2e2' }]}>
-                  <AlertTriangle size={36} color={colors.danger} />
+                <View style={styles.deleteIconCenter}>
+                  <AlertTriangle size={34} color={chromatic.rose.primary} />
                 </View>
 
                 <Text style={styles.deleteStepTitle}>Permanent Loss Warning</Text>
@@ -1204,7 +1194,7 @@ export default function SettingsScreen({
                       confirmedLoss && styles.checkboxBoxActive,
                     ]}
                   >
-                    {confirmedLoss && <Check size={14} color="#ffffff" strokeWidth={3} />}
+                    {confirmedLoss && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
                   </View>
                   <Text style={styles.confirmCheckboxText}>
                     I understand that closing my account is permanent and cannot be undone.
@@ -1216,7 +1206,7 @@ export default function SettingsScreen({
                     style={styles.modalCancelBtn}
                     onPress={() => setDeleteStep(1)}
                   >
-                    <Text style={styles.modalCancelBtnText}>← Back</Text>
+                    <Text style={styles.modalCancelBtnText}>Back</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -1229,7 +1219,7 @@ export default function SettingsScreen({
                     disabled={!confirmedLoss || deleteOtpLoading}
                   >
                     {deleteOtpLoading ? (
-                      <ActivityIndicator color="#ffffff" size="small" />
+                      <ActivityIndicator color="#FFFFFF" size="small" />
                     ) : (
                       <Text style={styles.sendOtpDangerBtnText}>Send Closure Code</Text>
                     )}
@@ -1241,14 +1231,14 @@ export default function SettingsScreen({
             {/* STEP 3: Email OTP Verification & Final Delete */}
             {deleteStep === 3 && (
               <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={[styles.deleteIconCenter, { backgroundColor: '#fee2e2' }]}>
-                  <Lock size={36} color={colors.danger} />
+                <View style={styles.deleteIconCenter}>
+                  <Lock size={34} color={chromatic.rose.primary} />
                 </View>
 
                 <Text style={styles.deleteStepTitle}>Verify Account Closure</Text>
                 <Text style={styles.deleteStepSubtitle}>
                   For your protection, enter the 6-digit verification code sent to{' '}
-                  <Text style={{ fontWeight: '700', color: colors.textMain }}>
+                  <Text style={{ fontWeight: '800', color: '#0F172A' }}>
                     {maskedEmail}
                   </Text>
                 </Text>
@@ -1283,7 +1273,7 @@ export default function SettingsScreen({
                     style={styles.modalCancelBtn}
                     onPress={() => setDeleteStep(2)}
                   >
-                    <Text style={styles.modalCancelBtnText}>← Back</Text>
+                    <Text style={styles.modalCancelBtnText}>Back</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -1296,7 +1286,7 @@ export default function SettingsScreen({
                     disabled={deleteOtp.length !== 6 || deleteOtpLoading}
                   >
                     {deleteOtpLoading ? (
-                      <ActivityIndicator color="#ffffff" size="small" />
+                      <ActivityIndicator color="#FFFFFF" size="small" />
                     ) : (
                       <Text style={styles.finalDeleteConfirmBtnText}>
                         Permanently Delete Account
@@ -1316,72 +1306,104 @@ export default function SettingsScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: 'transparent',
+  },
+  ambientGlowIndigo: {
+    position: 'absolute',
+    top: -40,
+    right: -60,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: 'rgba(99, 102, 241, 0.12)',
+  },
+  ambientGlowViolet: {
+    position: 'absolute',
+    bottom: 80,
+    left: -80,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(168, 85, 247, 0.10)',
   },
   mainHeader: {
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 56 : 36,
-    paddingBottom: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    paddingHorizontal: 22,
+    paddingTop: Platform.OS === 'ios' ? 56 : 42,
+    paddingBottom: 14,
+  },
+  settingsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: chromatic.indigo.bg,
+    borderColor: chromatic.indigo.border,
+    borderWidth: 1,
+    borderRadius: radii.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    gap: 6,
+    marginBottom: 6,
+  },
+  settingsBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: chromatic.indigo.primary,
+    letterSpacing: 0.8,
   },
   screenMainTitle: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: '900',
-    color: '#0f172a',
+    color: '#3730A3',
     letterSpacing: -0.5,
   },
   screenMainSubtitle: {
     fontSize: 13,
-    color: '#64748b',
-    marginTop: 4,
-    fontWeight: '500',
+    color: colors.textMuted,
+    marginTop: 3,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 54 : 32,
-    paddingBottom: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    paddingHorizontal: 18,
+    paddingTop: Platform.OS === 'ios' ? 54 : 40,
+    paddingBottom: 14,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f1f5f9',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.8)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#3730A3',
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingHorizontal: 22,
+    paddingTop: 10,
     paddingBottom: 100,
-    gap: 20,
+    gap: 18,
   },
   profileSummaryCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 22,
+    padding: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
+    borderColor: 'rgba(226, 232, 240, 0.9)',
+    shadowColor: chromatic.indigo.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 3,
   },
   profileSummaryLeft: {
     flexDirection: 'row',
@@ -1390,24 +1412,23 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   summaryAvatar: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     borderWidth: 2,
-    borderColor: '#e0e7ff',
+    borderColor: chromatic.indigo.primary,
   },
   summaryAvatarPlaceholder: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: colors.primary,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
   },
   summaryAvatarLetter: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '900',
   },
   profileSummaryInfo: {
     flex: 1,
@@ -1419,69 +1440,83 @@ const styles = StyleSheet.create({
   summaryName: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#0F172A',
   },
   summaryEmail: {
     fontSize: 12,
-    color: '#64748b',
+    color: colors.textMuted,
     marginTop: 2,
   },
   roleTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: '#eef2ff',
+    backgroundColor: chromatic.indigo.bg,
+    borderColor: chromatic.indigo.border,
+    borderWidth: 1,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
     marginTop: 6,
+    gap: 4,
   },
   roleTagText: {
     fontSize: 10,
     fontWeight: '800',
-    color: colors.primary,
+    color: chromatic.indigo.primary,
     letterSpacing: 0.5,
   },
   summaryChevronBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#f8fafc',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: chromatic.indigo.bg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   menuGroup: {
+    gap: 10,
+  },
+  groupHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
+    marginBottom: 4,
   },
   groupHeader: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#94a3b8',
+    color: '#64748B',
     letterSpacing: 1,
-    marginLeft: 4,
-    marginBottom: 4,
   },
   menuItem: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 18,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(226, 232, 240, 0.85)',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
   },
   menuItemDisabled: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 18,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    opacity: 0.9,
+    borderColor: 'rgba(226, 232, 240, 0.85)',
   },
   menuIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -1491,26 +1526,42 @@ const styles = StyleSheet.create({
   },
   menuItemTitle: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#0f172a',
+    fontWeight: '800',
+    color: '#0F172A',
   },
   menuItemSubtitle: {
     fontSize: 12,
-    color: '#64748b',
+    color: colors.textMuted,
     marginTop: 2,
+  },
+  verifiedMiniBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: chromatic.emerald.bg,
+    borderColor: chromatic.emerald.border,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radii.pill,
+    gap: 4,
+  },
+  verifiedMiniText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: chromatic.emerald.primary,
   },
   versionCard: {
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   versionText: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#94a3b8',
+    fontWeight: '800',
+    color: '#64748B',
   },
   versionSubtext: {
     fontSize: 11,
-    color: '#cbd5e1',
+    color: '#94A3B8',
     marginTop: 2,
   },
   logoutMainButton: {
@@ -1518,56 +1569,55 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#fff1f2',
+    backgroundColor: chromatic.rose.bg,
     borderWidth: 1,
-    borderColor: '#fecdd3',
+    borderColor: chromatic.rose.border,
     borderRadius: 16,
     paddingVertical: 14,
-    marginTop: 6,
+    marginTop: 4,
   },
   logoutMainButtonText: {
     fontSize: 15,
     fontWeight: '800',
-    color: colors.danger,
+    color: chromatic.rose.primary,
   },
   // ── Account Details Screen Styles ──
   avatarSection: {
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   avatarWrapper: {
     position: 'relative',
   },
   avatarImage: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     borderWidth: 3,
-    borderColor: colors.primary,
+    borderColor: chromatic.indigo.primary,
   },
   avatarPlaceholder: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: colors.primary,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarLetter: {
-    color: '#ffffff',
-    fontSize: 36,
+    color: '#FFFFFF',
+    fontSize: 38,
     fontWeight: '900',
   },
   cameraBadge: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.primary,
-    borderWidth: 2,
-    borderColor: '#ffffff',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: chromatic.indigo.primary,
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -1577,24 +1627,34 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   changeAvatarBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginTop: 10,
     paddingHorizontal: 14,
-    paddingVertical: 6,
-    backgroundColor: '#eef2ff',
-    borderRadius: 12,
+    paddingVertical: 7,
+    backgroundColor: chromatic.indigo.bg,
+    borderColor: chromatic.indigo.border,
+    borderWidth: 1,
+    borderRadius: radii.pill,
   },
   changeAvatarBtnText: {
     fontSize: 12,
-    fontWeight: '700',
-    color: colors.primary,
+    fontWeight: '800',
+    color: chromatic.indigo.primary,
   },
   cardGroup: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 22,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    gap: 16,
+    borderColor: 'rgba(226, 232, 240, 0.9)',
+    gap: 14,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 2,
   },
   inputItem: {
     gap: 6,
@@ -1605,7 +1665,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   inputLabel: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '700',
     color: '#334155',
   },
@@ -1613,7 +1673,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#ecfdf5',
+    backgroundColor: chromatic.emerald.bg,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
@@ -1621,38 +1681,51 @@ const styles = StyleSheet.create({
   verifiedTagText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#10b981',
+    color: chromatic.emerald.primary,
   },
   inputFieldBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    paddingHorizontal: 12,
+    borderColor: 'rgba(203, 213, 225, 0.85)',
+    paddingHorizontal: 14,
     height: 48,
     gap: 10,
   },
   inputFieldBoxDisabled: {
-    backgroundColor: '#f1f5f9',
-    borderColor: '#e2e8f0',
+    backgroundColor: 'rgba(241, 245, 249, 0.8)',
+    borderColor: 'rgba(226, 232, 240, 0.8)',
   },
   textInput: {
     flex: 1,
     fontSize: 14,
-    color: '#0f172a',
+    color: '#0F172A',
     fontWeight: '600',
   },
   disabledEmailText: {
     fontSize: 14,
-    color: '#64748b',
+    color: colors.textMuted,
     fontWeight: '600',
+  },
+  chooseDobBtn: {
+    backgroundColor: chromatic.indigo.bg,
+    borderColor: chromatic.indigo.border,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  chooseDobBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: chromatic.indigo.primary,
   },
   nairaPrefix: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.primary,
+    color: chromatic.indigo.primary,
   },
   textAreaBox: {
     height: 84,
@@ -1670,14 +1743,14 @@ const styles = StyleSheet.create({
   categoryPill: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: '#f1f5f9',
+    borderRadius: 12,
+    backgroundColor: 'rgba(241, 245, 249, 0.8)',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(226, 232, 240, 0.8)',
   },
   categoryPillActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: chromatic.indigo.primary,
+    borderColor: chromatic.indigo.primary,
   },
   categoryPillText: {
     fontSize: 12,
@@ -1685,7 +1758,7 @@ const styles = StyleSheet.create({
     color: '#475569',
   },
   categoryPillTextActive: {
-    color: '#ffffff',
+    color: '#FFFFFF',
   },
   durationRow: {
     flexDirection: 'row',
@@ -1694,15 +1767,15 @@ const styles = StyleSheet.create({
   durationPill: {
     flex: 1,
     paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#f1f5f9',
+    borderRadius: 12,
+    backgroundColor: 'rgba(241, 245, 249, 0.8)',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(226, 232, 240, 0.8)',
     alignItems: 'center',
   },
   durationPillActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: chromatic.indigo.primary,
+    borderColor: chromatic.indigo.primary,
   },
   durationPillText: {
     fontSize: 13,
@@ -1710,21 +1783,23 @@ const styles = StyleSheet.create({
     color: '#475569',
   },
   durationPillTextActive: {
-    color: '#ffffff',
+    color: '#FFFFFF',
   },
   saveButton: {
-    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    backgroundColor: chromatic.indigo.primary,
     borderRadius: 16,
     paddingVertical: 15,
     alignItems: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
+    justifyContent: 'center',
+    shadowColor: chromatic.indigo.primary,
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 10,
+    elevation: 4,
   },
   saveButtonText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -1732,13 +1807,13 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   dangerCard: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: chromatic.rose.bg,
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#fecaca',
-    gap: 10,
-    marginTop: 10,
+    borderColor: chromatic.rose.border,
+    gap: 8,
+    marginTop: 8,
   },
   dangerHeaderRow: {
     flexDirection: 'row',
@@ -1748,11 +1823,11 @@ const styles = StyleSheet.create({
   dangerTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: colors.danger,
+    color: chromatic.rose.primary,
   },
   dangerSubtitle: {
     fontSize: 12,
-    color: '#991b1b',
+    color: '#991B1B',
     lineHeight: 18,
   },
   closeAccountButton: {
@@ -1760,16 +1835,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#fca5a5',
+    borderColor: chromatic.rose.border,
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 11,
     marginTop: 4,
   },
   closeAccountButtonText: {
-    color: colors.danger,
-    fontSize: 14,
+    color: chromatic.rose.primary,
+    fontSize: 13,
     fontWeight: '800',
   },
   // ── Modals ──
@@ -1782,10 +1857,15 @@ const styles = StyleSheet.create({
   },
   avatarModalCard: {
     width: '100%',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 22,
     gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
   },
   modalHeaderRow: {
     flexDirection: 'row',
@@ -1795,12 +1875,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0f172a',
-  },
-  modalSubtitle: {
-    fontSize: 13,
-    color: '#64748b',
-    lineHeight: 18,
+    color: '#0F172A',
   },
   closeModalBtn: {
     padding: 4,
@@ -1814,7 +1889,7 @@ const styles = StyleSheet.create({
   uploadingText: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.primary,
+    color: chromatic.indigo.primary,
   },
   avatarActionContainer: {
     gap: 10,
@@ -1822,11 +1897,11 @@ const styles = StyleSheet.create({
   avatarActionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: 'rgba(241, 245, 249, 0.8)',
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(226, 232, 240, 0.8)',
     gap: 14,
   },
   avatarActionIconBox: {
@@ -1841,12 +1916,12 @@ const styles = StyleSheet.create({
   },
   avatarActionTitle: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#0f172a',
+    fontWeight: '800',
+    color: '#0F172A',
   },
   avatarActionSub: {
     fontSize: 12,
-    color: '#64748b',
+    color: colors.textMuted,
     marginTop: 2,
   },
   dividerRow: {
@@ -1858,12 +1933,12 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: 'rgba(226, 232, 240, 0.8)',
   },
   dividerLabel: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: '#94a3b8',
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
     textTransform: 'uppercase',
   },
   avatarGrid: {
@@ -1874,15 +1949,15 @@ const styles = StyleSheet.create({
   },
   avatarGridItem: {
     position: 'relative',
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     borderWidth: 2,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(226, 232, 240, 0.9)',
     overflow: 'hidden',
   },
   avatarGridItemActive: {
-    borderColor: colors.primary,
+    borderColor: chromatic.indigo.primary,
     borderWidth: 3,
   },
   presetImg: {
@@ -1892,14 +1967,14 @@ const styles = StyleSheet.create({
   presetCheckOverlay: {
     position: 'absolute',
     inset: 0,
-    backgroundColor: 'rgba(99, 102, 241, 0.5)',
+    backgroundColor: 'rgba(79, 70, 229, 0.6)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   customUrlContainer: {
     gap: 8,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    borderTopColor: 'rgba(241, 245, 249, 0.9)',
     paddingTop: 12,
   },
   customUrlLabel: {
@@ -1914,22 +1989,22 @@ const styles = StyleSheet.create({
   customUrlInput: {
     flex: 1,
     height: 42,
-    backgroundColor: '#f8fafc',
+    backgroundColor: 'rgba(241, 245, 249, 0.9)',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    paddingHorizontal: 10,
+    borderColor: 'rgba(203, 213, 225, 0.8)',
+    paddingHorizontal: 12,
     fontSize: 12,
-    color: '#0f172a',
+    color: '#0F172A',
   },
   applyUrlBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: chromatic.indigo.primary,
     paddingHorizontal: 14,
     borderRadius: 10,
     justifyContent: 'center',
   },
   applyUrlBtnText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '800',
   },
@@ -1937,17 +2012,24 @@ const styles = StyleSheet.create({
   confirmModalCard: {
     width: '100%',
     maxWidth: 340,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 24,
     alignItems: 'center',
     gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
   },
   logoutIconCircle: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#fee2e2',
+    backgroundColor: chromatic.rose.bg,
+    borderColor: chromatic.rose.border,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
@@ -1955,11 +2037,11 @@ const styles = StyleSheet.create({
   confirmModalTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#0f172a',
+    color: '#0F172A',
   },
   confirmModalSubtitle: {
     fontSize: 13,
-    color: '#64748b',
+    color: colors.textMuted,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -1971,10 +2053,12 @@ const styles = StyleSheet.create({
   },
   modalCancelBtn: {
     flex: 1,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: 'rgba(241, 245, 249, 0.9)',
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(203, 213, 225, 0.8)',
   },
   modalCancelBtnText: {
     fontSize: 14,
@@ -1983,24 +2067,34 @@ const styles = StyleSheet.create({
   },
   modalLogoutBtn: {
     flex: 1,
-    backgroundColor: colors.danger,
+    backgroundColor: chromatic.rose.primary,
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
+    shadowColor: chromatic.rose.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
   },
   modalLogoutBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#ffffff',
+    color: '#FFFFFF',
   },
   // ── Delete Multi-step Modal ──
   deleteModalCard: {
     width: '100%',
     maxHeight: '85%',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 22,
     gap: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
   },
   stepIndicatorRow: {
     flexDirection: 'row',
@@ -2011,28 +2105,30 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepBadgeActive: {
-    backgroundColor: colors.danger,
+    backgroundColor: chromatic.rose.primary,
   },
   stepBadgeText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#ffffff',
+    color: '#FFFFFF',
   },
   stepConnector: {
     width: 20,
     height: 2,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#E2E8F0',
   },
   deleteIconCenter: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#fee2e2',
+    backgroundColor: chromatic.rose.bg,
+    borderColor: chromatic.rose.border,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
@@ -2041,12 +2137,12 @@ const styles = StyleSheet.create({
   deleteStepTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#0f172a',
+    color: '#0F172A',
     textAlign: 'center',
   },
   deleteStepSubtitle: {
     fontSize: 13,
-    color: '#64748b',
+    color: colors.textMuted,
     textAlign: 'center',
     lineHeight: 20,
     marginTop: 4,
@@ -2058,34 +2154,34 @@ const styles = StyleSheet.create({
   reasonOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: 'rgba(241, 245, 249, 0.8)',
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(226, 232, 240, 0.8)',
     gap: 10,
   },
   reasonOptionSelected: {
-    backgroundColor: '#fef2f2',
-    borderColor: '#fca5a5',
+    backgroundColor: chromatic.rose.bg,
+    borderColor: chromatic.rose.border,
   },
   radioCircle: {
     width: 18,
     height: 18,
     borderRadius: 9,
     borderWidth: 2,
-    borderColor: '#94a3b8',
+    borderColor: '#94A3B8',
     alignItems: 'center',
     justifyContent: 'center',
   },
   radioCircleActive: {
-    borderColor: colors.danger,
+    borderColor: chromatic.rose.primary,
   },
   radioDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.danger,
+    backgroundColor: chromatic.rose.primary,
   },
   reasonText: {
     fontSize: 13,
@@ -2094,7 +2190,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   reasonTextActive: {
-    color: colors.danger,
+    color: chromatic.rose.primary,
     fontWeight: '700',
   },
   feedbackContainer: {
@@ -2107,35 +2203,40 @@ const styles = StyleSheet.create({
     color: '#475569',
   },
   feedbackInput: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: 'rgba(241, 245, 249, 0.8)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: 'rgba(203, 213, 225, 0.8)',
     padding: 10,
     fontSize: 13,
-    color: '#0f172a',
+    color: '#0F172A',
     height: 60,
     textAlignVertical: 'top',
   },
   primaryDeleteActionBtn: {
-    backgroundColor: colors.danger,
+    backgroundColor: chromatic.rose.primary,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 18,
+    shadowColor: chromatic.rose.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
   },
   primaryDeleteActionText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '800',
   },
   lossCard: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: chromatic.rose.bg,
     borderRadius: 14,
     padding: 14,
     gap: 10,
     borderWidth: 1,
-    borderColor: '#fecaca',
+    borderColor: chromatic.rose.border,
   },
   lossItem: {
     flexDirection: 'row',
@@ -2143,14 +2244,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   lossBullet: {
-    color: colors.danger,
+    color: chromatic.rose.primary,
     fontWeight: '900',
     fontSize: 13,
   },
   lossText: {
     flex: 1,
     fontSize: 12,
-    color: '#991b1b',
+    color: '#991B1B',
     lineHeight: 18,
     fontWeight: '600',
   },
@@ -2165,14 +2266,14 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#94a3b8',
+    borderColor: '#94A3B8',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
   },
   checkboxBoxActive: {
-    backgroundColor: colors.danger,
-    borderColor: colors.danger,
+    backgroundColor: chromatic.rose.primary,
+    borderColor: chromatic.rose.primary,
   },
   confirmCheckboxText: {
     flex: 1,
@@ -2183,15 +2284,20 @@ const styles = StyleSheet.create({
   },
   sendOtpDangerBtn: {
     flex: 1.4,
-    backgroundColor: colors.danger,
+    backgroundColor: chromatic.rose.primary,
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
+    shadowColor: chromatic.rose.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
   },
   sendOtpDangerBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#ffffff',
+    color: '#FFFFFF',
   },
   resendRow: {
     alignItems: 'center',
@@ -2199,25 +2305,30 @@ const styles = StyleSheet.create({
   },
   countdownText: {
     fontSize: 13,
-    color: '#64748b',
+    color: colors.textMuted,
     fontWeight: '600',
   },
   resendActionText: {
     fontSize: 13,
-    color: colors.primary,
+    color: chromatic.indigo.primary,
     fontWeight: '800',
   },
   finalDeleteConfirmBtn: {
     flex: 1.6,
-    backgroundColor: colors.danger,
+    backgroundColor: chromatic.rose.primary,
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
+    shadowColor: chromatic.rose.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
   },
   finalDeleteConfirmBtnText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#ffffff',
+    color: '#FFFFFF',
   },
   pillSelectorRow: {
     flexDirection: 'row',
@@ -2228,22 +2339,23 @@ const styles = StyleSheet.create({
   settingsPill: {
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: '#f1f5f9',
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(241, 245, 249, 0.8)',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(226, 232, 240, 0.8)',
   },
   settingsPillActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: chromatic.indigo.primary,
+    borderColor: chromatic.indigo.primary,
   },
   settingsPillText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748b',
+    color: '#475569',
   },
   settingsPillTextActive: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontWeight: '700',
   },
 });
+

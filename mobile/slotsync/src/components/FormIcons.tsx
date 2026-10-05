@@ -1,7 +1,7 @@
 import React from 'react';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
 
-export function EmailInputIcon({ size = 18, color = "#64748b" }: { size?: number; color?: string }) {
+export function EmailInputIcon({ size = 18, color = "#526078" }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Rect x="3" y="5" width="18" height="14" rx="3" stroke={color} strokeWidth="2" />
@@ -10,7 +10,7 @@ export function EmailInputIcon({ size = 18, color = "#64748b" }: { size?: number
   );
 }
 
-export function LockInputIcon({ size = 18, color = "#64748b" }: { size?: number; color?: string }) {
+export function LockInputIcon({ size = 18, color = "#526078" }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Rect x="4" y="11" width="16" height="10" rx="3" stroke={color} strokeWidth="2" fill="none" />
@@ -29,7 +29,7 @@ export function EyeOpenIcon({ size = 20, color = "#6366f1" }: { size?: number; c
   );
 }
 
-export function EyeOffSlashIcon({ size = 20, color = "#94a3b8" }: { size?: number; color?: string }) {
+export function EyeOffSlashIcon({ size = 20, color = "#71809A" }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12C1 12 3.05 7.82 7.06 5.06" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
