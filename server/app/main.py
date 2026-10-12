@@ -6,13 +6,17 @@ from fastapi.staticfiles import StaticFiles
 from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.database import init_db
+from app.core.seed import seed_admin
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize / migrate database tables
     await init_db()
+    # Seed / ensure default admin account exists
+    await seed_admin()
     yield
+
 
 
 
