@@ -12,6 +12,12 @@ elif db_url.startswith("postgres://"):
 if "sslmode=" in db_url:
     db_url = db_url.replace("sslmode=", "ssl=")
 
+if "channel_binding=" in db_url:
+    import re
+    db_url = re.sub(r'[?&]channel_binding=[^&]+', '', db_url)
+    if '?' not in db_url and '&' in db_url:
+        db_url = db_url.replace('&', '?', 1)
+
 engine = create_async_engine(
     db_url,
     echo=False,

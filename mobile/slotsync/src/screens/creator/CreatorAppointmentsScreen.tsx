@@ -241,7 +241,6 @@ export default function CreatorAppointmentsScreen() {
       {/* Header */}
       <View style={styles.topHeader}>
         <View style={styles.headerTag}>
-          <LayoutList size={13} color={chromatic.indigo.primary} />
           <Text style={styles.headerTagText}>CONSULTATION HUB</Text>
         </View>
 
@@ -266,11 +265,6 @@ export default function CreatorAppointmentsScreen() {
                 onPress={() => setStatusFilter(item.id)}
                 activeOpacity={0.8}
               >
-                <IconComponent 
-                  size={13} 
-                  color={isActive ? '#FFFFFF' : colors.textMuted} 
-                  style={{ marginRight: 5 }} 
-                />
                 <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>
                   {item.label}
                 </Text>

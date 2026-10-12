@@ -143,7 +143,6 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
             onPress={() => setModalVisible(true)} 
             activeOpacity={0.85}
           >
-            <Plus size={15} color="#ffffff" strokeWidth={2.8} />
             <Text style={styles.addBtnText}>Add Rule</Text>
           </TouchableOpacity>
         </View>
@@ -168,7 +167,6 @@ export default function ManageAvailabilityScreen({ currentUser, onBack }: Props)
             onPress={() => setModalVisible(true)} 
             activeOpacity={0.88}
           >
-            <Plus size={16} color="#ffffff" strokeWidth={2.8} />
             <Text style={styles.createFirstBtnText}>Add Availability Rule</Text>
           </TouchableOpacity>
         </View>

@@ -184,11 +184,10 @@ export default function CreatorDashboardScreen({
 
         <View style={styles.heroHeader}>
           <View style={styles.heroBadge}>
-            <Sparkles size={12} color="#ffffff" strokeWidth={2.4} />
             <Text style={styles.heroBadgeText}>LIVE SCHEDULE ACTIVE</Text>
           </View>
           <TouchableOpacity style={styles.heroDetailBtn} onPress={onNavigateToBookings} activeOpacity={0.8}>
-            <Text style={styles.heroDetailBtnText}>View Bookings →</Text>
+            <Text style={styles.heroDetailBtnText}>View Bookings</Text>
           </TouchableOpacity>
         </View>
 
@@ -219,7 +218,7 @@ export default function CreatorDashboardScreen({
           <Text style={styles.rulesSubtitle}>Automated calendar slot generation</Text>
         </View>
         <TouchableOpacity style={styles.addRuleBtn} onPress={onNavigateToSchedule} activeOpacity={0.8}>
-          <Text style={styles.addRuleBtnText}>+ Add Rule</Text>
+          <Text style={styles.addRuleBtnText}>Add Rule</Text>
         </TouchableOpacity>
       </View>
 
